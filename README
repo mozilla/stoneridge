@@ -1,0 +1,7 @@
+This is the source for Stone Ridge (https://wiki.mozilla.org/Necko/Performance/AutomatedTesting).
+
+Currently it consists of
+    * XPCShell JS to download network resources and report timings
+    * Python harness to control xpcshell and upload timings to a graph server
+
+There are plans for more, but we're starting basic here, folks.
