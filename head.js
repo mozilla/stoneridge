@@ -13,18 +13,15 @@ var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cr = Components.results;
 
+var STONERIDGE_FINISHED = false;
+
 /*
  * Write some JSON object to the file named in OUT_FILE.
  */
 function writeTestLog(json_obj) {
   var ofile = Cc["@mozilla.org/file/directory_service;1"].
               getService(Ci.nsIProperties).
-              get("CurWorkD", Ci.nsILocalFile);
-
-  // Walk up to the root
-  while (ofile.parent) {
-    ofile = ofile.parent;
-  }
+              get("TmpD", Ci.nsILocalFile);
 
   // And use the file determined by our caller
   ofile.append(OUT_FILE);
@@ -37,6 +34,8 @@ function writeTestLog(json_obj) {
   var jstring = JSON.stringify(json_obj);
   ostream.write(jstring, jstring.length);
   ostream.close();
+
+  STONERIDGE_FINISHED = true;
 }
 
 /*
@@ -44,5 +43,14 @@ function writeTestLog(json_obj) {
  */
 function stoneRidge(output_filename) {
   OUT_FILE = output_filename;
+  STONERIDGE_FINISHED = false;
   run_test();
+
+  // Pump the event loop until we're told to stop
+  var thread = Cc["@mozilla.org/thread-manager;1"].
+               getService().currentThread;
+  while (!STONERIDGE_FINISHED)
+    thread.processNextEvent(true);
+  while (thread.hasPendingEvents())
+    thread.processNextEvent(true);
 }
