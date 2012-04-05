@@ -84,15 +84,18 @@ class StoneRidge(object):
         """Return a list of test file names, all relative to the test root.
         This weeds out any tests that may be missing from the directory.
         """
-        candidates = self.tests if self.tests else (os.path.basename(f) for f in
-                                                    glob.glob(os.path.join(self.root,
-                                                                           '*.js')))
+        if not self.tests:
+            return [os.path.basename(f) for f in
+                    glob.glob(os.path.join(self.root, '*.js'))]
+
         tests = []
-        for c in candidates:
-            if not os.path.exists(c):
-                self.debug.write('### MISSING TEST %s\n' % (c,))
+        for candidate in self.tests:
+            if not candidate.endswith('.js'):
+                self.debug.write('### INVALID TEST %s\n' % (candidate,))
+            elif not os.path.exists(os.path.join(self.root, candidate)):
+                self.debug.write('### MISSING TEST %s\n' % (candidate,))
             else:
-                tests.append(c)
+                tests.append(candidate)
 
         return tests
 
