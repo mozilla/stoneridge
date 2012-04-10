@@ -12,6 +12,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 class StoneRidge(object):
     """A class to run Stone Ridge tests
@@ -141,6 +142,27 @@ class StoneRidge(object):
     def upload(self):
         """Process and upload our results to the graphserver
         """
+        data = {'test_machine':{'name':'<hostname:qm-pxp01>',
+                                'os':'<os:linux>',
+                                'osversion':'<os version:Ubuntu 11.10>',
+                                'platform':'<platform:x86_64>'},
+                'test_build':{'name':'Firefox',
+                              'version':'<fx version:14.0a1>',
+                              'revision':'<hg revision:785345035a3b>',
+                              'branch':'',
+                              'id':'<buildid:20120228122102>'},
+                'testrun':{'date':int(time.time()), # time tests occurred
+                           'suite':'<suite name:Talos tp5r>',
+                           'options':'<dict of test options -> values>',
+                           'results':{}, # test name -> list of times
+                           'results_aux':{}} # like results, but not quite clear what values are
+               }
+        results = data['testrun']['results']
+        for o in self.outfiles:
+            with file(o) as f:
+                run_data = json.load(f)
+            for name, res in run_data.iteritems():
+                results[name] = [res['end'] - res['start']]
         sys.stderr.write('Uploading results is not yet implemented\n')
 
 if __name__ == '__main__':
