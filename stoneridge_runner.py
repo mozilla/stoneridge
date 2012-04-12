@@ -19,14 +19,11 @@ class StoneRidgeRunner(object):
     """A class to run Stone Ridge tests
     """
 
-    def __init__(self, bindir, root, tests=None, heads=None, graphserver=None,
-                 log=None):
+    def __init__(self, bindir, root, tests=None, heads=None):
         """bindir - the directory where xpcshell lives
            root - the directory where the tests live
            tests - a subset of the tests to run
            heads - js files that provide extra functionality
-           graphserver - URL of the graphserver to upload to
-           log - file to write debugging output to (stdout by default)
         """
         # Make sure we have a directory with tests
         if not os.path.exists(root) or not os.path.isdir(root):
@@ -52,8 +49,6 @@ class StoneRidgeRunner(object):
         self.tests = tests
         self.heads = heads
         self.tails = tails
-        self.graphserver = graphserver
-        self.log = log
 
         # Figure out where our builtins live based on where we are
         self.builtin = os.path.dirname(__file__)
@@ -93,9 +88,9 @@ class StoneRidgeRunner(object):
         tests = []
         for candidate in self.tests:
             if not candidate.endswith('.js'):
-                self.debug.write('### INVALID TEST %s\n' % (candidate,))
+                sys.stdout.write('### INVALID TEST %s\n' % (candidate,))
             elif not os.path.exists(os.path.join(self.root, candidate)):
-                self.debug.write('### MISSING TEST %s\n' % (candidate,))
+                sys.stdout.write('### MISSING TEST %s\n' % (candidate,))
             else:
                 tests.append(candidate)
 
@@ -119,26 +114,18 @@ class StoneRidgeRunner(object):
         tests = self._build_testlist()
         preargs = self._build_preargs()
 
-        if self.log:
-            xpcshell_out = file(self.log, 'w')
-        else:
-            xpcshell_out = sys.stdout
-
         self.outfiles = []
         self.failures = []
         for test in tests:
             outfile = os.path.join(self.tmpdir, '%s.out' % (test,))
             args = preargs + ['-f', os.path.join(self.root, test)] + \
                     ['-e', 'do_stoneridge(' + outfile + '); quit(0);']
-            res, _ = self._run_xpcshell(args, stdout=xpcshell_out)
+            res, _ = self._run_xpcshell(args, stdout=sys.stdout)
             outfiles.append(outfile)
             if res:
-                if self.log:
-                    xpcshell_out.write('### TEST FAIL: %s\n' % (test,))
+                sys.stdout.write('### TEST FAIL: %s\n' % (test,))
                 failures.append(test)
 
-        if self.log:
-            xpcshell_out.close()
 
 @stoneridge.main
 def main():
