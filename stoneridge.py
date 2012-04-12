@@ -3,7 +3,7 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-# run xpcshell -v 180 -f /path/to/head.js -f /path/to/test.js -e 'stoneRidge(<outfile>); quit(0);'
+# run xpcshell -v 180 -f /path/to/head.js -f /path/to/test.js -e 'do_stoneridge(<outfile>); quit(0);'
 # cwd must be objdir/dist/bin
 
 import argparse
@@ -128,7 +128,7 @@ class StoneRidge(object):
         for test in tests:
             outfile = os.path.join(self.tmpdir, '%s.out' % (test,))
             args = preargs + ['-f', os.path.join(self.root, test)] + \
-                    ['-e', 'stoneRidge(' + outfile + '); quit(0);']
+                    ['-e', 'do_stoneridge(' + outfile + '); quit(0);']
             res, _ = self._run_xpcshell(args, stdout=xpcshell_out)
             outfiles.append(outfile)
             if res:
