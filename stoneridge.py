@@ -2,8 +2,10 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import ConfigParser
 import inspect
 import platform
+import StringIO
 import sys
 import traceback
 
@@ -31,19 +33,48 @@ def main(_main):
     parent = inspect.stack()[1][0]
     name = parent.f_locals.get('__name__', None)
     if name == '__main__':
+        rval = 0
         try:
-            _main()
+            rval = _main()
+            if rval is None:
+                rval = 0
         except Exception, e:
             traceback.print_tb(sys.exc_info()[2], None, sys.stderr)
             sys.exit(1)
-        sys.exit(0)
+        sys.exit(rval)
     return _main
 
 def update(conffile):
     """Update the stone ridge installation from the latest source
     """
-    # TODO
-    pass
+    cp = ConfigParser.SafeConfigParser()
+    cp.load([conffile])
+
+    try:
+        scheme = cp.get('update', 'scheme')
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
+        return
+
+    try:
+        url = cp.get('update', 'url')
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
+        url = None
+
+    if scheme == 'hg':
+        args = ['hg', 'pull', '-u']
+    elif scheme == 'git':
+        args = ['git', 'pull']
+    else:
+        return
+
+    if url:
+        args.append(url)
+
+    outbuf = StringIO.StringIO()
+    if subprocess.call(args, stdout=outbuf, stderr=subprocess.STDOUT):
+        sys.stderr.write('Error updating Stone Ridge\n')
+        sys.stderr.write(outbuf.getvalue())
+    outbuf.close()
 
 class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, **kwargs):

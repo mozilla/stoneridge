@@ -3,11 +3,7 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
-
+import ConfigParser
 import json
 import os
 import platform
@@ -17,7 +13,7 @@ import stoneridge
 class StoneRidgeInfoGatherer(object):
     def run(self):
         info_file = os.path.join(stoneridge.bindir, 'application.ini')
-        cp = configparser.SafeConfigParser()
+        cp = ConfigParser.SafeConfigParser()
         cp.read([info_file])
 
         build_info = {}
