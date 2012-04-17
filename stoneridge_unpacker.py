@@ -1,5 +1,4 @@
 import argparse
-import glob
 import os
 import shutil
 import subprocess
@@ -13,7 +12,7 @@ class StoneRidgeUnpacker(object):
             return WindowsUnpacker()
         elif sysname == 'linux':
             return LinuxUnpacker()
-        elif sysname == 'Mac':
+        elif sysname == 'mac':
             return MacUnpacker()
 
         raise ValueError, 'Invalid system type: %s' % (sysname,)
@@ -23,7 +22,6 @@ class StoneRidgeUnpacker(object):
         self.firefoxpkg = os.path.abspath(firefoxpkg)
         self.testzip = os.path.abspath(testzip)
         self.xpcshell = 'xpcshell'
-        self.fxbindir = 'firefox'
 
     def run(self):
         # Make sure our destination directory exists and is empty
@@ -41,16 +39,16 @@ class StoneRidgeUnpacker(object):
 
         # Put the xpcshell binary where it belongs
         xpcshell = os.path.join(unzipdir, 'bin', self.xpcshell)
-        shutil.copy(xpcshell, self.fxbindir)
+        shutil.copy(xpcshell, stoneridge.firefox_bindir())
 
         # Put our components into place
         components = os.path.join(unzipdir, 'bin', 'components', '*')
-        fxcomponents = os.path.join(self.fxbindir, 'components')
+        fxcomponents = os.path.join(stoneridge.firefox_bindir(), 'components')
         subprocess.call(['bash', '-c',
             'cp -R "%s" "%s"' % (components, fxcomponents)])
 
         # Put the plugins in place, in case we need them
-        fxplugins = os.path.join(self.fxbindir, 'plugins')
+        fxplugins = os.path.join(stoneridge.firefox_bindir(), 'plugins')
         if not os.path.exists(fxplugins):
             os.mkdir(fxplugins)
         plugins = os.path.join(unzipdir, 'bin', 'plugins', '*')
@@ -84,11 +82,6 @@ class MacUnpacker(StoneRidgeUnpacker):
         installdmg = os.path.join(mydir, 'installdmg.sh')
         subprocess.call(['/bin/bash', installdmg, self.firefoxpkg],
                 cwd=self.destdir)
-
-        pattern = os.path.join(self.destdir, '*.app')
-        appdir = glob.glob(pattern)[0]
-        appdir = os.path.basename(appdir)
-        self.fxbindir = os.path.join(self.destdir, appdir, 'Contents', 'MacOS')
 
 @stoneridge.main
 def main():
