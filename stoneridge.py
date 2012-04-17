@@ -4,8 +4,8 @@ import sys
 import traceback
 
 # General information common to all stoneridge programs
-system_name = None
-system_version = None
+os_name = None
+os_version = None
 download_platform = None
 download_suffix = None
 
@@ -42,60 +42,60 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--workdir', dest='_sr_work_', required=True,
                 help='Directory to do all the work in')
 
-    def _determine_system_name(self):
+    def _determine_os_name(self):
         """Determine the os from platform.system
         """
-        global system_name
-        system_name = platform.system().lower()
-        if system_name == 'darwin':
-            system_name = 'mac'
+        global os_name
+        os_name = platform.system().lower()
+        if os_name == 'darwin':
+            os_name = 'mac'
 
-    def _determine_system_version():
+    def _determine_os_version():
         """Determine the os version
         """
-        global system_version
-        if system_name == 'linux':
-            system_version = ' '.join(platform.linux_distribution[0:2])
-        elif system_name == 'mac':
-            system_version = platform.mac_ver[0]
+        global os_version
+        if os_name == 'linux':
+            os_version = ' '.join(platform.linux_distribution[0:2])
+        elif os_name == 'mac':
+            os_version = platform.mac_ver[0]
         elif system == 'windows':
-            system_version = platform.win32_ver()[1]
+            os_version = platform.win32_ver()[1]
         else:
-            system_version = 'Unknown'
+            os_version = 'Unknown'
 
     def _determine_download_platform():
         """Determine which platform to download files for
         """
         global download_platform
-        if system_name == 'linux':
+        if os_name == 'linux':
             if platform.machine() == 'x86_64':
                 download_platform = 'linux64'
             else:
                 download_platform = 'linux32
-        elif system_name == 'windows':
+        elif os_name == 'windows':
             if platform.machine() == 'x86_64':
                 download_platform = 'win64'
             else:
                 download_platform = 'win32'
         else:
-            download_platform = system_name
+            download_platform = os_name
 
     def _determine_download_suffix():
         """Determine the suffix of the firefox archive to download
         """
         global download_suffix
-        if system_name == 'linux':
+        if os_name == 'linux':
             download_suffix = 'tar.bz2'
-        elif system_name == 'mac':
+        elif os_name == 'mac':
             download_suffix = 'dmg'
         else:
             download_suffix = 'zip'
 
-    def _determine_firefox_bindir():
+    def _determine_bindir():
         """Determine the location of the firefox binary based on platform
         """
         global bindir
-        if system_name == 'mac':
+        if os_name == 'mac':
             bindir = os.path.join(workdir, 'FirefoxNightly.app', 'Contents',
                     'MacOS')
         else:
@@ -116,10 +116,10 @@ class ArgumentParser(argparse.ArgumentParser):
         testroot = os.path.join(installroot, 'tests')
         outdir = os.path.join(workdir, 'out')
 
-        self._determine_system_name()
-        self._determine_system_version()
+        self._determine_os_name()
+        self._determine_os_version()
         self._determine_download_platform()
         self._determine_download_suffix()
-        self._determine_firefox_bindir()
+        self._determine_bindir()
 
         return args

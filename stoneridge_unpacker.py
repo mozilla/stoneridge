@@ -6,11 +6,11 @@ import stoneridge
 
 class StoneRidgeUnpacker(object):
     def __new__(self, *args, **kwargs):
-        if stoneridge.system_name == 'windows':
+        if stoneridge.os_name == 'windows':
             return WindowsUnpacker()
-        elif stoneridge.system_name == 'linux':
+        elif stoneridge.os_name == 'linux':
             return LinuxUnpacker()
-        elif stoneridge.system_name == 'mac':
+        elif stoneridge.os_name == 'mac':
             return MacUnpacker()
 
         raise ValueError, 'Invalid system type: %s' % (sysname,)
