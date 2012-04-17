@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# This Source Code Form is subject to the terms of the Mozilla Public License,
+# v. 2.0. If a copy of the MPL was not distributed with this file, You can
+# obtain one at http://mozilla.org/MPL/2.0/.
+
 import os
 import shutil
 import subprocess
@@ -15,23 +20,18 @@ class StoneRidgeUnpacker(object):
 
         raise ValueError, 'Invalid system type: %s' % (sysname,)
 
-    def __init__(self, destdir, firefoxpkg, testzip):
-        self.destdir = os.path.abspath(destdir)
-        self.firefoxpkg = os.path.abspath(firefoxpkg)
-        self.testzip = os.path.abspath(testzip)
+    def __init__(self):
         self.xpcshell = 'xpcshell'
+        self.firefoxpkg = os.path.join(stoneridge.downloaddir,
+                'firefox.%s' % (stoneridge.download_suffix,))
+        self.testzip = os.path.join(stoneridge.downloaddir, 'tests.zip')
 
     def run(self):
-        # Make sure our destination directory exists and is empty
-        if os.path.exists(self.destdir):
-            shutil.rmtree(self.destdir)
-        os.mkdir(self.destdir)
-
         # Get our firefox
         self.unpack_firefox()
 
         # Unzip the stuff we need from the tests zipfile
-        unzipdir = os.path.join(self.destdir, 'unzip')
+        unzipdir = os.path.join(stoneridge.workdir, 'unzip')
         os.mkdir(unzipdir)
         subprocess.call(['unzip', self.testzip, 'bin*'], cwd=unzipdir)
 
@@ -60,16 +60,19 @@ class WindowsUnpacker(StoneRidgeUnpacker):
     def __new__(*args, **kwargs):
         return object.__new__(WindowsUnpacker)
 
-    def unpack_firefox(self):
-        subprocess.call(['unzip', self.firefoxpkg], cwd=self.destdir)
+    def __init__(self):
+        StoneRidgeUnpacker.__init__(self)
         self.xpcshell = 'xpcshell.exe'
+
+    def unpack_firefox(self):
+        subprocess.call(['unzip', self.firefoxpkg], cwd=stoneridge.workdir)
 
 class LinuxUnpacker(StoneRidgeUnpacker):
     def __new__(*args, **kwargs):
         return object.__new__(LinuxUnpacker)
 
     def unpack_firefox(self):
-        subprocess.call(['tar', 'xjvf', self.firefoxpkg], cwd=self.destdir)
+        subprocess.call(['tar', 'xjvf', self.firefoxpkg], cwd=stoneridge.workdir)
 
 class MacUnpacker(StoneRidgeUnpacker):
     def __new__(*args, **kwargs):
@@ -79,20 +82,13 @@ class MacUnpacker(StoneRidgeUnpacker):
         mydir = os.path.split(__file__)[0]
         installdmg = os.path.join(mydir, 'installdmg.sh')
         subprocess.call(['/bin/bash', installdmg, self.firefoxpkg],
-                cwd=self.destdir)
+                cwd=stoneridge.workdir)
 
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.add_argument('--destdir', dest='destdir', required=True,
-            help='Directory to unpack to')
-    parser.add_argument('--fxpkg', dest='firefoxpkg', required=True,
-            help='Location of Firefox package')
-    parser.add_argument('--testzip', dest='testzip', required=True,
-            help='Location of test zipfile')
 
     args = parser.parse_args()
 
-    unpacker = StoneRidgeUnpacker(args['destdir'], args['firefoxpkg'],
-            args['testzip'])
+    unpacker = StoneRidgeUnpacker()
     unpacker.run()

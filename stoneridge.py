@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public License,
+# v. 2.0. If a copy of the MPL was not distributed with this file, You can
+# obtain one at http://mozilla.org/MPL/2.0/.
+
 import inspect
 import platform
 import sys
@@ -12,10 +16,12 @@ download_suffix = None
 # Paths that multiple programs need to know about
 installroot = None
 workdir = None
-dldir = None
+downloaddir = None
 bindir = None
 testroot = None
 outdir = None
+archivedir = None
+logdir = None
 
 def main(_main):
     """Mark a function as the main function to run when run as a script.
@@ -33,15 +39,22 @@ def main(_main):
         sys.exit(0)
     return _main
 
+def update(conffile):
+    """Update the stone ridge installation from the latest source
+    """
+    # TODO
+    pass
+
 class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, **kwargs):
-        ArgumentParser.__init__(self, **kwargs)
+        argparse.ArgumentParser.__init__(self, **kwargs)
 
         self.add_argument('--root', dest='_sr_root_', required=True,
                 help='Root of Stone Ridge installation')
         self.add_argument('--workdir', dest='_sr_work_', required=True,
                 help='Directory to do all the work in')
 
+    @staticmethod
     def _determine_os_name(self):
         """Determine the os from platform.system
         """
@@ -50,6 +63,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if os_name == 'darwin':
             os_name = 'mac'
 
+    @staticmethod
     def _determine_os_version():
         """Determine the os version
         """
@@ -63,6 +77,7 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             os_version = 'Unknown'
 
+    @staticmethod
     def _determine_download_platform():
         """Determine which platform to download files for
         """
@@ -80,6 +95,7 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             download_platform = os_name
 
+    @staticmethod
     def _determine_download_suffix():
         """Determine the suffix of the firefox archive to download
         """
@@ -91,6 +107,7 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             download_suffix = 'zip'
 
+    @staticmethod
     def _determine_bindir():
         """Determine the location of the firefox binary based on platform
         """
@@ -101,25 +118,33 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             bindir = os.path.join(workdir, 'firefox')
 
-    def parse_args(self, **kwargss):
+    @staticmethod
+    def setup_dirnames(srroot, srwork):
         global installroot
         global workdir
-        global dldir
+        global downloaddir
         global testroot
         global outdir
+        global archivedir
+        global logdir
 
-        args = ArgumentParser.parse_args(self, **kwargs)
-
-        installroot = os.path.abspath(args['_sr_root_'])
-        workdir = os.path.abspath(args['_sr_work_'])
-        dldir = os.path.join(workdir, 'dl')
+        installroot = os.path.abspath(srroot)
+        workdir = os.path.abspath(srwork)
+        downloaddir = os.path.join(workdir, 'dl')
         testroot = os.path.join(installroot, 'tests')
         outdir = os.path.join(workdir, 'out')
+        archivedir = os.path.join(installroot, 'archives')
+        logdir = os.path.join(installroot, 'logs')
 
-        self._determine_os_name()
-        self._determine_os_version()
-        self._determine_download_platform()
-        self._determine_download_suffix()
-        self._determine_bindir()
+        ArgumentParser._determine_os_name()
+        ArgumentParser._determine_os_version()
+        ArgumentParser._determine_download_platform()
+        ArgumentParser._determine_download_suffix()
+        ArgumentParser._determine_bindir()
+
+    def parse_args(self, **kwargss):
+        args = argparse.ArgumentParser.parse_args(self, **kwargs)
+
+        self.setup_dirnames(args['_sr_root_'], args['_sr_work_'])
 
         return args
