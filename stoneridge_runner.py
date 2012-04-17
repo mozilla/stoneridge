@@ -3,10 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-# run xpcshell -v 180 -f /path/to/head.js -f /path/to/test.js -e 'do_stoneridge(<outfile>); quit(0);'
-# cwd must be objdir/dist/bin
-
-import argparse
 import glob
 import json
 import os
@@ -15,27 +11,17 @@ import subprocess
 import sys
 import time
 
+import stoneridge
+
 class StoneRidgeRunner(object):
     """A class to run Stone Ridge tests
     """
 
-    def __init__(self, bindir, root, tests=None, heads=None):
-        """bindir - the directory where xpcshell lives
-           root - the directory where the tests live
-           tests - a subset of the tests to run
+    def __init__(self, tests=None, heads=None):
+        """tests - a subset of the tests to run
            heads - js files that provide extra functionality
         """
-        # Make sure we have a directory with tests
-        if not os.path.exists(root) or not os.path.isdir(root):
-            raise Exception, 'test root %s is not a directory' % (root,)
-        self.testroot = root
-
-        # Make sure xpcshell is where we think it should be
-        if not os.path.exists(bindir) or not os.path.isdir(bindir):
-            raise Exception, 'bindir %s is not a directory' % (bindir,)
-        self.bindir = bindir
-
-        self.xpcshell = os.path.join(self.bindir, 'xpcshell')
+        self.xpcshell = os.path.join(stoneridge.bindir, 'xpcshell')
         if not os.path.exists(self.xpcshell) or not os.path.isfile(self.xpcshell):
             raise Exception, 'xpcshell does not exist in bindir'
 
@@ -58,7 +44,7 @@ class StoneRidgeRunner(object):
         """
         xpcargs = [self.xpcshell] + args
         proc = subprocess.Popen(xpcargs, stdout=stdout,
-                stderr=subprocess.STDOUT, cwd=self.bindir)
+                stderr=subprocess.STDOUT, cwd=stoneridge.bindir)
         res = proc.wait()
         return (res, proc.stdout)
 
@@ -83,13 +69,13 @@ class StoneRidgeRunner(object):
         """
         if not self.tests:
             return [os.path.basename(f) for f in
-                    glob.glob(os.path.join(self.root, '*.js'))]
+                    glob.glob(os.path.join(stoneridge.testroot, '*.js'))]
 
         tests = []
         for candidate in self.tests:
             if not candidate.endswith('.js'):
                 sys.stdout.write('### INVALID TEST %s\n' % (candidate,))
-            elif not os.path.exists(os.path.join(self.root, candidate)):
+            elif not os.path.exists(os.path.join(stoneridge.testroot, candidate)):
                 sys.stdout.write('### MISSING TEST %s\n' % (candidate,))
             else:
                 tests.append(candidate)
@@ -118,7 +104,7 @@ class StoneRidgeRunner(object):
         self.failures = []
         for test in tests:
             outfile = os.path.join(self.tmpdir, '%s.out' % (test,))
-            args = preargs + ['-f', os.path.join(self.root, test)] + \
+            args = preargs + ['-f', os.path.join(stoneridge.testroot, test)] + \
                     ['-e', 'do_stoneridge(' + outfile + '); quit(0);']
             res, _ = self._run_xpcshell(args, stdout=sys.stdout)
             outfiles.append(outfile)
@@ -129,17 +115,13 @@ class StoneRidgeRunner(object):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-b', dest='bindir', required=True,
-                        help='Directory holding xpcshell binary')
-    parser.add_argument('-r', dest='root', required=True,
-                        help='Root path to test files')
-    parser.add_argument('-f', dest='heads', action='append', metavar='HEADFILE',
+    parser = stoneridge.ArgumentParser()
+    parser.add_argument('--head', dest='heads', action='append', metavar='HEADFILE',
                         help='Extra head.js file to append (can be used more than once)')
     parser.add_argument('tests', nargs='*', metavar='TEST',
                         help='Name of single test file to run')
 
     args = parser.parse_args()
 
-    runner = StoneRidgeRunner(args.bindir, args.root, args.tests, args.heads)
+    runner = StoneRidgeRunner(args.tests, args.heads)
     runner.run()

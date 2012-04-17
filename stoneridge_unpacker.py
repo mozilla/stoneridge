@@ -1,4 +1,3 @@
-import argparse
 import os
 import shutil
 import subprocess
@@ -7,12 +6,11 @@ import stoneridge
 
 class StoneRidgeUnpacker(object):
     def __new__(self, *args, **kwargs):
-        sysname = stoneridge.system_name()
-        if sysname == 'windows':
+        if stoneridge.system_name == 'windows':
             return WindowsUnpacker()
-        elif sysname == 'linux':
+        elif stoneridge.system_name == 'linux':
             return LinuxUnpacker()
-        elif sysname == 'mac':
+        elif stoneridge.system_name == 'mac':
             return MacUnpacker()
 
         raise ValueError, 'Invalid system type: %s' % (sysname,)
@@ -39,16 +37,16 @@ class StoneRidgeUnpacker(object):
 
         # Put the xpcshell binary where it belongs
         xpcshell = os.path.join(unzipdir, 'bin', self.xpcshell)
-        shutil.copy(xpcshell, stoneridge.firefox_bindir())
+        shutil.copy(xpcshell, stoneridge.bindir)
 
         # Put our components into place
         components = os.path.join(unzipdir, 'bin', 'components', '*')
-        fxcomponents = os.path.join(stoneridge.firefox_bindir(), 'components')
+        fxcomponents = os.path.join(stoneridge.bindir, 'components')
         subprocess.call(['bash', '-c',
             'cp -R "%s" "%s"' % (components, fxcomponents)])
 
         # Put the plugins in place, in case we need them
-        fxplugins = os.path.join(stoneridge.firefox_bindir(), 'plugins')
+        fxplugins = os.path.join(stoneridge.bindir, 'plugins')
         if not os.path.exists(fxplugins):
             os.mkdir(fxplugins)
         plugins = os.path.join(unzipdir, 'bin', 'plugins', '*')
@@ -85,12 +83,12 @@ class MacUnpacker(StoneRidgeUnpacker):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d', dest='destdir', required=True,
+    parser = stoneridge.ArgumentParser()
+    parser.add_argument('--destdir', dest='destdir', required=True,
             help='Directory to unpack to')
-    parser.add_argument('-f', dest='firefoxpkg', required=True,
+    parser.add_argument('--fxpkg', dest='firefoxpkg', required=True,
             help='Location of Firefox package')
-    parser.add_argument('-t', dest='testzip', required=True,
+    parser.add_argument('--testzip', dest='testzip', required=True,
             help='Location of test zipfile')
 
     args = parser.parse_args()
