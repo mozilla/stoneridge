@@ -94,7 +94,7 @@ class StoneRidgeCronJob(object):
 
             self.run_process('runner')
 
-            self.run_process('collater')
+            self.run_process('collator')
 
             self.run_process('uploader')
 
