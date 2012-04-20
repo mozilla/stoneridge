@@ -76,7 +76,95 @@ def update(conffile):
         sys.stderr.write(outbuf.getvalue())
     outbuf.close()
 
+def _determine_os_name(self):
+    """Determine the os from platform.system
+    """
+    global os_name
+    os_name = platform.system().lower()
+    if os_name == 'darwin':
+        os_name = 'mac'
+
+def _determine_os_version():
+    """Determine the os version
+    """
+    global os_version
+    if os_name == 'linux':
+        os_version = ' '.join(platform.linux_distribution[0:2])
+    elif os_name == 'mac':
+        os_version = platform.mac_ver[0]
+    elif system == 'windows':
+        os_version = platform.win32_ver()[1]
+    else:
+        os_version = 'Unknown'
+
+def _determine_download_platform():
+    """Determine which platform to download files for
+    """
+    global download_platform
+    if os_name == 'linux':
+        if platform.machine() == 'x86_64':
+            download_platform = 'linux64'
+        else:
+            download_platform = 'linux32
+    elif os_name == 'windows':
+        if platform.machine() == 'x86_64':
+            download_platform = 'win64'
+        else:
+            download_platform = 'win32'
+    else:
+        download_platform = os_name
+
+def _determine_download_suffix():
+    """Determine the suffix of the firefox archive to download
+    """
+    global download_suffix
+    if os_name == 'linux':
+        download_suffix = 'tar.bz2'
+    elif os_name == 'mac':
+        download_suffix = 'dmg'
+    else:
+        download_suffix = 'zip'
+
+def _determine_bindir():
+    """Determine the location of the firefox binary based on platform
+    """
+    global bindir
+    if os_name == 'mac':
+        bindir = os.path.join(workdir, 'FirefoxNightly.app', 'Contents',
+                'MacOS')
+    else:
+        bindir = os.path.join(workdir, 'firefox')
+
+def setup_dirnames(srroot, srwork):
+    """Determine the directory names and platform information to be used
+    by this run of stone ridge
+    """
+    global installroot
+    global workdir
+    global downloaddir
+    global testroot
+    global outdir
+    global archivedir
+    global logdir
+
+    installroot = os.path.abspath(srroot)
+    workdir = os.path.abspath(srwork)
+    downloaddir = os.path.join(workdir, 'dl')
+    testroot = os.path.join(installroot, 'tests')
+    outdir = os.path.join(workdir, 'out')
+    archivedir = os.path.join(installroot, 'archives')
+    logdir = os.path.join(installroot, 'logs')
+
+    _determine_os_name()
+    _determine_os_version()
+    _determine_download_platform()
+    _determine_download_suffix()
+    _determine_bindir()
+
 class ArgumentParser(argparse.ArgumentParser):
+    """An argument parser for stone ridge programs that handles the arguments
+    required by all of them
+    """
     def __init__(self, **kwargs):
         argparse.ArgumentParser.__init__(self, **kwargs)
 
@@ -85,97 +173,9 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--workdir', dest='_sr_work_', required=True,
                 help='Directory to do all the work in')
 
-    @staticmethod
-    def _determine_os_name(self):
-        """Determine the os from platform.system
-        """
-        global os_name
-        os_name = platform.system().lower()
-        if os_name == 'darwin':
-            os_name = 'mac'
-
-    @staticmethod
-    def _determine_os_version():
-        """Determine the os version
-        """
-        global os_version
-        if os_name == 'linux':
-            os_version = ' '.join(platform.linux_distribution[0:2])
-        elif os_name == 'mac':
-            os_version = platform.mac_ver[0]
-        elif system == 'windows':
-            os_version = platform.win32_ver()[1]
-        else:
-            os_version = 'Unknown'
-
-    @staticmethod
-    def _determine_download_platform():
-        """Determine which platform to download files for
-        """
-        global download_platform
-        if os_name == 'linux':
-            if platform.machine() == 'x86_64':
-                download_platform = 'linux64'
-            else:
-                download_platform = 'linux32
-        elif os_name == 'windows':
-            if platform.machine() == 'x86_64':
-                download_platform = 'win64'
-            else:
-                download_platform = 'win32'
-        else:
-            download_platform = os_name
-
-    @staticmethod
-    def _determine_download_suffix():
-        """Determine the suffix of the firefox archive to download
-        """
-        global download_suffix
-        if os_name == 'linux':
-            download_suffix = 'tar.bz2'
-        elif os_name == 'mac':
-            download_suffix = 'dmg'
-        else:
-            download_suffix = 'zip'
-
-    @staticmethod
-    def _determine_bindir():
-        """Determine the location of the firefox binary based on platform
-        """
-        global bindir
-        if os_name == 'mac':
-            bindir = os.path.join(workdir, 'FirefoxNightly.app', 'Contents',
-                    'MacOS')
-        else:
-            bindir = os.path.join(workdir, 'firefox')
-
-    @staticmethod
-    def setup_dirnames(srroot, srwork):
-        global installroot
-        global workdir
-        global downloaddir
-        global testroot
-        global outdir
-        global archivedir
-        global logdir
-
-        installroot = os.path.abspath(srroot)
-        workdir = os.path.abspath(srwork)
-        downloaddir = os.path.join(workdir, 'dl')
-        testroot = os.path.join(installroot, 'tests')
-        outdir = os.path.join(workdir, 'out')
-        archivedir = os.path.join(installroot, 'archives')
-        logdir = os.path.join(installroot, 'logs')
-
-        ArgumentParser._determine_os_name()
-        ArgumentParser._determine_os_version()
-        ArgumentParser._determine_download_platform()
-        ArgumentParser._determine_download_suffix()
-        ArgumentParser._determine_bindir()
-
     def parse_args(self, **kwargss):
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
-        self.setup_dirnames(args['_sr_root_'], args['_sr_work_'])
+        setup_dirnames(args['_sr_root_'], args['_sr_work_'])
 
         return args
