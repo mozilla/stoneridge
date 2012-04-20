@@ -9,6 +9,9 @@ import stoneridge
 
 @stoneridge.main
 def main():
+    """A simple cleanup program for stone ridge that blows away the working
+    directory
+    """
     parser = stoneridge.ArgumentParser()
     parser.parse_arguments()
     shutil.rmtree(stoneridge.workdir)

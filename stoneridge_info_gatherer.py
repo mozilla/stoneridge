@@ -11,6 +11,9 @@ import platform
 import stoneridge
 
 class StoneRidgeInfoGatherer(object):
+    """Gathers information about the platform stone ridge is running on as well
+    as the build that stone ridge is being run against
+    """
     def run(self):
         info_file = os.path.join(stoneridge.bindir, 'application.ini')
         cp = ConfigParser.SafeConfigParser()

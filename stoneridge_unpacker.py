@@ -10,7 +10,13 @@ import subprocess
 import stoneridge
 
 class StoneRidgeUnpacker(object):
+    """Unpacks the firefox archive and the tests zipfile and puts all the files
+    in the right place. Most of this effort is common to all platforms, but some
+    is platform-specific.
+    """
     def __new__(self, *args, **kwargs):
+        # The caller shouldn't care what platform its running on, so we override
+        # __new__ to create the class that will unpack properly no matter what
         if stoneridge.os_name == 'windows':
             return WindowsUnpacker()
         elif stoneridge.os_name == 'linux':
@@ -62,6 +68,8 @@ class WindowsUnpacker(StoneRidgeUnpacker):
 
     def __init__(self):
         StoneRidgeUnpacker.__init__(self)
+        # Windows has to be a Special, Unique Snowflake with its file
+        # extensions, so we have to override this here
         self.xpcshell = 'xpcshell.exe'
 
     def unpack_firefox(self):
@@ -72,15 +80,16 @@ class LinuxUnpacker(StoneRidgeUnpacker):
         return object.__new__(LinuxUnpacker)
 
     def unpack_firefox(self):
-        subprocess.call(['tar', 'xjvf', self.firefoxpkg], cwd=stoneridge.workdir)
+        subprocess.call(['tar', 'xjvf', self.firefoxpkg],
+                cwd=stoneridge.workdir)
 
 class MacUnpacker(StoneRidgeUnpacker):
     def __new__(*args, **kwargs):
         return object.__new__(MacUnpacker)
 
     def unpack_firefox(self):
-        mydir = os.path.split(__file__)[0]
-        installdmg = os.path.join(mydir, 'installdmg.sh')
+        # MAC, Y U NO USE REGULAR ARCHIVE?!
+        installdmg = os.path.join(stoneridge.installroot, 'installdmg.sh')
         subprocess.call(['/bin/bash', installdmg, self.firefoxpkg],
                 cwd=stoneridge.workdir)
 

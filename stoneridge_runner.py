@@ -14,12 +14,11 @@ import time
 import stoneridge
 
 class StoneRidgeRunner(object):
-    """A class to run Stone Ridge tests
+    """Does the actual work of running the stone ridge xpcshell tests
     """
-
     def __init__(self, tests=None, heads=None):
         """tests - a subset of the tests to run
-           heads - js files that provide extra functionality
+        heads - js files that provide extra functionality
         """
         self.xpcshell = os.path.join(stoneridge.bindir, 'xpcshell')
         if not os.path.exists(self.xpcshell) or not os.path.isfile(self.xpcshell):
@@ -95,8 +94,6 @@ class StoneRidgeRunner(object):
         return preargs
 
     def run(self):
-        """Run the tests we've been told to run
-        """
         tests = self._build_testlist()
         preargs = self._build_preargs()
 

@@ -11,9 +11,6 @@ import time
 
 import stoneridge
 
-# This will run on the central server, and download releases from ftp.m.o
-# to a local directory for serving up to the clients, which will download the
-# necessary stuff via stoneridge_downloader.py
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
     ftp.m.o to a local directory that is served up to the clients by a plain ol'

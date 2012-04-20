@@ -9,6 +9,9 @@ import requests
 import stoneridge
 
 class StoneRidgeDownloader(object):
+    """Downloads the firefox archive and the tests.zip for a the machine this is
+    running on and puts them in the stone ridge working directory
+    """
     def __init__(self, server, downloaddir):
         self.server = server
         self.downloaddir = downloaddir
@@ -21,9 +24,7 @@ class StoneRidgeDownloader(object):
             f.write(r.text)
 
     def run(self):
-        if not os.path.exists(self.outdir):
-            os.path.mkdir(self.outdir)
-        os.chdir(self.outdir)
+        os.chdir(stoneridge.workdir)
 
         filename = os.path.join(stoneridge.downloaddir,
                 'firefox.%s' % (stoneridge.download_suffix),))

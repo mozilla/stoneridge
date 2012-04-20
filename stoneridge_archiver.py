@@ -10,27 +10,32 @@ import zipfile
 import stoneridge
 
 class StoneRidgeArchiver(object):
-    def __init__(self):
-        pass
-
+    """A class to zip up all the results and logging from a stone ridge
+    run, and put the results with the stone ridge archvies.
+    """
     def run(self):
         with file(os.path.join(stoneridge.outdir, 'info.json')) as f:
             info = json.load(f)
 
-        arcname = 'stoneridge_%s_%s_%s_%s' % (info['test_machine']['name'],
+        arcname = 'stoneridge_%s_%s_%s_%s' % (info['testrun']['date'],
+                                              info['test_machine']['name'],
                                               info['test_build']['revision'],
-                                              info['testrun']['suite'],
-                                              info['testrun']['date'])
+                                              info['testrun']['suite'])
 
 
         filename = os.path.join(stoneridge.archivedir, '%s.zip' % (arcname,))
         zfile = zipfile.ZipFile(filename, mode='w')
 
+        # Put all the files under a directory in the zip named for the zip
+        # file itself, for easy separation when unzipping multiple archives
+        # in the same place
         for dirpath, dirs, files in os.walk(stoneridge.outdir):
             dirname = dirpath.replace(stoneridge.outdir, arcname, 1)
+            # Add the directories to the zip
             for d in dirs:
                 zfile.write(os.path.join(dirpath, d),
                         arcname=os.path.join(dirname, d))
+            # Add the files to the zip
             for f in files:
                 zfile.write(os.path.join(dirpath, f),
                         arcname=os.path.join(dirname, f))
