@@ -72,7 +72,7 @@ class StoneRidgeCloner(object):
         lateststamp = os.path.join(self.latest, 'stamp')
         if not os.path.exists(lateststamp):
             return None
-        return file(lateststamp).read()
+        return file(lateststamp, 'rb').read()
 
     def _ensure_outdir(self, platform):
         """Ensure the output directory for a platform exists
@@ -87,7 +87,7 @@ class StoneRidgeCloner(object):
         """Download the file at <url> and save it to the file
         at <outfile>
         """
-        with file(outfile, 'w') as f:
+        with file(outfile, 'wb') as f:
             resp = requests.get(url, verify=False)
             f.write(resp.txt)
 

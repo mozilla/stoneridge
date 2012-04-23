@@ -14,7 +14,7 @@ class StoneRidgeArchiver(object):
     run, and put the results with the stone ridge archvies.
     """
     def run(self):
-        with file(os.path.join(stoneridge.outdir, 'info.json')) as f:
+        with file(os.path.join(stoneridge.outdir, 'info.json'), 'rb') as f:
             info = json.load(f)
 
         arcname = 'stoneridge_%s_%s_%s_%s' % (info['testrun']['date'],
@@ -24,7 +24,7 @@ class StoneRidgeArchiver(object):
 
 
         filename = os.path.join(stoneridge.archivedir, '%s.zip' % (arcname,))
-        zfile = zipfile.ZipFile(filename, mode='w')
+        zfile = zipfile.ZipFile(filename, mode='wb')
 
         # Put all the files under a directory in the zip named for the zip
         # file itself, for easy separation when unzipping multiple archives

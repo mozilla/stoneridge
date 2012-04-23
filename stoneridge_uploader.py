@@ -21,7 +21,7 @@ class StoneRidgeUploader(object):
         upload_files = glob.glob(file_pattern)
         for upload in upload_files:
             fname = os.path.basename(upload)
-            with file(upload) as f:
+            with file(upload, 'rb') as f:
                 requests.post(self.url, files={fname:f})
 
 @stoneridge.main

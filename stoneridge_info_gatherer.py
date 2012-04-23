@@ -36,7 +36,7 @@ class StoneRidgeInfoGatherer(object):
                 'test_build':build_info,
                 'testrun':{}}
 
-        with file(os.path.join(stoneridge.outdir, 'info.json'), 'w') as f:
+        with file(os.path.join(stoneridge.outdir, 'info.json'), 'wb') as f:
             json.dump(info, f)
 
 @stoneridge.main

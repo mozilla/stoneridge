@@ -106,7 +106,7 @@ class StoneRidgeCronJob(object):
         self.logfile = os.path.join(stoneridge.logdir,
                 'stoneridge_%s.log' % (int(time.time()),))
 
-        with file(self.logfile, 'w') as f:
+        with file(self.logfile, 'wb') as f:
             self.log = f
 
             self.run_process('downloader', '--server', self.dl_server,

@@ -21,7 +21,7 @@ class StoneRidgeCollator(object):
 
     def run(self):
         outfiles = glob.glob(os.path.join(self.tmpdir, '*.out'))
-        with file(os.path.join(stoneridge.outdir, 'info.json')) as f:
+        with file(os.path.join(stoneridge.outdir, 'info.json'), 'rb') as f:
             info = json.load(f)
 
         for ofile in outfiles:
@@ -40,7 +40,7 @@ class StoneRidgeCollator(object):
             results['testrun']['suite'] = suite
 
             # Read the raw data
-            with file(ofile) as f:
+            with file(ofile, 'rb') as f:
                 testinfo = json.load(f)
 
             # Stick the raw data into the json to be uploaded
@@ -61,7 +61,7 @@ class StoneRidgeCollator(object):
             # Write our json results for uploading
             upload_filename = 'upload_%s.json' % (suite,)
             upload_file = os.path.join(stoneridge.outdir, upload_filename)
-            with file(upload_file, 'w') as f:
+            with file(upload_file, 'wb') as f:
                 json.dump(results, f)
 
 @stoneridge.main

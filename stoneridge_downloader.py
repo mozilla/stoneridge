@@ -20,7 +20,7 @@ class StoneRidgeDownloader(object):
         url = 'http://%s/%s/%s/%s' % (self.server, self.downloaddir,
                 stoneridge.download_platform, filename)
         r = requests.get(url)
-        with file(filename) as f:
+        with file(filename, 'wb') as f:
             f.write(r.text)
 
     def run(self):
