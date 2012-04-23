@@ -40,6 +40,8 @@ class StoneRidgeCronJob(object):
         self.dl_server = cp.get('download', 'server')
         self.dl_rootdir = cp.get('download', 'root')
 
+        self.upload_url = cp.get('upload', 'url')
+
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
         top level
@@ -120,7 +122,7 @@ class StoneRidgeCronJob(object):
 
             self.run_process('collator')
 
-            self.run_process('uploader')
+            self.run_process('uploader', '--url', self.upload_url)
 
             self.archive_on_failure = False
 
