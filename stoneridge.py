@@ -76,6 +76,37 @@ def update(conffile):
         sys.stderr.write(outbuf.getvalue())
     outbuf.close()
 
+def run_xpcshell(args, stdout=subprocess.PIPE):
+    """Run xpcshell with the appropriate args
+    """
+    xpcargs = [xpcshell] + args
+    proc = subprocess.Popen(xpcargs, stdout=stdout,
+            stderr=subprocess.STDOUT, cwd=bindir)
+    res = proc.wait()
+    return (res, proc.stdout)
+
+def get_xpcshell_tmp():
+    """Determine the temporary directory as xpcshell thinks of it
+    """
+    # TODO - make sure this works on windows to create a file in python
+    _, stdout = run_xpcshell(['-e',
+        'dump("SR-TMP-DIR:" + '
+        '     Components.classes["@mozilla.org/file/directory_service;1"]'
+        '     .getService(Components.interfaces.nsIProperties)'
+        '     .get("TmpD", Components.interfaces.nsILocalFile)'
+        '     .path + "\n");'
+        'quit(0);'])
+    for line in stdout:
+        if line.startswith('SR-TMP-DIR:'):
+            return line.strip().split(':', 1)[1]
+
+def get_xpcshell_bin():
+    """Return the name of the xpcshell binary
+    """
+    if os_name == 'windows':
+        return 'xpcshell.exe'
+    return 'xpcshell
+
 def _determine_os_name(self):
     """Determine the os from platform.system
     """
@@ -92,7 +123,7 @@ def _determine_os_version():
         os_version = ' '.join(platform.linux_distribution[0:2])
     elif os_name == 'mac':
         os_version = platform.mac_ver[0]
-    elif system == 'windows':
+    elif os_name == 'windows':
         os_version = platform.win32_ver()[1]
     else:
         os_version = 'Unknown'
@@ -146,6 +177,7 @@ def setup_dirnames(srroot, srwork):
     global outdir
     global archivedir
     global logdir
+    global xpcshell
 
     installroot = os.path.abspath(srroot)
     workdir = os.path.abspath(srwork)
@@ -160,6 +192,8 @@ def setup_dirnames(srroot, srwork):
     _determine_download_platform()
     _determine_download_suffix()
     _determine_bindir()
+
+    xpcshell = os.path.join(bindir, get_xpcshell_bin())
 
 class ArgumentParser(argparse.ArgumentParser):
     """An argument parser for stone ridge programs that handles the arguments

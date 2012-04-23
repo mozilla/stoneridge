@@ -20,13 +20,9 @@ class StoneRidgeRunner(object):
         """tests - a subset of the tests to run
         heads - js files that provide extra functionality
         """
-        self.xpcshell = os.path.join(stoneridge.bindir, 'xpcshell')
-        if not os.path.exists(self.xpcshell) or not os.path.isfile(self.xpcshell):
-            raise Exception, 'xpcshell does not exist in bindir'
-
         # Figure out where TmpD is for xpcshell, to use as our output
         # directory
-        self.tmpdir = self._get_xpcshell_tmp()
+        self.tmpdir = stoneridge.get_xpcshell_tmp()
         if not self.tmpdir:
             raise Exception, 'Could not determine tempdir'
 
@@ -37,30 +33,6 @@ class StoneRidgeRunner(object):
 
         # Figure out where our builtins live based on where we are
         self.builtin = os.path.dirname(__file__)
-
-    def _run_xpcshell(args, stdout=subprocess.PIPE):
-        """Run xpcshell with the appropriate args
-        """
-        xpcargs = [self.xpcshell] + args
-        proc = subprocess.Popen(xpcargs, stdout=stdout,
-                stderr=subprocess.STDOUT, cwd=stoneridge.bindir)
-        res = proc.wait()
-        return (res, proc.stdout)
-
-    def _get_xpcshell_tmp():
-        """Determine the temporary directory as xpcshell thinks of it
-        """
-        # TODO - make sure this works on windows to create a file in python
-        _, stdout = self._run_xpcshell(['-e',
-            'dump("SR-TMP-DIR:" + '
-            '     Components.classes["@mozilla.org/file/directory_service;1"]'
-            '     .getService(Components.interfaces.nsIProperties)'
-            '     .get("TmpD", Components.interfaces.nsILocalFile)'
-            '     .path + "\n");'
-            'quit(0);'])
-        for line in stdout:
-            if line.startswith('SR-TMP-DIR:'):
-                return line.strip().split(':', 1)[1]
 
     def _build_testlist(self):
         """Return a list of test file names, all relative to the test root.
@@ -103,7 +75,7 @@ class StoneRidgeRunner(object):
             outfile = os.path.join(self.tmpdir, '%s.out' % (test,))
             args = preargs + ['-f', os.path.join(stoneridge.testroot, test)] + \
                     ['-e', 'do_stoneridge(' + outfile + '); quit(0);']
-            res, _ = self._run_xpcshell(args, stdout=sys.stdout)
+            res, _ = stoneridge.run_xpcshell(args, stdout=sys.stdout)
             outfiles.append(outfile)
             if res:
                 sys.stdout.write('### TEST FAIL: %s\n' % (test,))

@@ -27,7 +27,6 @@ class StoneRidgeUnpacker(object):
         raise ValueError, 'Invalid system type: %s' % (sysname,)
 
     def __init__(self):
-        self.xpcshell = 'xpcshell'
         self.firefoxpkg = os.path.join(stoneridge.downloaddir,
                 'firefox.%s' % (stoneridge.download_suffix,))
         self.testzip = os.path.join(stoneridge.downloaddir, 'tests.zip')
@@ -42,7 +41,7 @@ class StoneRidgeUnpacker(object):
         subprocess.call(['unzip', self.testzip, 'bin*'], cwd=unzipdir)
 
         # Put the xpcshell binary where it belongs
-        xpcshell = os.path.join(unzipdir, 'bin', self.xpcshell)
+        xpcshell = os.path.join(unzipdir, 'bin', stoneridge.get_xpcshell_bin())
         shutil.copy(xpcshell, stoneridge.bindir)
 
         # Put our components into place
@@ -65,12 +64,6 @@ class StoneRidgeUnpacker(object):
 class WindowsUnpacker(StoneRidgeUnpacker):
     def __new__(*args, **kwargs):
         return object.__new__(WindowsUnpacker)
-
-    def __init__(self):
-        StoneRidgeUnpacker.__init__(self)
-        # Windows has to be a Special, Unique Snowflake with its file
-        # extensions, so we have to override this here
-        self.xpcshell = 'xpcshell.exe'
 
     def unpack_firefox(self):
         subprocess.call(['unzip', self.firefoxpkg], cwd=stoneridge.workdir)
