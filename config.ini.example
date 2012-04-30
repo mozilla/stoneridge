@@ -1,0 +1,10 @@
+[update]
+scheme = git
+url = http://github.com/todesschaf/stoneridge.git
+
+[download]
+server = stoneridge-master.example.com:8888
+root = stoneridge/latest
+
+[upload]
+url = http://stoneridge-graphs.example.com/upload
