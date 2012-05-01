@@ -73,7 +73,7 @@ class StoneRidgeCloner(object):
 
         Returns: (<id_stamp (string)>, <prefix (string)>)
         """
-        stampfile = [f for f in files if f.endswith('.mac.checksums.asc')][0]
+        stampfile = [f for f in files if f.endswith('.mac.checksums.asc')][-1]
         url = self._build_dl_url(stampfile)
         stoneridge.debug('Getting stamp file @ %s\n' % (url,))
         resp = requests.get(url)
