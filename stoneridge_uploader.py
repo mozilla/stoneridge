@@ -27,7 +27,7 @@ class StoneRidgeUploader(object):
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.add_option('--url', dest='url', required=True,
+    parser.add_argument('--url', dest='url', required=True,
             help='URL of graph server to upload to')
     args = parser.parse_args()
 

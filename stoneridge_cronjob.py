@@ -137,16 +137,23 @@ class StoneRidgeCronJob(object):
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_option('--config', dest='config', default='/etc/stoneridge.ini')
-    parser.add_option('--no-update', dest='update', default=True,
+    group = parser.add_mutually_exclusive_group()
+    parser.add_argument('--config', dest='config', default='/etc/stoneridge.ini')
+    group.add_argument('--no-update', dest='update', default=True,
             action='store_false')
-    parser.add_option('--workdir', dest='workdir')
+    group.add_argument('--update-only', dest='update_only', default=False,
+            action='store_true')
+    parser.add_argument('--workdir', dest='workdir')
     args = parser.parse_args()
 
     if args.update:
-        stoneridge.update(args.config):
-        return subprocess.call([sys.executable, sys.executable, __file__,
-                '--no-update'])
+        stoneridge.update(args.config)
+        if not args.update_only:
+            exec_args = [sys.executable, sys.executable, __file__,
+                         '--no-update', '--config', args.config]
+            if args.workdir:
+                exec_args.extend(['--workdir', args.workdir])
+            os.execl(*exec_args)
 
     # Figure out where we live so we know where our root directory is
     srroot = os.path.split(__file__)[0]
