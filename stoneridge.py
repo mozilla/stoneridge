@@ -5,6 +5,7 @@
 import argparse
 import ConfigParser
 import inspect
+import os
 import platform
 import StringIO
 import subprocess
@@ -115,7 +116,7 @@ def get_xpcshell_bin():
         return 'xpcshell.exe'
     return 'xpcshell'
 
-def _determine_os_name(self):
+def _determine_os_name():
     """Determine the os from platform.system
     """
     global os_name
@@ -128,9 +129,9 @@ def _determine_os_version():
     """
     global os_version
     if os_name == 'linux':
-        os_version = ' '.join(platform.linux_distribution[0:2])
+        os_version = ' '.join(platform.linux_distribution()[0:2])
     elif os_name == 'mac':
-        os_version = platform.mac_ver[0]
+        os_version = platform.mac_ver()[0]
     elif os_name == 'windows':
         os_version = platform.win32_ver()[1]
     else:
@@ -215,7 +216,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--workdir', dest='_sr_work_', required=True,
                 help='Directory to do all the work in')
 
-    def parse_args(self, **kwargss):
+    def parse_args(self, **kwargs):
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
         setup_dirnames(args._sr_root_, args._sr_work_)

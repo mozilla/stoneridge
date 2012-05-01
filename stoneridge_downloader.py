@@ -20,17 +20,18 @@ class StoneRidgeDownloader(object):
         url = 'http://%s/%s/%s/%s' % (self.server, self.downloaddir,
                 stoneridge.download_platform, filename)
         r = requests.get(url)
+        if r.status_code != 200:
+            raise Exception, 'Error downloading %s: %s' % (filename,
+                    r.status_code)
         with file(filename, 'wb') as f:
             f.write(r.content)
 
     def run(self):
-        os.chdir(stoneridge.workdir)
+        if not os.path.exists(stoneridge.downloaddir):
+            os.mkdir(stoneridge.downloaddir)
+        os.chdir(stoneridge.downloaddir)
 
-        filename = os.path.join(stoneridge.downloaddir,
-                'firefox.%s' % (stoneridge.download_suffix),))
-        self._download_file(filename)
-
-        filename = os.path.join(stoneridge.downloaddir, 'tests.zip')
+        self._download_file('firefox.%s' % (stoneridge.download_suffix,))
         self._download_file('tests.zip')
 
 
