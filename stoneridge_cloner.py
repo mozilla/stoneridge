@@ -170,9 +170,6 @@ class StoneRidgeCloner(object):
             os.symlink(target, 'latest')
 
     def run(self):
-        if not os.path.exists(self.outdir):
-            os.mkdir(self.outdir)
-
         files = self._gather_filelist()
         stamp, self.prefix = self._get_stamp_and_prefix(files)
         if stamp == self._get_last_stamp():
@@ -180,6 +177,10 @@ class StoneRidgeCloner(object):
             # again
             stoneridge.debug('stamp unchanged:\n%s\n' % (stamp,))
             return
+
+        # Make sure our output directory exists
+        if not os.path.exists(self.outdir):
+            os.mkdir(self.outdir)
 
         # Save the new stamp for checking later on
         stampfile = os.path.join(self.outdir, 'stamp')
