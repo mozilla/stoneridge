@@ -5,7 +5,7 @@
 
 import glob
 import os
-import requests
+import human_curl as requests
 
 import stoneridge
 
@@ -22,7 +22,7 @@ class StoneRidgeUploader(object):
         for upload in upload_files:
             fname = os.path.basename(upload)
             with file(upload, 'rb') as f:
-                requests.post(self.url, files={fname:f})
+                requests.post(self.url, files=((fname, f),))
 
 @stoneridge.main
 def main():

@@ -4,7 +4,7 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-import requests
+import human_curl as requests
 
 import stoneridge
 
@@ -21,7 +21,7 @@ class StoneRidgeDownloader(object):
                 stoneridge.download_platform, filename)
         r = requests.get(url)
         with file(filename, 'wb') as f:
-            f.write(r.text)
+            f.write(r.content)
 
     def run(self):
         os.chdir(stoneridge.workdir)

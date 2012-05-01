@@ -6,10 +6,25 @@
 import argparse
 import ftplib
 import os
-import requests
+import human_curl as requests
 import time
 
 import stoneridge
+
+class cwd(object):
+    """A context manager to change our working directory when we enter the
+    context, and then change back to the original working directory when we
+    exit the context
+    """
+    def __init__(self, dirname):
+        self.newcwd = dirname
+        self.oldcwd = os.getcwd()
+
+    def __enter__(self):
+        os.chdir(self.newcwd)
+
+    def __exit__(self, *args):
+        os.chdir(self.oldcwd)
 
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
@@ -40,9 +55,10 @@ class StoneRidgeCloner(object):
         ftp.cwd(self.path)
         files = ftp.nlst()
         ftp.quit()
+        stoneridge.debug('Files on FTP server:\n\t%s\n' % ('\n\t'.join(files),))
         return files
 
-    def _build_dl_url(fname):
+    def _build_dl_url(self, fname):
         """Create a download (https) URL for a particular file
 
         Returns: a URL string
@@ -59,8 +75,9 @@ class StoneRidgeCloner(object):
         """
         stampfile = [f for f in files if f.endswith('.mac.checksums.asc')][0]
         url = self._build_dl_url(stampfile)
-        resp = requests.get(url, verify=False)
-        return resp.text, stampfile.replace('.mac.checksums.asc', '')
+        stoneridge.debug('Getting stamp file @ %s\n' % (url,))
+        resp = requests.get(url)
+        return resp.content, stampfile.replace('.mac.checksums.asc', '')
 
     def _get_last_stamp(self):
         """Get the ID stamp of the latest build we downloaded
@@ -87,9 +104,10 @@ class StoneRidgeCloner(object):
         """Download the file at <url> and save it to the file
         at <outfile>
         """
+        stoneridge.debug('download %s -> %s\n' % (url, outfile))
+        resp = requests.get(url, timeout=30000)
         with file(outfile, 'wb') as f:
-            resp = requests.get(url, verify=False)
-            f.write(resp.txt)
+            f.write(resp.content)
 
     def _dl_test_zip(self, archid, outdir):
         """Download the test zip for a particular architecture id (<archid>) and
@@ -130,7 +148,7 @@ class StoneRidgeCloner(object):
         """Clone the firefox zip and tests zip for both 32-bit and 64-bit
         windows builds
         """
-        for archid, outdir in (('32', 'win32'), '64-x86_64', 'win64')):
+        for archid, outdir in (('32', 'win32'), ('64-x86_64', 'win64')):
             self._ensure_outdir(outdir)
 
             srcfile = '%s.win%s.zip' % (self.prefix, archid)
@@ -140,25 +158,11 @@ class StoneRidgeCloner(object):
 
             self._dl_test_zip('win%s' % (archid,), outdir)
 
-    class cwd(object):
-        """A context manager to change our working directory when we enter the
-        context, and then change back to the original working directory when we
-        exit the context
-        """
-        def __init__(self, dirname):
-            self.newcwd = dirname
-            self.oldcwd = os.getcwd()
-
-        def __enter__(self):
-            os.chdir(self.newcwd)
-
-        def __exit__(self, *args):
-            os.chdir(self.oldcwd)
-
     def _update_latest(self):
         """Update the "latest" symlink to point to the set of builds
         we just downloaded
         """
+        stoneridge.debug('linking latest -> %s\n' % (self.outdir,))
         with cwd(self.outroot):
             if os.path.exists('latest'):
                 os.unlink('latest')
@@ -166,11 +170,15 @@ class StoneRidgeCloner(object):
             os.symlink(target, 'latest')
 
     def run(self):
+        if not os.path.exists(self.outdir):
+            os.mkdir(self.outdir)
+
         files = self._gather_filelist()
         stamp, self.prefix = self._get_stamp_and_prefix(files)
         if stamp == self._get_last_stamp():
             # We've done everything for these builds already, no need to try
             # again
+            stoneridge.debug('stamp unchanged:\n%s\n' % (stamp,))
             return
 
         # Save the new stamp for checking later on
