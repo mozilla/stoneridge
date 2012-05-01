@@ -141,7 +141,7 @@ def main():
     parser.add_option('--no-update', dest='update', default=True,
             action='store_false')
     parser.add_option('--workdir', dest='workdir')
-    args = parser.parse_arguments()
+    args = parser.parse_args()
 
     if args['update']:
         stoneridge.update(parser['config']):

@@ -197,7 +197,7 @@ def main():
     parser.add_argument('--output', dest='outdir', metavar='DIR',
             default='.', help='Where to store cloned files to')
 
-    args = parser.parse_arguments()
+    args = parser.parse_args()
 
-    cloner = StoneRidgeCloner(args['host'], args['path'], args['outdir'])
+    cloner = StoneRidgeCloner(args.host, args.path, args.outdir)
     cloner.run()

@@ -2,10 +2,12 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import argparse
 import ConfigParser
 import inspect
 import platform
 import StringIO
+import subprocess
 import sys
 import traceback
 
@@ -25,6 +27,9 @@ outdir = None
 archivedir = None
 logdir = None
 
+# Misc configuration
+_debug_enabled = True # Use False for production
+
 def main(_main):
     """Mark a function as the main function to run when run as a script.
     If that function throws an exception, we'll print the traceback to
@@ -35,14 +40,17 @@ def main(_main):
     if name == '__main__':
         rval = 0
         try:
-            rval = _main()
-            if rval is None:
-                rval = 0
+            _main()
         except Exception, e:
-            traceback.print_tb(sys.exc_info()[2], None, sys.stderr)
+            traceback.print_exception(type(e), e, sys.exc_info()[2], None,
+                    sys.stderr)
             sys.exit(1)
         sys.exit(rval)
     return _main
+
+def debug(msg):
+    if _debug_enabled:
+        sys.stderr.write(msg)
 
 def update(conffile):
     """Update the stone ridge installation from the latest source
@@ -105,7 +113,7 @@ def get_xpcshell_bin():
     """
     if os_name == 'windows':
         return 'xpcshell.exe'
-    return 'xpcshell
+    return 'xpcshell'
 
 def _determine_os_name(self):
     """Determine the os from platform.system
@@ -136,7 +144,7 @@ def _determine_download_platform():
         if platform.machine() == 'x86_64':
             download_platform = 'linux64'
         else:
-            download_platform = 'linux32
+            download_platform = 'linux32'
     elif os_name == 'windows':
         if platform.machine() == 'x86_64':
             download_platform = 'win64'

@@ -42,7 +42,7 @@ class StoneRidgeInfoGatherer(object):
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    args = parser.parse_arguments()
+    args = parser.parse_args()
 
     info_gatherer = StoneRidgeInfoGatherer()
     info_gatherer.run()

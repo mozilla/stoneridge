@@ -13,5 +13,5 @@ def main():
     directory
     """
     parser = stoneridge.ArgumentParser()
-    parser.parse_arguments()
+    parser.parse_args()
     shutil.rmtree(stoneridge.workdir)
