@@ -31,5 +31,5 @@ def main():
             help='URL of graph server to upload to')
     args = parser.parse_args()
 
-    uploader = StoneRidgeUploader(args['url'])
+    uploader = StoneRidgeUploader(args.url)
     uploader.run()

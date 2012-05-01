@@ -143,8 +143,8 @@ def main():
     parser.add_option('--workdir', dest='workdir')
     args = parser.parse_args()
 
-    if args['update']:
-        stoneridge.update(parser['config']):
+    if args.update:
+        stoneridge.update(args.config):
         return subprocess.call([sys.executable, sys.executable, __file__,
                 '--no-update'])
 
@@ -152,12 +152,12 @@ def main():
     srroot = os.path.split(__file__)[0]
 
     # Create a working space for this run
-    if args['workdir']:
-        srwork = os.path.abspath(args['workdir'])
+    if args.workdir:
+        srwork = os.path.abspath(args.workdir)
         if not os.path.exists(srwork):
             os.mkdir(srwork)
     else:
         srwork = tempfile.mkdtemp()
 
-    cronjob = StoneRidgeCronJob(args['config'], srroot, srwork)
+    cronjob = StoneRidgeCronJob(args.config, srroot, srwork)
     cronjob.run()

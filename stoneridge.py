@@ -218,6 +218,6 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, **kwargss):
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
-        setup_dirnames(args['_sr_root_'], args['_sr_work_'])
+        setup_dirnames(args._sr_root_, args._sr_work_)
 
         return args
