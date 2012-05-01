@@ -30,7 +30,7 @@ while [ "$(echo mnt/*)" == "mnt/*" ]; do
     i=$(expr $i + 1)
 done
 # Now we can copy everything out of the mnt directory into the current directory
-rsync -av ./mnt/* .
+rsync -av ./mnt/[a-zA-Z0-9]* .
 hdiutil detach mnt
 rm -rdf mnt
 # Sleep for a bit to let messages from diskimage-helper go away

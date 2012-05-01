@@ -36,7 +36,7 @@ class StoneRidgeUnpacker(object):
         self.unpack_firefox()
 
         # Unzip the stuff we need from the tests zipfile
-        unzipdir = os.path.join(stoneridge.workdir, 'unzip')
+        unzipdir = os.path.join(stoneridge.workdir, 'tests')
         os.mkdir(unzipdir)
         subprocess.call(['unzip', self.testzip, 'bin*'], cwd=unzipdir)
 
@@ -48,7 +48,7 @@ class StoneRidgeUnpacker(object):
         components = os.path.join(unzipdir, 'bin', 'components', '*')
         fxcomponents = os.path.join(stoneridge.bindir, 'components')
         subprocess.call(['bash', '-c',
-            'cp -R "%s" "%s"' % (components, fxcomponents)])
+            'cp -R %s %s' % (components, fxcomponents)])
 
         # Put the plugins in place, in case we need them
         fxplugins = os.path.join(stoneridge.bindir, 'plugins')
@@ -56,7 +56,7 @@ class StoneRidgeUnpacker(object):
             os.mkdir(fxplugins)
         plugins = os.path.join(unzipdir, 'bin', 'plugins', '*')
         subprocess.call(['bash', '-c',
-            'cp -R "%s" "%s"' % (plugins, fxplugins)])
+            'cp -R %s %s' % (plugins, fxplugins)])
 
     def unpack_firefox(self):
         raise NotImplementedError
