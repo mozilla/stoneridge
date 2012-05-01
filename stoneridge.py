@@ -30,6 +30,7 @@ logdir = None
 
 # Misc configuration
 _debug_enabled = True # Use False for production
+_xpcshell_tmp_dir = None
 
 def main(_main):
     """Mark a function as the main function to run when run as a script.
@@ -97,17 +98,20 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
 def get_xpcshell_tmp():
     """Determine the temporary directory as xpcshell thinks of it
     """
-    # TODO - make sure this works on windows to create a file in python
-    _, stdout = run_xpcshell(['-e',
-        'dump("SR-TMP-DIR:" + '
-        '     Components.classes["@mozilla.org/file/directory_service;1"]'
-        '     .getService(Components.interfaces.nsIProperties)'
-        '     .get("TmpD", Components.interfaces.nsILocalFile)'
-        '     .path + "\n");'
-        'quit(0);'])
-    for line in stdout:
-        if line.startswith('SR-TMP-DIR:'):
-            return line.strip().split(':', 1)[1]
+    if _xpcshell_tmp_dir is None:
+        # TODO - make sure this works on windows to create a file in python
+        _, stdout = run_xpcshell(['-e',
+            'dump("SR-TMP-DIR:" + '
+            '     Components.classes["@mozilla.org/file/directory_service;1"]'
+            '     .getService(Components.interfaces.nsIProperties)'
+            '     .get("TmpD", Components.interfaces.nsILocalFile)'
+            '     .path + "\n");'
+            'quit(0);'])
+        for line in stdout:
+            if line.startswith('SR-TMP-DIR:'):
+                _xpcshell_tmp_dir = line.strip().split(':', 1)[1]
+
+    return _xpcshell_tmp_dir
 
 def get_xpcshell_bin():
     """Return the name of the xpcshell binary
