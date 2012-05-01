@@ -36,6 +36,9 @@ class StoneRidgeInfoGatherer(object):
                 'test_build':build_info,
                 'testrun':{}}
 
+        if not os.path.exists(stoneridge.outdir):
+            os.mkdir(stoneridge.outdir)
+
         with file(os.path.join(stoneridge.outdir, 'info.json'), 'wb') as f:
             json.dump(info, f)
 
