@@ -27,6 +27,7 @@ testroot = None
 outdir = None
 archivedir = None
 logdir = None
+xpcoutdir = None
 
 # Misc configuration
 _debug_enabled = True # Use False for production
@@ -95,7 +96,7 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
     res = proc.wait()
     return (res, proc.stdout)
 
-def get_xpcshell_tmp():
+def _get_xpcshell_tmp():
     """Determine the temporary directory as xpcshell thinks of it
     """
     if _xpcshell_tmp_dir is None:
@@ -107,6 +108,7 @@ def get_xpcshell_tmp():
             '     .get("TmpD", Components.interfaces.nsILocalFile)'
             '     .path + "\n");'
             'quit(0);'])
+
         for line in stdout:
             if line.startswith('SR-TMP-DIR:'):
                 _xpcshell_tmp_dir = line.strip().split(':', 1)[1]
@@ -179,7 +181,7 @@ def _determine_bindir():
     else:
         bindir = os.path.join(workdir, 'firefox')
 
-def setup_dirnames(srroot, srwork):
+def setup_dirnames(srroot, srwork, srxpcout):
     """Determine the directory names and platform information to be used
     by this run of stone ridge
     """
@@ -191,6 +193,7 @@ def setup_dirnames(srroot, srwork):
     global archivedir
     global logdir
     global xpcshell
+    global xpcoutdir
 
     installroot = os.path.abspath(srroot)
     workdir = os.path.abspath(srwork)
@@ -208,6 +211,14 @@ def setup_dirnames(srroot, srwork):
 
     xpcshell = os.path.join(bindir, get_xpcshell_bin())
 
+    try:
+        xpctmp = _get_xpcshell_tmp()
+        xpcoutdir = os.path.join(xpctmp, srxpcout)
+    except OSError:
+        # We only need this after the point where we can run xpcshell, so
+        # don't worry if we can't get it earlier in the process
+        pass
+
 class ArgumentParser(argparse.ArgumentParser):
     """An argument parser for stone ridge programs that handles the arguments
     required by all of them
@@ -219,10 +230,12 @@ class ArgumentParser(argparse.ArgumentParser):
                 help='Root of Stone Ridge installation')
         self.add_argument('--workdir', dest='_sr_work_', required=True,
                 help='Directory to do all the work in')
+        self.add_argument('--xpcout', dest='_sr_xpcout_', default='stoneridge',
+                help='Subdirectory of xpcshell temp to write output to')
 
     def parse_args(self, **kwargs):
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
-        setup_dirnames(args._sr_root_, args._sr_work_)
+        setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)
 
         return args

@@ -16,11 +16,8 @@ class StoneRidgeCollator(object):
     the graph server can handle. This is saved into json files for the uploader
     to do its thing with
     """
-    def __init__(self):
-        self.tmpdir = stoneridge.get_xpcshell_tmp()
-
     def run(self):
-        outfiles = glob.glob(os.path.join(self.tmpdir, '*.out'))
+        outfiles = glob.glob(os.path.join(stoneridge.xpcoutdir, '*.out'))
         with file(os.path.join(stoneridge.outdir, 'info.json'), 'rb') as f:
             info = json.load(f)
 

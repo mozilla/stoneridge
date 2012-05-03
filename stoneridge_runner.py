@@ -20,12 +20,6 @@ class StoneRidgeRunner(object):
         """tests - a subset of the tests to run
         heads - js files that provide extra functionality
         """
-        # Figure out where TmpD is for xpcshell, to use as our output
-        # directory
-        self.tmpdir = stoneridge.get_xpcshell_tmp()
-        if not self.tmpdir:
-            raise Exception, 'Could not determine tempdir'
-
         # These we just copy over and worry about them later
         self.tests = tests
         self.heads = heads
@@ -72,7 +66,7 @@ class StoneRidgeRunner(object):
         self.outfiles = []
         self.failures = []
         for test in tests:
-            outfile = os.path.join(self.tmpdir, '%s.out' % (test,))
+            outfile = os.path.join(stoneridge.xpcoutdir, '%s.out' % (test,))
             args = preargs + ['-f', os.path.join(stoneridge.testroot, test)] + \
                     ['-e', 'do_stoneridge(' + outfile + '); quit(0);']
             res, _ = stoneridge.run_xpcshell(args, stdout=sys.stdout)
