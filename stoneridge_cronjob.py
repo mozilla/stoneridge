@@ -23,13 +23,15 @@ class StoneRidgeException(Exception):
 class StoneRidgeCronJob(object):
     """Class that runs as the cron job to run Stone Ridge tests
     """
-    def __init__(self, conffile, srroot, srwork):
+    def __init__(self, conffile, srroot, srwork, srxpcout):
         """conffile - .ini file containing stone ridge configuration
         srroot - installation directory of stone ridge
         srwork - working directory for the current invocation (must exist)
+        srxpcout - subdirectory to eventually dump xpcshell output to
         """
         self.srroot = srroot
         self.srwork = srwork
+        self.srxpcout = srxpcout
         self.logfile = None
         self.log = None
         self.archive_on_failure = False
@@ -59,7 +61,8 @@ class StoneRidgeCronJob(object):
         command = [sys.executable,
                    script,
                    '--root', self.srroot,
-                   '--workdir', self.srwork]
+                   '--workdir', self.srwork,
+                   '--xpcout', self.srxpcout]
         command.extend(args)
 
         self.log.write('### Running %s@%s\n' % (stage, int(time.time())))
@@ -166,5 +169,9 @@ def main():
     else:
         srwork = tempfile.mkdtemp()
 
-    cronjob = StoneRidgeCronJob(args.config, srroot, srwork)
+    # Make a name for output from xpcshell (can't make the actual directory yet
+    # because we don't know what directory it'll live in)
+    srxpcout = os.path.basename(tempfile.mktemp())
+
+    cronjob = StoneRidgeCronJob(args.config, srroot, srwork, srxpcout)
     cronjob.run()

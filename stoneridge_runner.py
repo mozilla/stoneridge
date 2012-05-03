@@ -63,6 +63,9 @@ class StoneRidgeRunner(object):
         tests = self._build_testlist()
         preargs = self._build_preargs()
 
+        # Ensure our output directory exists
+        os.makedirs(stoneridge.xpcoutdir)
+
         self.outfiles = []
         self.failures = []
         for test in tests:
