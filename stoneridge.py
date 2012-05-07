@@ -26,6 +26,7 @@ os_version = None
 download_platform = None
 download_suffix = None
 current_netconfig = None
+conffile = None
 
 # Paths that multiple programs need to know about
 installroot = None
@@ -235,6 +236,8 @@ class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, **kwargs):
         argparse.ArgumentParser.__init__(self, **kwargs)
 
+        self.add_argument('--config', dest='_sr_config_', required=True,
+                help='Configuration file')
         self.add_argument('--netconfig', dest='_sr_netconfig_', required=True,
                 help='Network Configuration in use', choices=netconfigs.keys())
         self.add_argument('--root', dest='_sr_root_', required=True,
@@ -245,10 +248,12 @@ class ArgumentParser(argparse.ArgumentParser):
                 help='Subdirectory of xpcshell temp to write output to')
 
     def parse_args(self, **kwargs):
+        global conffile
         global current_netconfig
 
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
+        conffile = args._sr_config_
         current_netconfig = args._sr_netconfig_
 
         setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)

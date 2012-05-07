@@ -23,13 +23,14 @@ class StoneRidgeException(Exception):
 class StoneRidgeCronJob(object):
     """Class that runs as the cron job to run Stone Ridge tests
     """
-    def __init__(self, conffile, srnetconfig, srroot, srwork, srxpcout):
-        """conffile - .ini file containing stone ridge configuration
+    def __init__(self, srconffile, srnetconfig, srroot, srwork, srxpcout):
+        """srconffile - .ini file containing stone ridge configuration
         srnetconfig - network configuration for current test
         srroot - installation directory of stone ridge
         srwork - working directory for the current invocation (must exist)
         srxpcout - subdirectory to eventually dump xpcshell output to
         """
+        self.srconffile = srconffile
         self.srnetconfig = srnetconfig
         self.srroot = srroot
         self.srwork = srwork
@@ -40,7 +41,7 @@ class StoneRidgeCronJob(object):
         self.cleaner_called = False
 
         cp = ConfigParser.SafeConfigParser()
-        cp.read([conffile])
+        cp.read([srconffile])
         self.dl_server = cp.get('download', 'server')
         self.dl_rootdir = cp.get('download', 'root')
 
@@ -62,6 +63,7 @@ class StoneRidgeCronJob(object):
 
         command = [sys.executable,
                    script,
+                   '--config', self.srconffile,
                    '--netconfig', self.srnetconfig,
                    '--root', self.srroot,
                    '--workdir', self.srwork,
@@ -124,7 +126,11 @@ class StoneRidgeCronJob(object):
 
             self.archive_on_failure = True
 
+            self.run_process('dns_updater')
+
             self.run_process('runner')
+
+            self.run_process('dns_updater', '--restore')
 
             self.run_process('collator')
 
