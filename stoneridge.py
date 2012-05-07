@@ -12,11 +12,20 @@ import subprocess
 import sys
 import traceback
 
+# Network configurations we have available. Map internal/parameter name
+# to descriptive name
+netconfigs = {
+    'broadband':'Modern Wired Broadband (Cable/ADSL)',
+    'umts':'Modern Cellular (UMTS)',
+    'gsm':'Legacy Cellular (GSM/EDGE)',
+}
+
 # General information common to all stoneridge programs
 os_name = None
 os_version = None
 download_platform = None
 download_suffix = None
+current_netconfig = None
 
 # Paths that multiple programs need to know about
 installroot = None
@@ -226,6 +235,8 @@ class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, **kwargs):
         argparse.ArgumentParser.__init__(self, **kwargs)
 
+        self.add_argument('--netconfig', dest='_sr_netconfig_', required=True,
+                help='Network Configuration in use', choices=netconfigs.keys())
         self.add_argument('--root', dest='_sr_root_', required=True,
                 help='Root of Stone Ridge installation')
         self.add_argument('--workdir', dest='_sr_work_', required=True,
@@ -234,7 +245,11 @@ class ArgumentParser(argparse.ArgumentParser):
                 help='Subdirectory of xpcshell temp to write output to')
 
     def parse_args(self, **kwargs):
+        global current_netconfig
+
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
+
+        current_netconfig = args._sr_netconfig_
 
         setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)
 

@@ -23,12 +23,14 @@ class StoneRidgeException(Exception):
 class StoneRidgeCronJob(object):
     """Class that runs as the cron job to run Stone Ridge tests
     """
-    def __init__(self, conffile, srroot, srwork, srxpcout):
+    def __init__(self, conffile, srnetconfig, srroot, srwork, srxpcout):
         """conffile - .ini file containing stone ridge configuration
+        srnetconfig - network configuration for current test
         srroot - installation directory of stone ridge
         srwork - working directory for the current invocation (must exist)
         srxpcout - subdirectory to eventually dump xpcshell output to
         """
+        self.srnetconfig = srnetconfig
         self.srroot = srroot
         self.srwork = srwork
         self.srxpcout = srxpcout
@@ -60,6 +62,7 @@ class StoneRidgeCronJob(object):
 
         command = [sys.executable,
                    script,
+                   '--netconfig', self.srnetconfig,
                    '--root', self.srroot,
                    '--workdir', self.srwork,
                    '--xpcout', self.srxpcout]
@@ -142,6 +145,8 @@ def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     parser.add_argument('--config', dest='config', default='/etc/stoneridge.ini')
+    parser.add_argument('--netconfig', dest='netconfig', required=True,
+            choices=stoneridge.netconfigs.keys())
     group.add_argument('--no-update', dest='update', default=True,
             action='store_false')
     group.add_argument('--update-only', dest='update_only', default=False,
@@ -173,5 +178,6 @@ def main():
     # because we don't know what directory it'll live in)
     srxpcout = os.path.basename(tempfile.mktemp())
 
-    cronjob = StoneRidgeCronJob(args.config, srroot, srwork, srxpcout)
+    cronjob = StoneRidgeCronJob(args.config, args.netconfig, srroot, srwork,
+            srxpcout)
     cronjob.run()
