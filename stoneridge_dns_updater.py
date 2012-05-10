@@ -31,11 +31,6 @@ class DnsModifier(object):
 
         raise ValueError('Invalid system: %s' % (stoneridge.os_name,))
 
-    def enable_debug(self):
-        """Turn on debug mode in the dns modifier process
-        """
-        raise NotImplementedError
-
     def set_dns(self, server):
         """Set the DNS server on the system to <server>
         """
@@ -43,16 +38,6 @@ class DnsModifier(object):
 
     def reset_dns(self):
         """Reset the DNS server on the system to the default
-        """
-        raise NotImplementedError
-
-    def quit(self):
-        """Close up shop nicely on the system-level dns modifier process
-        """
-        raise NotImplementedError
-
-    def terminate(self):
-        """Close up shop NOT nicely on the system-level dns modifier process
         """
         raise NotImplementedError
 
