@@ -162,7 +162,7 @@ def main():
             os.execl(*exec_args)
 
     # Figure out where we live so we know where our root directory is
-    srroot = os.path.split(__file__)[0]
+    srroot = os.path.split(os.path.abspath(__file__))[0]
 
     # Create a working space for this run
     if args.workdir:
