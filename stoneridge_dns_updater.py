@@ -3,48 +3,15 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import os
-import re
-import shutil
 import struct
 import socket
-import subprocess
 import sys
 
 import stoneridge
 
-dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
-
-class DnsModifier(object):
-    """A class providing an interface for modifying DNS servers on a platform.
-    """
-    def __new__(cls):
-        """Do some magic to return the proper kind of DNS Modifier when we're
-        constructed
-        """
-        if stoneridge.os_name == 'linux':
-            return object.__new__(LinuxDnsModifier)
-
-        if stoneridge.os_name == 'mac':
-            return object.__new__(MacDnsModifier)
-
-        if stoneridge.os_name == 'windows':
-            return object.__new__(WinDnsModifier)
-
-        raise ValueError('Invalid system: %s' % (stoneridge.os_name,))
-
-    def set_dns(self, server):
-        """Set the DNS server on the system to <server>
-        """
-        raise NotImplementedError
-
-    def reset_dns(self):
-        """Reset the DNS server on the system to the default
-        """
-        raise NotImplementedError
-
-class WinDnsModifier(DnsModifier):
-    def __init__(self):
+class StoneRidgeDnsUpdater(object):
+    def __init__(self, restore):
+        self.restore = restore
         self.peer = ('127.0.0.1', 63250)
 
     def _converse(self, msgtype, msgdata=None):
@@ -67,119 +34,28 @@ class WinDnsModifier(DnsModifier):
         result = sock.recv(2)
         sock.close()
 
-        return result == 'ok'
-
-    def set_dns(self, dnsserver):
-        return self._converse('s', dnsserver)
-
-    def reset_dns(self):
-        return self._converse('r')
-
-class MacDnsModifier(DnsModifier):
-    def __init__(self):
-        self.dnskey = None
-        out = self._scutil('show State:/Network/Global/IPv4').split('\n')
-        for line in out:
-            line = line.strip()
-            if line.startswith('PrimaryService'):
-                bits = [x.strip() for x in line.split(':')]
-                uuid = bits[1]
-                self.dnskey = 'State:/Network/Service/%s/DNS' % (uuid,)
-                break
-
-        if self.dnskey is None:
-            raise ValueError('Could not determine DNS key')
-
-        self.dnsbackup = os.path.join(stoneridge.workdir, 'dnsbackup')
-
-    def _scutil(self, cmd):
-        p = subprocess.Popen(['scutil'], stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return p.communicate(cmd)[0]
+        if result != 'ok':
+            sys.stderr.write('Error %ssetting dns server\n' %
+                    ('re' if msgtype == 'r' else ''))
 
     def _set_dns(self, dnsserver):
-        command = 'd.init\nd.add ServerAddresses * %s\nset %s' % \
-                (dnsserver, self.dnskey)
-        self._scutil(command)
+        self._converse('s', dnsserver)
 
-    def reset_dns(self):
-        orig_dns = None
-        if os.path.exists(self.dnsbackup):
-            with file(self.dnsbackup) as f:
-                orig_dns = f.read().strip()
-
-        if orig_dns is not None:
-            self._set_dns(orig_dns)
-
-    def set_dns(self, dnsserver):
-        # Save the current primary dns server
-        orig_dns = []
-        out = self._scutil('show %s' % (self.dnskey,)).split('\n')
-        for line in out:
-            line = line.strip()
-            match = dnspat.match(line)
-            if match:
-                orig_dns.append(match.groups()[0])
-
-        if orig_dns:
-            with file(self.dnsbackup, 'w') as f:
-                f.write('%s\n' % (' '.join(orig_dns),))
-
-        # Now set the primary dns server to our new one
-        self._set_dns(dnsserver)
-
-class LinuxDnsModifier(DnsModifier):
-    def __init__(self):
-        self.resolvconf = '/etc/resolv.conf'
-        self.dnsbackup = os.path.join(stoneridge.workdir, 'resolv.conf')
-
-    def reset_dns(self):
-        shutil.copyfile(self.dnsbackup, self.resolvconf)
-
-    def set_dns(self, dnsserver):
-        # Save a backup copy of our existing resolv.conf
-        shutil.copyfile(self.resolvconf, self.dnsbackup)
-
-        lines = None
-        with file(self.resolvconf) as f:
-            lines = f.readlines()
-
-        nsline = 'nameserver %s' % (dnsserver,)
-
-        # Go through and find the first nameserver line, and replace
-        # it with our modified one
-        replaced = False
-        for i, line in enumerate(lines):
-            if line.startswith('nameserver '):
-                lines[i] = nsline
-                replaced = True
-                break
-
-        # If we didn't already have a nameserver line, let's add one now
-        if not replaced:
-            lines.append(nsline)
-
-        # And save off the new resolv.conf
-        with file(self.resolvconf, 'w') as f:
-            f.write('\n'.join(lines))
-
-class StoneRidgeDnsUpdater(object):
-    def __init__(self, restore):
-        self.restore = restore
-        self.modifier = DnsModifier()
+    def _reset_dns(self):
+        self._converse('r')
 
     def run(self):
         if self.restore:
-            self.modifier.reset_dns()
+            self._reset_dns()
             return
 
         dns_server = stoneridge.get_config('dns', stoneridge.current_netconfig)
         if dns_server is None:
-            sys.stderr.write('Error setting dns server for config %s\n' %
+            sys.stderr.write('Error finding dns server for config %s\n' %
                     (stoneridge.current_netconfig,))
             return
 
-        self.modifier.set_dns(dns_server)
+        self._set_dns(dns_server)
 
 @stoneridge.main
 def main():
