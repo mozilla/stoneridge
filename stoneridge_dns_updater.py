@@ -4,6 +4,7 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import re
 import shutil
 import struct
 import socket
@@ -11,6 +12,8 @@ import subprocess
 import sys
 
 import stoneridge
+
+dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
 
 class DnsModifier(object):
     """A class providing an interface for modifying DNS servers on a platform.
@@ -81,10 +84,12 @@ class MacDnsModifier(DnsModifier):
 
     def __init__(self):
         self.dnskey = None
-        out = self._scutil('show State:/Network/Global/IPv4')
+        out = self._scutil('show State:/Network/Global/IPv4').split('\n')
         for line in out:
-            if line.strip().startswith('PrimaryService'):
-                uuid = line.strip().split(':')[1].strip()
+            line = line.strip()
+            if line.startswith('PrimaryService'):
+                bits = [x.strip() for x in line.split(':')]
+                uuid = bits[1]
                 self.dnskey = 'State:/Network/Service/%s/DNS' % (uuid,)
                 break
 
@@ -114,16 +119,17 @@ class MacDnsModifier(DnsModifier):
 
     def set_dns(self, dnsserver):
         # Save the current primary dns server
-        orig_dns = None
-        out = self._scutil('show %s' % (self.dnskey,))
+        orig_dns = []
+        out = self._scutil('show %s' % (self.dnskey,)).split('\n')
         for line in out:
-            if line.strip().startswith('0'):
-                orig_dns = line.strip().split(':')[1].strip()
-                break
+            line = line.strip()
+            match = dnspat.match(line)
+            if match:
+                orig_dns.append(match.groups()[0])
 
-        if orig_dns is not None:
+        if orig_dns:
             with file(self.dnsbackup, 'w') as f:
-                f.write('%s\n' % (orig_dns,))
+                f.write('%s\n' % (' '.join(orig_dns),))
 
         # Now set the primary dns server to our new one
         self._set_dns(dnsserver)
