@@ -131,6 +131,8 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
 def _get_xpcshell_tmp():
     """Determine the temporary directory as xpcshell thinks of it
     """
+    global _xpcshell_tmp_dir
+
     if _xpcshell_tmp_dir is None:
         # TODO - make sure this works on windows to create a file in python
         _, stdout = run_xpcshell(['-e',
