@@ -95,7 +95,7 @@ class StoneRidgeCronJob(object):
             self.log.write('### SUCCEEDED: %s@%s\n' % (stage, int(time.time())))
 
     def run(self):
-        stoneridge.setup_dirnames(self.srroot, self.srwork)
+        stoneridge.setup_dirnames(self.srroot, self.srwork, self.srxpcout)
 
         for d in (stoneridge.outdir, stoneridge.downloaddir):
             os.mkdir(d)
