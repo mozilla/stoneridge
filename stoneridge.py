@@ -73,10 +73,10 @@ def get_config(section, option):
 
     if _cp is None:
         _cp = ConfigParser.SafeConfigParser()
-        _cp.load([_conffile])
+        _cp.read([_conffile])
 
     try:
-        return cp.get(section, option)
+        return _cp.get(section, option)
     except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
         return None
 
