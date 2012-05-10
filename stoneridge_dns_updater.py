@@ -23,13 +23,13 @@ class DnsModifier(object):
         constructed
         """
         if stoneridge.os_name == 'linux':
-            return LinuxDnsModifier()
+            return object.__new__(LinuxDnsModifier)
 
         if stoneridge.os_name == 'mac':
-            return MacDnsModifier()
+            return object.__new__(MacDnsModifier)
 
         if stoneridge.os_name == 'windows':
-            return WinDnsModifier()
+            return object.__new__(WinDnsModifier)
 
         raise ValueError('Invalid system: %s' % (stoneridge.os_name,))
 
@@ -44,9 +44,6 @@ class DnsModifier(object):
         raise NotImplementedError
 
 class WinDnsModifier(DnsModifier):
-    def __new__(self):
-        return object.__new__(WinDnsModifier)
-
     def __init__(self):
         self.peer = ('127.0.0.1', 63250)
 
@@ -79,9 +76,6 @@ class WinDnsModifier(DnsModifier):
         return self._converse('r')
 
 class MacDnsModifier(DnsModifier):
-    def __new__(self):
-        return object.__new__(MacDnsModifier)
-
     def __init__(self):
         self.dnskey = None
         out = self._scutil('show State:/Network/Global/IPv4').split('\n')
@@ -135,9 +129,6 @@ class MacDnsModifier(DnsModifier):
         self._set_dns(dnsserver)
 
 class LinuxDnsModifier(DnsModifier):
-    def __new__(self):
-        return object.__new__(LinuxDnsModifier)
-
     def __init__(self):
         self.resolvconf = '/etc/resolv.conf'
         self.dnsbackup = os.path.join(stoneridge.workdir, 'resolv.conf')

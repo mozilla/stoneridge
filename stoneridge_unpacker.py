@@ -18,11 +18,11 @@ class StoneRidgeUnpacker(object):
         # The caller shouldn't care what platform its running on, so we override
         # __new__ to create the class that will unpack properly no matter what
         if stoneridge.os_name == 'windows':
-            return WindowsUnpacker()
+            return object.__new__(WindowsUnpacker)
         elif stoneridge.os_name == 'linux':
-            return LinuxUnpacker()
+            return object.__new__(LinuxUnpacker)
         elif stoneridge.os_name == 'mac':
-            return MacUnpacker()
+            return object.__new__(MacUnpacker)
 
         raise ValueError, 'Invalid system type: %s' % (sysname,)
 
@@ -62,24 +62,15 @@ class StoneRidgeUnpacker(object):
         raise NotImplementedError
 
 class WindowsUnpacker(StoneRidgeUnpacker):
-    def __new__(*args, **kwargs):
-        return object.__new__(WindowsUnpacker)
-
     def unpack_firefox(self):
         subprocess.call(['unzip', self.firefoxpkg], cwd=stoneridge.workdir)
 
 class LinuxUnpacker(StoneRidgeUnpacker):
-    def __new__(*args, **kwargs):
-        return object.__new__(LinuxUnpacker)
-
     def unpack_firefox(self):
         subprocess.call(['tar', 'xjvf', self.firefoxpkg],
                 cwd=stoneridge.workdir)
 
 class MacUnpacker(StoneRidgeUnpacker):
-    def __new__(*args, **kwargs):
-        return object.__new__(MacUnpacker)
-
     def unpack_firefox(self):
         # MAC, Y U NO USE REGULAR ARCHIVE?!
         installdmg = os.path.join(stoneridge.installroot, 'installdmg.sh')
