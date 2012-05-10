@@ -140,7 +140,7 @@ def _get_xpcshell_tmp():
             '     Components.classes["@mozilla.org/file/directory_service;1"]'
             '     .getService(Components.interfaces.nsIProperties)'
             '     .get("TmpD", Components.interfaces.nsILocalFile)'
-            '     .path + "\n");'
+            '     .path + "\\n");'
             'quit(0);'])
 
         for line in stdout:
