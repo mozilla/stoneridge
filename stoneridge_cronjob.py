@@ -43,8 +43,9 @@ class StoneRidgeCronJob(object):
         """Print an error and raise an exception that will be handled by the
         top level
         """
-        self.log.write('Error running %s: see %s\n' % (stage, self.logfile))
-        raise StoneRidgeException, 'Error exit during %s' % (stage,)
+        self.log.write('Error exit during %s' % (stage,))
+        raise StoneRidgeException('Error running %s: see %s\n' % (stage,
+            self.logfile))
 
     def run_process(self, stage, *args):
         """Run a particular subprocess with the default arguments, as well as
