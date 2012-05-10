@@ -25,15 +25,15 @@ class StoneRidgeCollator(object):
             # Make a new copy of the base info
             results = copy.deepcopy(info)
             results['testrun'] = {'date':None, 'suite':None, 'options':{},
-                                  'results':{}, 'results_aux':{'totals':[]}}
+                                  'results':{}, 'results_aux':{'totals':[]
+                                                               'tstamps':{}}}
 
             # Add network configuration to platform
             # XXX - do we want this here, or do we want some extra
             # XXX - field in the db schema?
             results['test_machine']['platform'] = '%s : %s' % (
                     results['test_machine']['platform'],
-                    stoneridge.current_netconfig
-                )
+                    stoneridge.current_netconfig)
 
             # Figure out the test-specific data
             fname = os.path.basename(ofile)
@@ -54,9 +54,16 @@ class StoneRidgeCollator(object):
                     results['testrun']['results_aux']['totals'].append(v['total'])
                 else:
                     if k in results['testrun']['results']:
-                        results['testrun']['results'].append(v['total'])
+                        results['testrun']['results'][k].append(v['total'])
                     else:
-                        results['testrun']['results'] = [v['total']]
+                        results['testrun']['results'][k] = [v['total']]
+
+                    if k in results['testrun']['results_aux']['tstamps']:
+                        results['testrun']['results_aux']['tstamps'][k].append(
+                                {'start':v['start'], 'stop':v['stop']})
+                    else:
+                        results['testrun']['results_aux']['tstamps'][k] = \
+                                [{'start':v['start'], 'stop':v['stop']}]
 
             # Copy the raw data into our output directory
             shutil.copyfile(ofile, os.path.join(stoneridge.outdir, fname))
