@@ -182,7 +182,7 @@ class StoneRidgeDnsUpdater(object):
                     (stoneridge.current_netconfig,))
             return
 
-        self.modifier.set_dns(dnsserver)
+        self.modifier.set_dns(dns_server)
 
 @stoneridge.main
 def main():
@@ -191,7 +191,7 @@ def main():
     parser.add_argument('--restore', dest='restore', action='store_true',
             default=False, help='Restore DNS server to default settings')
 
-    args = parser.parse_arguments()
+    args = parser.parse_args()
 
     dns_updater = StoneRidgeDnsUpdater(args.restore)
     dns_updater.run()
