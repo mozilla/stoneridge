@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import ConfigParser
 import os
 import shutil
 import struct
@@ -177,11 +176,8 @@ class StoneRidgeDnsUpdater(object):
             self.modifier.reset_dns()
             return
 
-        cp = ConfigParser.SafeConfigParser()
-        cp.read([stoneridge.conffile])
-        try:
-            dns_server = cp.get('dns', stoneridge.current_netconfig)
-        except (Configparser.NoSectionError, ConfigParser.NoOptionError), e:
+        dns_server = stoneridge.get_config('dns', stoneridge.current_netconfig)
+        if dns_server is None:
             sys.stderr.write('Error setting dns server for config %s\n' %
                     (stoneridge.current_netconfig,))
             return

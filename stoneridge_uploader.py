@@ -13,8 +13,8 @@ class StoneRidgeUploader(object):
     """Takes the upload files created by the collator and uploads them to the
     graph server
     """
-    def __init__(self, url):
-        self.url = url
+    def __init__(self):
+        self.url = stoneridge.get_config('upload', 'url')
 
     def run(self):
         file_pattern = os.path.join(stoneridge.outdir, 'upload_*.json')
@@ -27,9 +27,7 @@ class StoneRidgeUploader(object):
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.add_argument('--url', dest='url', required=True,
-            help='URL of graph server to upload to')
     args = parser.parse_args()
 
-    uploader = StoneRidgeUploader(args.url)
+    uploader = StoneRidgeUploader()
     uploader.run()

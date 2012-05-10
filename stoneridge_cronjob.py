@@ -4,7 +4,6 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
-import ConfigParser
 import os
 import subprocess
 import sys
@@ -39,13 +38,6 @@ class StoneRidgeCronJob(object):
         self.log = None
         self.archive_on_failure = False
         self.cleaner_called = False
-
-        cp = ConfigParser.SafeConfigParser()
-        cp.read([srconffile])
-        self.dl_server = cp.get('download', 'server')
-        self.dl_rootdir = cp.get('download', 'root')
-
-        self.upload_url = cp.get('upload', 'url')
 
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
@@ -117,8 +109,7 @@ class StoneRidgeCronJob(object):
         with file(self.logfile, 'wb') as f:
             self.log = f
 
-            self.run_process('downloader', '--server', self.dl_server,
-                    '--downloaddir', self.dl_rootdir)
+            self.run_process('downloader')
 
             self.run_process('unpacker')
 
@@ -134,7 +125,7 @@ class StoneRidgeCronJob(object):
 
             self.run_process('collator')
 
-            self.run_process('uploader', '--url', self.upload_url)
+            self.run_process('uploader')
 
             self.archive_on_failure = False
 

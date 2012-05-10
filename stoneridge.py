@@ -26,7 +26,6 @@ os_version = None
 download_platform = None
 download_suffix = None
 current_netconfig = None
-conffile = None
 
 # Paths that multiple programs need to know about
 installroot = None
@@ -42,6 +41,8 @@ xpcoutdir = None
 # Misc configuration
 _debug_enabled = True # Use False for production
 _xpcshell_tmp_dir = None
+_conffile = None
+_cp = None
 
 def main(_main):
     """Mark a function as the main function to run when run as a script.
@@ -65,21 +66,42 @@ def debug(msg):
     if _debug_enabled:
         sys.stderr.write(msg)
 
-def update(conffile):
+def get_config(section, option):
+    """Read a config entry from the stoneridge.ini file
+    """
+    global _cp
+
+    if _cp is None:
+        _cp = ConfigParser.SafeConfigParser()
+        _cp.load([_conffile])
+
+    try:
+        return cp.get(section, option)
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
+        return None
+
+def update(cfile=None):
     """Update the stone ridge installation from the latest source
     """
-    cp = ConfigParser.SafeConfigParser()
-    cp.load([conffile])
+    global _conffile
+    global _cp
 
-    try:
-        scheme = cp.get('update', 'scheme')
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
+    oldcfile = None
+    oldcp = None
+
+    if cfile is not None:
+        oldcfile, _conffile = _conffile, cfile
+        oldcp, _cp = _cp, None
+
+    scheme = get_config('update', 'scheme')
+    if scheme is None:
         return
 
-    try:
-        url = cp.get('update', 'url')
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
-        url = None
+    url = get_config('update', 'url')
+
+    if cfile is not None:
+        _conffile = oldcfile
+        _cp = oldcp
 
     if scheme == 'hg':
         args = ['hg', 'pull', '-u']
@@ -248,12 +270,12 @@ class ArgumentParser(argparse.ArgumentParser):
                 help='Subdirectory of xpcshell temp to write output to')
 
     def parse_args(self, **kwargs):
-        global conffile
+        global _conffile
         global current_netconfig
 
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
-        conffile = args._sr_config_
+        _conffile = args._sr_config_
         current_netconfig = args._sr_netconfig_
 
         setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)

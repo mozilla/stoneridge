@@ -12,12 +12,12 @@ class StoneRidgeDownloader(object):
     """Downloads the firefox archive and the tests.zip for a the machine this is
     running on and puts them in the stone ridge working directory
     """
-    def __init__(self, server, downloaddir):
-        self.server = server
-        self.downloaddir = downloaddir
+    def __init__(self):
+        self.server = stoneridge.get_config('download', 'server')
+        self.downloadroot = stoneridge.get_config('download', 'root')
 
     def _download_file(self, filename):
-        url = 'http://%s/%s/%s/%s' % (self.server, self.downloaddir,
+        url = 'http://%s/%s/%s/%s' % (self.server, self.downloadroot,
                 stoneridge.download_platform, filename)
         r = requests.get(url)
         if r.status_code != 200:
@@ -38,11 +38,7 @@ class StoneRidgeDownloader(object):
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.add_argument('--server', dest='server', required=True,
-                        help='Server to download from')
-    parser.add_argument('--downloaddir', dest='downloaddir', default='latest',
-                        help='Path where files live on server')
     args = parser.parse_args()
 
-    downloader = StoneRidgeDownloader(args.server, args.downloaddir)
+    downloader = StoneRidgeDownloader()
     downloader.run()
