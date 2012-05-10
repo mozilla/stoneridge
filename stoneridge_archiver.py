@@ -24,7 +24,7 @@ class StoneRidgeArchiver(object):
 
 
         filename = os.path.join(stoneridge.archivedir, '%s.zip' % (arcname,))
-        zfile = zipfile.ZipFile(filename, mode='wb')
+        zfile = zipfile.ZipFile(filename, mode='w')
 
         # Put all the files under a directory in the zip named for the zip
         # file itself, for easy separation when unzipping multiple archives
