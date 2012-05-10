@@ -15,6 +15,7 @@ def main():
     """
     parser = stoneridge.ArgumentParser()
     parser.parse_args()
-    shutil.rmtree(stoneridge.workdir)
-    if os.path.exists(stoneridge.xpcoutdir):
+    if stoneridge.workdir and os.path.exists(stoneridge.workdir):
+        shutil.rmtree(stoneridge.workdir)
+    if stoneridge.xpcoutdir and os.path.exists(stoneridge.xpcoutdir):
         shutil.rmtree(stoneridge.xpcoutdir)
