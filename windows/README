@@ -1,0 +1,15 @@
+This contains the source code and executable for the Stone Ridge DNS modifier
+that runs on windows.
+
+It's C#. To build it (if you really feel like building your own copy, or if you
+want to change things), create a new C# console project in Visual Studio.
+Overwrite the file it generates with srdns.cs from this directory. You need to
+add a reference to the System.ServiceProcess assembly to your project before
+you build this (in the Solution Explorer, right-click on "References", select
+"Add Reference", and then on the .NET tab, select "System.ServiceProcess" and
+hit "OK").
+
+Your resulting exe can be added as a service using sc.exe (see
+install.py for an example of the command line used).
+
+Enjoy
