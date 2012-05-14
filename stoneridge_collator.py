@@ -25,7 +25,7 @@ class StoneRidgeCollator(object):
             # Make a new copy of the base info
             results = copy.deepcopy(info)
             results['testrun'] = {'date':None, 'suite':None, 'options':{},
-                                  'results':{}, 'results_aux':{'totals':[]
+                                  'results':{}, 'results_aux':{'totals':[],
                                                                'tstamps':{}}}
 
             # Add network configuration to platform
@@ -47,23 +47,24 @@ class StoneRidgeCollator(object):
                 testinfo = json.load(f)
 
             # Stick the raw data into the json to be uploaded
-            for k, v in testinfo.items():
-                if k == 'total':
-                    # The graph server calculates totals for us, we just keep
-                    # our calculations around for verification in case
-                    results['testrun']['results_aux']['totals'].append(v['total'])
-                else:
-                    if k in results['testrun']['results']:
-                        results['testrun']['results'][k].append(v['total'])
+            for k, vlist in testinfo.items():
+                for v in vlist:
+                    if k == 'total':
+                        # The graph server calculates totals for us, we just keep
+                        # our calculations around for verification in case
+                        results['testrun']['results_aux']['totals'].append(v['total'])
                     else:
-                        results['testrun']['results'][k] = [v['total']]
+                        if k in results['testrun']['results']:
+                            results['testrun']['results'][k].append(v['total'])
+                        else:
+                            results['testrun']['results'][k] = [v['total']]
 
-                    if k in results['testrun']['results_aux']['tstamps']:
-                        results['testrun']['results_aux']['tstamps'][k].append(
-                                {'start':v['start'], 'stop':v['stop']})
-                    else:
-                        results['testrun']['results_aux']['tstamps'][k] = \
-                                [{'start':v['start'], 'stop':v['stop']}]
+                        if k in results['testrun']['results_aux']['tstamps']:
+                            results['testrun']['results_aux']['tstamps'][k].append(
+                                    {'start':v['start'], 'stop':v['stop']})
+                        else:
+                            results['testrun']['results_aux']['tstamps'][k] = \
+                                    [{'start':v['start'], 'stop':v['stop']}]
 
             # Copy the raw data into our output directory
             shutil.copyfile(ofile, os.path.join(stoneridge.outdir, fname))
@@ -77,7 +78,7 @@ class StoneRidgeCollator(object):
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.parse_options()
+    parser.parse_args()
 
     collator = StoneRidgeCollator()
     collator.run()
