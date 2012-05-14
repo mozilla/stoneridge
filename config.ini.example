@@ -3,13 +3,16 @@ scheme = git
 url = http://github.com/todesschaf/stoneridge.git
 
 [download]
-server = stoneridge-master.example.com:8888
-root = stoneridge/latest
+server = localhost:8080
+root = latest
 
 [upload]
-url = http://stoneridge-graphs.example.com/upload
+url = http://localhost:8080/upload
 
 [dns]
 broadband = 1.2.3.4
 umts = 5.6.7.8
 gsm = 9.10.11.12
+
+[server]
+directory = /Users/hurley/stone_ridge/srv/ul
