@@ -5,7 +5,7 @@
 
 import glob
 import os
-import human_curl as requests
+import requests
 
 import stoneridge
 
@@ -19,10 +19,11 @@ class StoneRidgeUploader(object):
     def run(self):
         file_pattern = os.path.join(stoneridge.outdir, 'upload_*.json')
         upload_files = glob.glob(file_pattern)
-        for upload in upload_files:
-            fname = os.path.basename(upload)
-            with file(upload, 'rb') as f:
-                requests.post(self.url, files=((fname, f),))
+        files = {os.path.basename(fname): open(fname, 'rb')
+                 for fname in upload_files}
+        requests.post(self.url, files=files)
+        for f in files.values():
+            f.close()
 
 @stoneridge.main
 def main():
