@@ -42,13 +42,14 @@ function do_test_finish() {
  */
 function do_test_pending() {}
 
-function _do_save_results(output_filename) {
+function _do_save_results() {
   var ofile = Cc["@mozilla.org/file/directory_service;1"].
               getService(Ci.nsIProperties).
               get("TmpD", Ci.nsILocalFile);
 
   // And use the file determined by our caller
-  ofile.append(output_filename);
+  ofile.append(_SR_OUT_SUBDIR);
+  ofile.append(_SR_OUT_FILE);
 
   // Now get an output stream for our file
   var ostream = Cc["@mozilla.org/network/file-output-stream;1"].
@@ -68,7 +69,7 @@ function make_channel(url) {
 /*
  * The main entry point for all stone ridge tests
  */
-function do_stoneridge(output_filename) {
+function do_stoneridge() {
   STONERIDGE_FINISHED = false;
   STONERIDGE_RESULTS = {};
 
@@ -82,5 +83,5 @@ function do_stoneridge(output_filename) {
   while (thread.hasPendingEvents())
     thread.processNextEvent(true);
 
-  _do_save_results(output_filename);
+  _do_save_results();
 }

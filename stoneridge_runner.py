@@ -51,7 +51,7 @@ class StoneRidgeRunner(object):
         """Build the list of arguments (including head js files) for everything
         except the actual command to run.
         """
-        preargs = ['-v', '180', '-f', os.path.join(self.builtin, 'head.js')]
+        preargs = ['-v', '180']
 
         for head in self.heads:
             abshead = os.path.abspath(head)
@@ -69,9 +69,14 @@ class StoneRidgeRunner(object):
         self.outfiles = []
         self.failures = []
         for test in tests:
-            outfile = os.path.join(stoneridge.xpcoutdir, '%s.out' % (test,))
-            args = preargs + ['-f', os.path.join(stoneridge.testroot, test)] + \
-                    ['-e', 'do_stoneridge(' + outfile + '); quit(0);']
+            outfile = '%s.out' % (test,)
+            args = preargs + [
+                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (stoneridge.xpcoutdir,),
+                '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
+                '-f', os.path.join(self.builtin, 'head.js'),
+                '-f', os.path.join(stoneridge.testroot, test),
+                '-e', 'do_stoneridge(); quit(0);'
+            ]
             res, _ = stoneridge.run_xpcshell(args, stdout=sys.stdout)
             outfiles.append(outfile)
             if res:
