@@ -6,7 +6,7 @@
 import argparse
 import ftplib
 import os
-import human_curl as requests
+import requests
 import time
 
 import stoneridge
