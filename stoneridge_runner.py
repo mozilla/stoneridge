@@ -22,11 +22,7 @@ class StoneRidgeRunner(object):
         """
         # These we just copy over and worry about them later
         self.tests = tests
-        self.heads = heads
-        self.tails = tails
-
-        # Figure out where our builtins live based on where we are
-        self.builtin = os.path.dirname(__file__)
+        self.heads = heads if heads else []
 
     def _build_testlist(self):
         """Return a list of test file names, all relative to the test root.
@@ -64,24 +60,23 @@ class StoneRidgeRunner(object):
         preargs = self._build_preargs()
 
         # Ensure our output directory exists
-        os.makedirs(stoneridge.xpcoutdir)
+        try:
+            os.makedirs(stoneridge.xpcoutdir)
+        except OSError:
+            pass
 
-        self.outfiles = []
-        self.failures = []
         for test in tests:
             outfile = '%s.out' % (test,)
             args = preargs + [
-                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (stoneridge.xpcoutdir,),
+                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (stoneridge.xpcoutleaf,),
                 '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
-                '-f', os.path.join(self.builtin, 'head.js'),
+                '-f', os.path.join(stoneridge.installroot, 'head.js'),
                 '-f', os.path.join(stoneridge.testroot, test),
                 '-e', 'do_stoneridge(); quit(0);'
             ]
             res, _ = stoneridge.run_xpcshell(args, stdout=sys.stdout)
-            outfiles.append(outfile)
             if res:
                 sys.stdout.write('### TEST FAIL: %s\n' % (test,))
-                failures.append(test)
 
 
 @stoneridge.main

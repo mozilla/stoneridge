@@ -37,6 +37,7 @@ outdir = None
 archivedir = None
 logdir = None
 xpcoutdir = None
+xpcoutleaf = None
 
 # Misc configuration
 _debug_enabled = True # Use False for production
@@ -228,6 +229,7 @@ def setup_dirnames(srroot, srwork, srxpcout):
     global logdir
     global xpcshell
     global xpcoutdir
+    global xpcoutleaf
 
     installroot = os.path.abspath(srroot)
     workdir = os.path.abspath(srwork)
@@ -245,6 +247,7 @@ def setup_dirnames(srroot, srwork, srxpcout):
 
     xpcshell = os.path.join(bindir, get_xpcshell_bin())
 
+    xpcoutleaf = srxpcout
     try:
         xpctmp = _get_xpcshell_tmp()
         xpcoutdir = os.path.join(xpctmp, srxpcout)
