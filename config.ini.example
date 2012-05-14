@@ -16,3 +16,6 @@ gsm = 9.10.11.12
 
 [server]
 directory = /Users/hurley/stone_ridge/srv/ul
+
+[report]
+url = http://sr-graphserver.example.com/report
