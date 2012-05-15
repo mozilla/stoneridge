@@ -28,13 +28,6 @@ class StoneRidgeCollator(object):
                                   'results':{}, 'results_aux':{'totals':[],
                                                                'tstamps':{}}}
 
-            # Add network configuration to platform
-            # XXX - do we want this here, or do we want some extra
-            # XXX - field in the db schema?
-            results['test_machine']['platform'] = '%s : %s' % (
-                    results['test_machine']['platform'],
-                    stoneridge.current_netconfig)
-
             # Figure out the test-specific data
             fname = os.path.basename(ofile)
             suite = fname.split('.')[0]

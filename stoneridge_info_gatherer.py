@@ -23,7 +23,7 @@ class StoneRidgeInfoGatherer(object):
         build_info['name'] = cp.get('App', 'Name')
         build_info['version'] = cp.get('App', 'Version')
         build_info['revision'] = cp.get('App', 'SourceStamp')
-        build_info['branch'] = ''
+        build_info['branch'] = stoneridge.current_netconfig
         build_info['id'] = cp.get('App', 'BuildID')
 
         machine_info = {}
