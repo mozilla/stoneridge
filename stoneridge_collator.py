@@ -3,6 +3,7 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import collections
 import copy
 import glob
 import json
@@ -24,9 +25,9 @@ class StoneRidgeCollator(object):
         for ofile in outfiles:
             # Make a new copy of the base info
             results = copy.deepcopy(info)
-            results['testrun'] = {'date':None, 'suite':None, 'options':{},
-                                  'results':{}, 'results_aux':{'totals':[],
-                                                               'tstamps':{}}}
+            results['testrun'] = {'date':None, 'suite':None, 'options':{}}
+            results['results'] = collections.defaultdict(list)
+            results['results_aux'] = collections.defaultdict(list)
 
             # Figure out the test-specific data
             fname = os.path.basename(ofile)
@@ -45,19 +46,17 @@ class StoneRidgeCollator(object):
                     if k == 'total':
                         # The graph server calculates totals for us, we just keep
                         # our calculations around for verification in case
-                        results['testrun']['results_aux']['totals'].append(v['total'])
+                        results['results_aux']['totals'].append(v['total'])
                     else:
-                        if k in results['testrun']['results']:
-                            results['testrun']['results'][k].append(v['total'])
-                        else:
-                            results['testrun']['results'][k] = [v['total']]
+                        results['results'][k].append(v['total'])
 
-                        if k in results['testrun']['results_aux']['tstamps']:
-                            results['testrun']['results_aux']['tstamps'][k].append(
-                                    {'start':v['start'], 'stop':v['stop']})
-                        else:
-                            results['testrun']['results_aux']['tstamps'][k] = \
-                                    [{'start':v['start'], 'stop':v['stop']}]
+                        for s in ('start', 'stop'):
+                            key = '%s_%s' % (k, s)
+                            results['results_aux'][key].append(v[s])
+
+            # Turn our defaultdicts into regular dicts for jsonification
+            results['results'] = dict(results['results'])
+            results['results_aux'] = dict(results['results_aux'])
 
             # Copy the raw data into our output directory
             shutil.copyfile(ofile, os.path.join(stoneridge.outdir, fname))
