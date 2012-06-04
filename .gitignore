@@ -1,3 +1,4 @@
 *.pyc
 archives
 logs
+config.ini
