@@ -3,6 +3,7 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import argparse
 import glob
 import os
 import requests
@@ -18,13 +19,14 @@ class StoneRidgeReporter(object):
     def run(self):
         files = glob.glob(self.pattern)
         for fpath in files:
-            fname = os.path.basename(f)
+            fname = os.path.basename(fpath)
             unlink_ok = False
             with file(fpath, 'rb') as f:
                 try:
-                    requests.post(self.url, files={fname: f})
+                    post_data = 'data=%s' % (f.read(),)
+                    r = requests.post(self.url, data=post_data)
                     unlink_ok = True
-                except:
+                except Exception, e:
                     pass
             if unlink_ok:
                 os.unlink(fpath)
