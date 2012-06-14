@@ -2,14 +2,19 @@ import argparse
 import BaseHTTPServer
 import cgi
 import os
+import posixpath
+import SimpleHTTPServer
 import tempfile
 import time
+import urllib
 
 import stoneridge
 
-class SRUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
-        rootdir = stoneridge.get_config('server', 'directory')
+        """Handle getting uploaded results from the clients
+        """
+        rootdir = stoneridge.get_config('server', 'uploads')
         now = int(time.time())
         idx = 0
 
@@ -27,6 +32,20 @@ class SRUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             os.close(fd)
 
         self.send_response(200)
+
+    def translate_path(self, path):
+        """Override the base translate_path to get something with a configurable
+        root
+        """
+        rootdir = stoneridge.get_config('server', 'downloads')
+        path = path.split('?', 1)[0]
+        path = path.split('#', 1)[0]
+        path = posixpath.normpath(urllib.unquote(path))
+        words = [w for w in path.split('/') if w]
+        path = rootdir
+        for w in words:
+            path = os.path.join(path, w)
+        return path
 
 @stoneridge.main
 def main():

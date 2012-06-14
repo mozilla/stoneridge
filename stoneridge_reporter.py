@@ -12,7 +12,7 @@ import stoneridge
 
 class StoneRidgeReporter(object):
     def __init__(self):
-        self.rootdir = stoneridge.get_config('server', 'directory')
+        self.rootdir = stoneridge.get_config('server', 'uploads')
         self.pattern = os.path.join(self.rootdir, '*.json')
         self.url = stoneridge.get_config('report', 'url')
 
