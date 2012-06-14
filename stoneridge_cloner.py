@@ -32,10 +32,10 @@ class StoneRidgeCloner(object):
     web server. Those clients use stoneridge_downloader.py to get the files they
     need from the central server.
     """
-    def __init__(self, host, path, outdir):
-        self.host = host
-        self.path = path
-        self.outroot = os.path.abspath(outdir)
+    def __init__(self):
+        self.host = stoneridge.get_config('cloner', 'host')
+        self.path = stoneridge.get_config('cloner', 'path')
+        self.outroot = stoneridge.get_config('server', 'downloads')
         self.tstamp = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         self.outdir = os.path.join(self.outroot, self.tstamp)
         self.latest = os.path.join(self.outroot, 'latest')
@@ -198,15 +198,10 @@ class StoneRidgeCloner(object):
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', dest='host', metavar='HOST',
-            default='ftp.mozilla.org', help='Host to clone from')
-    parser.add_argument('--path', dest='path', metavar='PATH',
-            default='/pub/mozilla.org/firefox/nightly/latest-mozilla-central',
-            help='Directory on server to clone from')
-    parser.add_argument('--output', dest='outdir', metavar='DIR',
-            default='.', help='Where to store cloned files to')
-
+    parser.add_argument('--config', dest='config', required=True)
     args = parser.parse_args()
 
-    cloner = StoneRidgeCloner(args.host, args.path, args.outdir)
+    stoneridge._conffile = args.config
+
+    cloner = StoneRidgeCloner()
     cloner.run()
