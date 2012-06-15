@@ -1,6 +1,7 @@
 import argparse
 import BaseHTTPServer
 import cgi
+import daemonize
 import os
 import posixpath
 import SimpleHTTPServer
@@ -47,13 +48,17 @@ class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             path = os.path.join(path, w)
         return path
 
+def daemon():
+    httpd = BaseHTTPServer.HTTPServer(('0.0.0.0', 8080), SRUploadHandler)
+    httpd.serve_forever()
+
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', required=True)
+    parser.add_argument('--pidfile', dest='pidfile', required=True)
     args = parser.parse_args()
 
     stoneridge._conffile = args.config
 
-    httpd = BaseHTTPServer.HTTPServer(('127.0.0.1', 8080), SRUploadHandler)
-    httpd.serve_forever()
+    daemonize.start(daemon, args.pidfile)

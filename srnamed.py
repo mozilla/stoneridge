@@ -1,3 +1,5 @@
+import argparse
+import daemonize
 import logging
 import subprocess
 import sys
@@ -7,6 +9,7 @@ import traceback
 from dnsproxy import DnsProxyServer, UdpDnsHandler, DnsProxyException
 from replay import configure_logging
 
+import stoneridge
 
 class NeckoDnsProxyServer(DnsProxyServer):
     def necko_get_ip(self, client):
@@ -59,7 +62,7 @@ class NeckoDnsHandler(UdpDnsHandler):
         self.reply(self.get_dns_reply(ip))
 
 
-if __name__ == '__main__':
+def daemon():
     configure_logging('debug', None)
     try:
         with(NeckoDnsProxyServer(False, handler=NeckoDnsHandler)):
@@ -74,3 +77,11 @@ if __name__ == '__main__':
         print traceback.format_exc()
         sys.exit(2)
     sys.exit(0)
+
+@stoneridge.main
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--pidfile', 'pidfile', required=True)
+    args = parser.parse_args()
+
+    daemonize.start(daemon, args.pidfile)

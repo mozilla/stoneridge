@@ -3,6 +3,8 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import argparse
+import daemonize
 import os
 import platform
 import re
@@ -11,6 +13,8 @@ import SocketServer
 import struct
 import subprocess
 import tempfile
+
+import stoneridge
 
 dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
 
@@ -136,7 +140,7 @@ class LinuxDnsModifier(BaseDnsModifier):
         with file(self.resolvconf, 'w') as f:
             f.write('\n'.join(lines))
 
-if __name__ == '__main__':
+def daemon():
     sysname = platform.system()
     if sysname == 'Linux':
         DnsModifier = LinuxDnsModifier
@@ -152,3 +156,11 @@ if __name__ == '__main__':
         pass
 
     shutil.rmtree(rundir)
+
+@stoneridge.main
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_option('--pidfile', 'pidfile', required=True)
+    args = parser.parse_args()
+
+    daemonize.start(daemon, args.pidfile)
