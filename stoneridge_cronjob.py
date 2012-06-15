@@ -4,6 +4,7 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import ConfigParser
 import os
 import subprocess
 import sys
@@ -141,41 +142,24 @@ class StoneRidgeCronJob(object):
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
-    parser.add_argument('--config', dest='config', default='/etc/stoneridge.ini')
-    parser.add_argument('--netconfig', dest='netconfig', required=True,
-            choices=stoneridge.netconfigs.keys())
-    group.add_argument('--no-update', dest='update', default=True,
-            action='store_false')
-    group.add_argument('--update-only', dest='update_only', default=False,
-            action='store_true')
-    parser.add_argument('--workdir', dest='workdir')
+    parser.add_argument('--config', dest='config', required=True)
     args = parser.parse_args()
-
-    if args.update:
-        stoneridge.update(args.config)
-        if not args.update_only:
-            exec_args = [sys.executable, sys.executable, __file__,
-                         '--no-update', '--config', args.config]
-            if args.workdir:
-                exec_args.extend(['--workdir', args.workdir])
-            os.execl(*exec_args)
 
     # Figure out where we live so we know where our root directory is
     srroot = os.path.split(os.path.abspath(__file__))[0]
 
-    # Create a working space for this run
-    if args.workdir:
-        srwork = os.path.abspath(args.workdir)
-        if not os.path.exists(srwork):
-            os.mkdir(srwork)
-    else:
+    cp = ConfigParser.ConfigParser()
+    cp.read([args.config])
+    netconfigs = cp.options('dns')
+
+    for netconfig in netconfigs:
+        # Create a working space for this run
         srwork = tempfile.mkdtemp()
 
-    # Make a name for output from xpcshell (can't make the actual directory yet
-    # because we don't know what directory it'll live in)
-    srxpcout = os.path.basename(tempfile.mktemp())
+        # Make a name for output from xpcshell (can't make the actual directory
+        # yet, because we don't know what directory it'll live in)
+        srxpcout = os.path.basename(tempfile.mktemp())
 
-    cronjob = StoneRidgeCronJob(args.config, args.netconfig, srroot, srwork,
-            srxpcout)
-    cronjob.run()
+        cronjob = StoneRidgeCronJob(args.config, netconfig, srroot, srwork,
+                srxpcout)
+        cronjob.run()
