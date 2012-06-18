@@ -57,8 +57,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', required=True)
     parser.add_argument('--pidfile', dest='pidfile', required=True)
+    parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
 
     stoneridge._conffile = args.config
 
-    daemonize.start(daemon, args.pidfile)
+    daemonize.start(daemon, args.pidfile, args.log)

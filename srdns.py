@@ -161,6 +161,7 @@ def daemon():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_option('--pidfile', 'pidfile', required=True)
+    parser.add_option('--log', 'log', required=True)
     args = parser.parse_args()
 
-    daemonize.start(daemon, args.pidfile)
+    daemonize.start(daemon, args.pidfile, args.log)
