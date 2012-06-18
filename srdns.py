@@ -160,8 +160,8 @@ def daemon():
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_option('--pidfile', 'pidfile', required=True)
-    parser.add_option('--log', 'log', required=True)
+    parser.add_option('--pidfile', dest='pidfile', required=True)
+    parser.add_option('--log', dest='log', required=True)
     args = parser.parse_args()
 
     daemonize.start(daemon, args.pidfile, args.log)
