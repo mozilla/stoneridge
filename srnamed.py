@@ -11,6 +11,8 @@ from replay import configure_logging
 
 import stoneridge
 
+listen_ip = None
+
 class NeckoDnsProxyServer(DnsProxyServer):
     def necko_get_ip(self, client):
         try:
@@ -58,6 +60,8 @@ class NeckoDnsHandler(UdpDnsHandler):
         else:
             message = 'handle'
             ip = self.server.necko_get_ip(self.client_address[0])
+            # TODO - make the above work again
+            ip = listen_ip
         logging.debug('dnsproxy: %s(%s) -> %s', message, self.domain, ip)
         self.reply(self.get_dns_reply(ip))
 
@@ -81,8 +85,12 @@ def daemon():
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--listen', dest='listen', required=True)
     parser.add_argument('--pidfile', dest='pidfile', required=True)
     parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
+
+    global listen_ip
+    listen_ip = args.listen
 
     daemonize.start(daemon, args.pidfile, args.log)
