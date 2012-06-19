@@ -25,15 +25,14 @@ class StoneRidgeCollator(object):
         for ofile in outfiles:
             # Make a new copy of the base info
             results = copy.deepcopy(info)
-            results['testrun'] = {'date':None, 'suite':None, 'options':{}}
+            del results['date']
+            results['testrun'] = {'date':info['date'], 'suite':None, 'options':{}}
             results['results'] = collections.defaultdict(list)
             results['results_aux'] = collections.defaultdict(list)
 
             # Figure out the test-specific data
             fname = os.path.basename(ofile)
             suite = fname.split('.')[0]
-            finfo = os.stat(ofile)
-            results['testrun']['date'] = int(finfo.st_ctime)
             results['testrun']['suite'] = suite
 
             # Read the raw data

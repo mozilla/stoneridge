@@ -17,10 +17,9 @@ class StoneRidgeArchiver(object):
         with file(os.path.join(stoneridge.outdir, 'info.json'), 'rb') as f:
             info = json.load(f)
 
-        arcname = 'stoneridge_%s_%s_%s_%s' % (info['testrun']['date'],
-                                              info['test_machine']['name'],
-                                              info['test_build']['revision'],
-                                              info['testrun']['suite'])
+        arcname = 'stoneridge_%s_%s_%s' % (info['date'],
+                                           info['test_machine']['name'],
+                                           info['test_build']['revision'])
 
 
         filename = os.path.join(stoneridge.archivedir, '%s.zip' % (arcname,))

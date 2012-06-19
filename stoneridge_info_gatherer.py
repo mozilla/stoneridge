@@ -7,6 +7,7 @@ import ConfigParser
 import json
 import os
 import platform
+import time
 
 import stoneridge
 
@@ -34,7 +35,8 @@ class StoneRidgeInfoGatherer(object):
 
         info = {'test_machine':machine_info,
                 'test_build':build_info,
-                'testrun':{}}
+                'testrun':{},
+                'date':int(time.time())}
 
         if not os.path.exists(stoneridge.outdir):
             os.mkdir(stoneridge.outdir)
