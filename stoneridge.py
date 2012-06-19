@@ -4,6 +4,7 @@
 
 import argparse
 import ConfigParser
+import copy
 import inspect
 import os
 import platform
@@ -44,6 +45,7 @@ _debug_enabled = True # Use False for production
 _xpcshell_tmp_dir = None
 _conffile = None
 _cp = None
+_xpcshell_environ = None
 
 def main(_main):
     """Mark a function as the main function to run when run as a script.
@@ -123,9 +125,20 @@ def update(cfile=None):
 def run_xpcshell(args, stdout=subprocess.PIPE):
     """Run xpcshell with the appropriate args
     """
+    global _xpcshell_environ
+    if _xpcshell_environ is None:
+        _xpcshell_environ = copy.copy(os.environ)
+        ldlibpath = _xpcshell_environ.get('LD_LIBRARY_PATH')
+        if ldlibpath:
+            ldlibpath = os.path.pathsep.join([bindir, ldlibpath])
+        else:
+            ldlibpath = bindir
+        _xpcshell_environ['LD_LIBRARY_PATH'] = ldlibpath
+
     xpcargs = [xpcshell] + args
     proc = subprocess.Popen(xpcargs, stdout=stdout,
-            stderr=subprocess.STDOUT, cwd=bindir)
+            stderr=subprocess.STDOUT, cwd=bindir,
+            env=_xpcshell_environ)
     res = proc.wait()
     return (res, proc.stdout)
 
