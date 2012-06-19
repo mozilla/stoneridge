@@ -19,6 +19,9 @@ class StoneRidgeUploader(object):
     def run(self):
         file_pattern = os.path.join(stoneridge.outdir, 'upload_*.json')
         upload_files = glob.glob(file_pattern)
+        if not upload_files:
+            # Nothing to do, so forget it!
+            return
         files = {os.path.basename(fname): open(fname, 'rb')
                  for fname in upload_files}
         requests.post(self.url, files=files)
