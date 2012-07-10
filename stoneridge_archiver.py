@@ -23,6 +23,8 @@ class StoneRidgeArchiver(object):
 
 
         filename = os.path.join(stoneridge.archivedir, '%s.zip' % (arcname,))
+        if not os.path.exists(stoneridge.archivedir):
+            os.mkdir(stoneridge.archivedir)
         zfile = zipfile.ZipFile(filename, mode='w')
 
         # Put all the files under a directory in the zip named for the zip

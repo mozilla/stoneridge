@@ -3,9 +3,11 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import glob
 import os
 import shutil
 import subprocess
+import zipfile
 
 import stoneridge
 
@@ -31,6 +33,20 @@ class StoneRidgeUnpacker(object):
                 'firefox.%s' % (stoneridge.download_suffix,))
         self.testzip = os.path.join(stoneridge.downloaddir, 'tests.zip')
 
+    def _copy_tree(self, unzipdir, name):
+        srcdir = os.path.join(unzipdir, 'bin', name)
+        files = os.listdir(srcdir)
+        dstdir = os.path.join(stoneridge.bindir, name)
+        if not os.path.exists(dstdir):
+            os.mkdir(dstdir)
+        for f in files:
+            src = os.path.join(srcdir, f)
+            dst = os.path.join(dstdir, f)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else:
+                shutil.copyfile(src, dst)
+
     def run(self):
         # Get our firefox
         self.unpack_firefox()
@@ -38,32 +54,27 @@ class StoneRidgeUnpacker(object):
         # Unzip the stuff we need from the tests zipfile
         unzipdir = os.path.join(stoneridge.workdir, 'tests')
         os.mkdir(unzipdir)
-        subprocess.call(['unzip', self.testzip, 'bin*'], cwd=unzipdir)
+        z = zipfile.ZipFile(self.testzip, 'r')
+        members = [f for f in z.namelist() if f.startswith('bin')]
+        z.extractall(unzipdir, members)
 
         # Put the xpcshell binary where it belongs
         xpcshell = os.path.join(unzipdir, 'bin', stoneridge.get_xpcshell_bin())
         shutil.copy(xpcshell, stoneridge.bindir)
 
         # Put our components into place
-        components = os.path.join(unzipdir, 'bin', 'components', '*')
-        fxcomponents = os.path.join(stoneridge.bindir, 'components')
-        subprocess.call(['bash', '-c',
-            'cp -R %s %s' % (components, fxcomponents)])
+        self._copy_tree(unzipdir, 'components')
 
         # Put the plugins in place, in case we need them
-        fxplugins = os.path.join(stoneridge.bindir, 'plugins')
-        if not os.path.exists(fxplugins):
-            os.mkdir(fxplugins)
-        plugins = os.path.join(unzipdir, 'bin', 'plugins', '*')
-        subprocess.call(['bash', '-c',
-            'cp -R %s %s' % (plugins, fxplugins)])
+        self._copy_tree(unzipdir, 'plugins')
 
     def unpack_firefox(self):
         raise NotImplementedError
 
 class WindowsUnpacker(StoneRidgeUnpacker):
     def unpack_firefox(self):
-        subprocess.call(['unzip', self.firefoxpkg], cwd=stoneridge.workdir)
+        z = zipfile.ZipFile(self.firefoxpkg, 'r')
+        z.extractall(stoneridge.workdir)
 
 class LinuxUnpacker(StoneRidgeUnpacker):
     def unpack_firefox(self):
