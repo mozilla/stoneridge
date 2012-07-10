@@ -1,6 +1,8 @@
 This contains the source code and executable for the Stone Ridge DNS modifier
 that runs on windows.
 
+You need to have .NET Framework v4 installed to run the service.
+
 It's C#. To build it (if you really feel like building your own copy, or if you
 want to change things), create a new C# console project in Visual Studio.
 Overwrite the file it generates with srdns.cs from this directory. You need to

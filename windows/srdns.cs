@@ -7,6 +7,7 @@ using System.ServiceProcess;
 using System.Threading;
 using System.Net.Sockets;
 using System.Net;
+using Microsoft.Win32;
 
 namespace neckodnssvc
 {
@@ -15,32 +16,79 @@ namespace neckodnssvc
         protected TimeSpan stopdelay;
         protected ManualResetEvent shutdownevt;
         protected Thread thread;
+        protected string logsrc;
+        protected string logname;
 
         public NeckoDnsSvc()
         {
             stopdelay = new TimeSpan(0, 0, 0, 1);
+
+            logsrc = "StoneRidgeDNS";
+            logname = "Application";
+            if (!EventLog.SourceExists(logsrc))
+            {
+                EventLog.CreateEventSource(logsrc, logname);
+            }
         }
 
         public void setDns(string dns)
         {
-            Process proc = new Process();
-            proc.StartInfo.FileName = "netsh.exe";
-            proc.StartInfo.Arguments = "interface ipv4 set dnsservers \"Local Area Connection\" static " + dns + " validate=no";
-            proc.StartInfo.UseShellExecute = false;
-            proc.StartInfo.RedirectStandardOutput = true;
-            proc.Start();
-            proc.WaitForExit();
+            /* First, kill the WAN interface */
+            EventLog.WriteEntry(logsrc, "About to kill WAN interface");
+            Process wanproc = new Process();
+            wanproc.StartInfo.FileName = "netsh.exe";
+            wanproc.StartInfo.Arguments = "interface set interface name=WAN admin=DISABLED";
+            wanproc.StartInfo.UseShellExecute = false;
+            wanproc.StartInfo.RedirectStandardOutput = true;
+            wanproc.Start();
+            wanproc.WaitForExit();
+            EventLog.WriteEntry(logsrc, "netsh exited with code " + wanproc.ExitCode.ToString());
+
+            /* Next, clear the domain search suffix */
+            EventLog.WriteEntry(logsrc, "About to clear search suffix");
+            Registry.SetValue("HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Services\\TCPIP\\Parameters", "SearchList", "");
+            EventLog.WriteEntry(logsrc, "Cleared search suffix");
+
+            /* Finally, set our static DNS server on the StoneRidge interface */
+            EventLog.WriteEntry(logsrc, "About to set DNS on StoneRidge interface");
+            Process srproc = new Process();
+            srproc.StartInfo.FileName = "netsh.exe";
+            srproc.StartInfo.Arguments = "interface ipv4 set dnsservers StoneRidge static " + dns + " validate=no";
+            srproc.StartInfo.UseShellExecute = false;
+            srproc.StartInfo.RedirectStandardOutput = true;
+            srproc.Start();
+            srproc.WaitForExit();
+            EventLog.WriteEntry(logsrc, "netsh exited with code " + srproc.ExitCode.ToString());
         }
 
         public void resetDns()
         {
-            Process proc = new Process();
-            proc.StartInfo.FileName = "netsh.exe";
-            proc.StartInfo.Arguments = "interface ipv4 set dnsservers \"Local Area Connection\" dhcp";
-            proc.StartInfo.UseShellExecute = false;
-            proc.StartInfo.RedirectStandardOutput = true;
-            proc.Start();
-            proc.WaitForExit();
+            /* First, kill the DNS server on the StoneRidge interface */
+            EventLog.WriteEntry(logsrc, "About to kill DNS on StoneRidge interface");
+            Process srproc = new Process();
+            srproc.StartInfo.FileName = "netsh.exe";
+            srproc.StartInfo.Arguments = "interface ipv4 set dnsservers StoneRidge static none validate=no";
+            srproc.StartInfo.UseShellExecute = false;
+            srproc.StartInfo.RedirectStandardOutput = true;
+            srproc.Start();
+            srproc.WaitForExit();
+            EventLog.WriteEntry(logsrc, "netsh exited with code " + srproc.ExitCode.ToString());
+
+            /* Next, bring the WAN interface back up*/
+            EventLog.WriteEntry(logsrc, "About to resurrect WAN interface");
+            Process wanproc = new Process();
+            wanproc.StartInfo.FileName = "netsh.exe";
+            wanproc.StartInfo.Arguments = "interface set interface name=WAN admin=ENABLED";
+            wanproc.StartInfo.UseShellExecute = false;
+            wanproc.StartInfo.RedirectStandardOutput = true;
+            wanproc.Start();
+            wanproc.WaitForExit();
+            EventLog.WriteEntry(logsrc, "netsh exited with code " + wanproc.ExitCode.ToString());
+
+            /* Finally, re-set the domain search suffix */
+            EventLog.WriteEntry(logsrc, "About to re-set search suffix");
+            Registry.SetValue("HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Services\\TCPIP\\Parameters", "SearchList", "mozilla.com");
+            EventLog.WriteEntry(logsrc, "Re-set search suffix");
         }
 
         public void svcMain()
@@ -100,7 +148,7 @@ namespace neckodnssvc
             // Clean up!
             s.Close();
         }
-        
+
         protected override void OnStart(string[] args)
         {
             ThreadStart ts = new ThreadStart(this.svcMain);
