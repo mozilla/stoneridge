@@ -6,6 +6,7 @@
 import struct
 import socket
 import sys
+import time
 
 import stoneridge
 
@@ -43,6 +44,15 @@ class StoneRidgeDnsUpdater(object):
 
     def _reset_dns(self):
         self._converse('r')
+
+        # XXX - WARNING! UGLY HACK BELOW!
+        # Since, on Windows, we have to actually disable the WAN interface to
+        # make our DNS switch properly (at least with my current knowledge of
+        # Windows DNS stuff), we have to wait for the interface to come back up
+        # before we can try to do anything that would use the WAN interface
+        # (such as uploading results).
+        if stoneridge.os_name == 'windows':
+            time.sleep(15)
 
     def run(self):
         if self.restore:
