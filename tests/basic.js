@@ -8,13 +8,6 @@ var startTime = null;
 var firstDataTime = null;
 var endTime = null;
 
-function make_channel(url)
-{
-  var IOService = Components.classes["@mozilla.org/network/io-service;1"].getService(
-                  Components.interfaces.nsIIOService);
-  return IOService.newChannel(url, "", null);
-}
-
 listener = {
   onStartRequest: function() {
   },
