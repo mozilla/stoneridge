@@ -41,7 +41,7 @@ xpcoutdir = None
 xpcoutleaf = None
 
 # Misc configuration
-_debug_enabled = True # Use False for production
+_debug_enabled = False
 _xpcshell_tmp_dir = None
 _conffile = None
 _cp = None
