@@ -20,7 +20,7 @@ path = /pub/mozilla.org/firefox/nightly/latest-mozilla-central
 
 [server]
 uploads = /Users/hurley/stone_ridge/srv/ul
-downloads = /Users/hurley/stone_ridge/srv
+downloads = /Users/hurley/stone_ridge/srv/dl
 
 [report]
 host = datazilla.example.mozilla.com
