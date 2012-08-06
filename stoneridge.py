@@ -41,7 +41,7 @@ xpcoutdir = None
 xpcoutleaf = None
 
 # Misc configuration
-_debug_enabled = True # Use False for production
+_debug_enabled = False
 _xpcshell_tmp_dir = None
 _conffile = None
 _cp = None
@@ -69,7 +69,7 @@ def debug(msg):
     if _debug_enabled:
         sys.stderr.write(msg)
 
-def get_config(section, option):
+def get_config(section, option, default=None):
     """Read a config entry from the stoneridge.ini file
     """
     global _cp
@@ -81,7 +81,7 @@ def get_config(section, option):
     try:
         return _cp.get(section, option)
     except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
-        return None
+        return default
 
 def update(cfile=None):
     """Update the stone ridge installation from the latest source

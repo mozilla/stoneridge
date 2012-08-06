@@ -5,8 +5,10 @@
 
 import argparse
 import ftplib
+import glob
 import os
 import requests
+import shutil
 import time
 
 import stoneridge
@@ -39,6 +41,7 @@ class StoneRidgeCloner(object):
         self.tstamp = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         self.outdir = os.path.join(self.outroot, self.tstamp)
         self.latest = os.path.join(self.outroot, 'latest')
+        self.keep = stoneridge.get_config('server', 'keep', default=5)
 
         if not os.path.exists(self.outroot):
             os.mkdir(self.outroot)
@@ -169,6 +172,30 @@ class StoneRidgeCloner(object):
             target = os.path.basename(self.outdir)
             os.symlink(target, 'latest')
 
+    def _cleanup_old_directories(self):
+        """We only keep around so many directories of historical firefoxen. This
+        gets rid of ones we don't care about any more
+        """
+        with cwd(self.outroot):
+            # Until the year 3000, all our directories will start with the
+            # number 2
+            listing = glob.glob('2*')
+
+            # We want to make sure they're sorted by date, and that we're not
+            # looking at anything that's not a directory that may have somehow
+            # gotten into our directory
+            directories = sorted([l for l in listing if os.path.isdir(l)])
+
+            delete_us = directories[:-self.keep]
+
+            # Make sure we don't accidentally delete the directory that is
+            # currently linked as the latest
+            latest = os.readlink('latest')
+            delete_us = [d for d in delete_us if d != latest]
+
+            for d in delete_us:
+                shutil.rmtree(d)
+
     def run(self):
         files = self._gather_filelist()
         stamp, self.prefix = self._get_stamp_and_prefix(files)
@@ -192,8 +219,10 @@ class StoneRidgeCloner(object):
         self._clone_linux()
         self._clone_win()
 
-        # Finally, update our "latest" pointer to point to this newest clone
+        # Update our "latest" pointer to point to this newest clone
         self._update_latest()
+
+        self._cleanup_old_directories()
 
 @stoneridge.main
 def main():
