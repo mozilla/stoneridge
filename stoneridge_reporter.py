@@ -4,9 +4,10 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import dzclient
 import glob
+import json
 import os
-import requests
 
 import stoneridge
 
@@ -14,22 +15,34 @@ class StoneRidgeReporter(object):
     def __init__(self):
         self.rootdir = stoneridge.get_config('server', 'uploads')
         self.pattern = os.path.join(self.rootdir, '*.json')
-        self.url = stoneridge.get_config('report', 'url')
+        self.host = stoneridge.get_config('report', 'host')
+        self.project = stoneridge.get_config('report', 'project')
+        self.key = stoneridge.get_config('report', 'key')
+        self.secret = stoneridge.get_config('report', 'secret')
 
     def run(self):
         files = glob.glob(self.pattern)
         for fpath in files:
-            fname = os.path.basename(fpath)
-            unlink_ok = False
             with file(fpath, 'rb') as f:
                 try:
-                    post_data = 'data=%s' % (f.read(),)
-                    r = requests.post(self.url, data=post_data)
-                    unlink_ok = True
-                except Exception, e:
-                    pass
-            if unlink_ok:
-                os.unlink(fpath)
+                    dataset = json.load(f)
+                except:
+                    # This one is crap, trash it so we never try it again
+                    os.unlink(fpath)
+                    continue
+
+            request = dzclient.DatazillaRequest('https', self.host,
+                    self.project, self.key, self.secret)
+            response = request.send(dataset)
+            if response.status != 200:
+                continue
+
+            result = json.load(response)
+            if result['status'] != 'well-formed JSON stored':
+                continue
+
+            # If we get here, everything went ok, so we can delete the file
+            os.unlink(fpath)
 
 @stoneridge.main
 def main():

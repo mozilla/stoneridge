@@ -20,7 +20,10 @@ path = /pub/mozilla.org/firefox/nightly/latest-mozilla-central
 
 [server]
 uploads = /Users/hurley/stone_ridge/srv/ul
-downloads = /Users/hurley/stone_ridge/srv
+downloads = /Users/hurley/stone_ridge/srv/dl
 
 [report]
-url = http://sr-graphserver.example.com/report
+host = datazilla.mozilla.com
+project = stoneridge
+key = PUT_OAUTH_KEY_HERE
+secret = PUT_OAUTH_SECRET_HERE
