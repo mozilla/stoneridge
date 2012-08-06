@@ -31,8 +31,8 @@ class StoneRidgeReporter(object):
                     os.unlink(fpath)
                     continue
 
-            request = dzclient.DatazillaRequest(self.host, self.project,
-                    self.key, self.secret)
+            request = dzclient.DatazillaRequest('https', self.host,
+                    self.project, self.key, self.secret)
             response = request.send(dataset)
             if response.status != 200:
                 continue
