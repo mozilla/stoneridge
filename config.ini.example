@@ -23,7 +23,7 @@ uploads = /Users/hurley/stone_ridge/srv/ul
 downloads = /Users/hurley/stone_ridge/srv/dl
 
 [report]
-host = datazilla.example.mozilla.com
+host = datazilla.mozilla.com
 project = stoneridge
 key = PUT_OAUTH_KEY_HERE
 secret = PUT_OAUTH_SECRET_HERE
