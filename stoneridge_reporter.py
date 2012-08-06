@@ -38,7 +38,7 @@ class StoneRidgeReporter(object):
                 continue
 
             result = json.load(response)
-            if result['status'] != 'ok':
+            if result['status'] != 'well-formed JSON stored':
                 continue
 
             # If we get here, everything went ok, so we can delete the file
