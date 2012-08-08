@@ -15,7 +15,6 @@ listener = {
   onDataAvailable: function() {
     if (!firstDataTime) {
        firstDataTime = new Date();
-       firstDataTime = firstDataTime.getMilliseconds();
     }
   },
 
@@ -23,7 +22,6 @@ listener = {
     //do_check(status === 0, "request to '" + request.name + "' failed");
 
     endTime = new Date();
-    endTime = endTime.getMilliseconds();
 
     do_write_result("latency", startTime, firstDataTime);
     do_write_result("data_delivery", firstDataTime, endTime);
@@ -36,7 +34,6 @@ listener = {
 function run_test() // The entry point
 {
   startTime = new Date();
-  startTime = startTime.getMilliseconds();
   var channel = make_channel("http://example.org/");
   channel.asyncOpen(listener, null);
 }

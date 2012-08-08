@@ -18,7 +18,10 @@ var Cr = Components.results;
  * Store some results for writing once we're all done
  */
 function do_write_result(key, start, stop) {
-  var val = {'start':start, 'stop':stop, 'total':stop - start};
+  var startms = start.valueOf();
+  var stopms = stop.valueOf();
+
+  var val = {'start':startms, 'stop':stopms, 'total':stopms - startms};
 
   if (STONERIDGE_RESULTS.hasOwnProperty(key)) {
     STONERIDGE_RESULTS[key].push(val);
