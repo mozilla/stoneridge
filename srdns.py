@@ -12,6 +12,7 @@ import shutil
 import SocketServer
 import struct
 import subprocess
+import sys
 import tempfile
 
 import stoneridge
@@ -157,11 +158,37 @@ def daemon():
 
     shutil.rmtree(rundir)
 
+def do_exit(parser, msg):
+    parser.print_usage()
+    parser.exit(2, msg % (parser.prog,))
+
+def do_mutex_exit(parser, arg):
+    msg = '%%s: error: argument %s: not allowed with argument --nodaemon\n'
+    do_exit(parser, msg % (arg,))
+
+def do_missing_exit(parser, arg):
+    msg = '%%s: error: argument %s is required\n'
+    do_exit(parser, msg % (arg,))
+
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pidfile', dest='pidfile', required=True)
-    parser.add_argument('--log', dest='log', required=True)
+    parser.add_argument('--pidfile', dest='pidfile')
+    parser.add_argument('--log', dest='log')
+    parser.add_argument('--nodaemon', dest='nodaemon', action='store_true')
     args = parser.parse_args()
+
+    if args.nodaemon:
+        if args.pidfile:
+            do_mutex_exit(parser, '--pidfile')
+        if args.log:
+            do_mutex_exit(parser, '--log')
+        daemon()
+        sys.exit(0)
+
+    if not args.pidfile:
+        do_missing_exit(parser, '--pidfile')
+    if not args.log:
+        do_missing_exit(parser, '--log')
 
     daemonize.start(daemon, args.pidfile, args.log)
