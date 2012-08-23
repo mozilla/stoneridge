@@ -60,6 +60,11 @@ class StoneRidgeUnpacker(object):
 
         # Put the xpcshell binary where it belongs
         xpcshell = os.path.join(unzipdir, 'bin', stoneridge.get_xpcshell_bin())
+
+        # Apparently xpcshell stopped being executable in the tests zip at some
+        # point, so we need to fix that before copying
+        os.chmod(xpcshell, 0755)
+
         shutil.copy(xpcshell, stoneridge.bindir)
 
         # Put our components into place
