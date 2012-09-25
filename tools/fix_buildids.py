@@ -31,8 +31,11 @@ for fname in sys.argv[1:]:
 
     # See stoneridge_info_gatherer.py for why the buildid is the way it is.
     netconfig = info['test_build']['branch']
+    os_name = info['test_machine']['os']
+    buildid_suffix = (stoneridge._os_ids[os_name] +
+                      stoneridge._netconfig_ids[netconfig])
     original_buildid = info['test_build']['id']
-    new_buildid = (original_buildid[2:-2] + netconfig)[:16]
+    new_buildid = original_buildid[:14] + buildid_suffix
 
     info['test_build']['original_buildid'] = original_buildid
     info['test_build']['id'] = new_buildid

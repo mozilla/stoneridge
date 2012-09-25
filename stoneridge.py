@@ -27,6 +27,7 @@ os_version = None
 download_platform = None
 download_suffix = None
 current_netconfig = None
+buildid_suffix = None
 
 # Paths that multiple programs need to know about
 installroot = None
@@ -269,6 +270,18 @@ def setup_dirnames(srroot, srwork, srxpcout):
         # don't worry if we can't get it earlier in the process
         pass
 
+_netconfig_ids = {
+    'broadband':'0',
+    'umts':'1',
+    'gsm':'2',
+}
+
+_os_ids = {
+    'windows':'w',
+    'linux':'l',
+    'mac':'m',
+}
+
 class ArgumentParser(argparse.ArgumentParser):
     """An argument parser for stone ridge programs that handles the arguments
     required by all of them
@@ -290,6 +303,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, **kwargs):
         global _conffile
         global current_netconfig
+        global buildid_suffix
 
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
@@ -297,5 +311,7 @@ class ArgumentParser(argparse.ArgumentParser):
         current_netconfig = args._sr_netconfig_
 
         setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)
+
+        buildid_suffix = _os_ids[os_name] + _netconfig_ids[current_netconfig]
 
         return args
