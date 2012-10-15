@@ -12,6 +12,8 @@ import json
 import os
 import sys
 
+import stoneridge
+
 for fname in sys.argv[1:]:
     try:
         with file(fname) as f:
