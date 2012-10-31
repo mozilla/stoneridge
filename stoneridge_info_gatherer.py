@@ -11,12 +11,16 @@ import time
 
 import stoneridge
 
+import logging
+
 class StoneRidgeInfoGatherer(object):
     """Gathers information about the platform stone ridge is running on as well
     as the build that stone ridge is being run against
     """
     def run(self):
+        logging.debug('info gatherer running')
         info_file = os.path.join(stoneridge.bindir, 'application.ini')
+        logging.debug('parsing ini file at %s' % (info_file,))
         cp = ConfigParser.SafeConfigParser()
         cp.read([info_file])
 
@@ -48,11 +52,14 @@ class StoneRidgeInfoGatherer(object):
                 'test_build':build_info,
                 'testrun':{},
                 'date':int(time.time())}
+        logging.debug('gathered info: %s' % (info,))
 
         if not os.path.exists(stoneridge.outdir):
+            logging.debug('making outdir %s' % (stoneridge.outdir,))
             os.mkdir(stoneridge.outdir)
 
         with file(os.path.join(stoneridge.outdir, 'info.json'), 'wb') as f:
+            logging.debug('dumping json to file')
             json.dump(info, f)
 
 @stoneridge.main
