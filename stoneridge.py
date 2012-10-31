@@ -78,8 +78,7 @@ def main(_main):
     parent = inspect.stack()[1][0]
     name = parent.f_locals.get('__name__', None)
     if name == '__main__':
-        rval = 0
-        log('BEGIN')
+        log('%s' % (' '.join(sys.argv),))
         try:
             _main()
         except Exception, e:
@@ -87,8 +86,8 @@ def main(_main):
             traceback.print_exception(type(e), e, sys.exc_info()[2], None,
                     sys.stderr)
             sys.exit(1)
-        log('FINISH')
-        sys.exit(rval)
+        log('FINISHED')
+        sys.exit(0)
     return _main
 
 def debug(msg):
