@@ -6,6 +6,7 @@ import argparse
 import ConfigParser
 import copy
 import inspect
+import logging
 import os
 import platform
 import StringIO
@@ -48,6 +49,27 @@ _conffile = None
 _cp = None
 _xpcshell_environ = None
 
+# Logging configuration
+_parser = argparse.Argumentparser()
+_parser.add_argument('--log')
+_args, _ = _parser.parse_known_args()
+if _args.log:
+    _logger = logging.getLogger()
+    _logger.setLevel(logging.DEBUG)
+    _handler = logging.FileHandler(_args.log)
+    _log_fmt = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
+    _formatter = logging.Formatter(fmt=_log_fmt)
+    _handler.setFormatter(_formatter)
+    _logger.addHandler(_handler)
+
+def log(msg):
+    if _args.log:
+        logging.debug(msg)
+
+def log_exc(msg):
+    if _args.log:
+        logging.exception(msg)
+
 def main(_main):
     """Mark a function as the main function to run when run as a script.
     If that function throws an exception, we'll print the traceback to
@@ -57,12 +79,15 @@ def main(_main):
     name = parent.f_locals.get('__name__', None)
     if name == '__main__':
         rval = 0
+        log('BEGIN')
         try:
             _main()
         except Exception, e:
+            log_exc('EXCEPTION')
             traceback.print_exception(type(e), e, sys.exc_info()[2], None,
                     sys.stderr)
             sys.exit(1)
+        log('FINISH')
         sys.exit(rval)
     return _main
 
@@ -299,6 +324,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 help='Directory to do all the work in')
         self.add_argument('--xpcout', dest='_sr_xpcout_', default='stoneridge',
                 help='Subdirectory of xpcshell temp to write output to')
+        self.add_argument('--log', dest='_sr_log_', default=None, required=True,
+                help='File to place log info in')
 
     def parse_args(self, **kwargs):
         global _conffile

@@ -5,6 +5,8 @@
 
 import argparse
 import ConfigParser
+import cStringIO
+import logging
 import os
 import subprocess
 import sys
@@ -23,7 +25,7 @@ class StoneRidgeException(Exception):
 class StoneRidgeCronJob(object):
     """Class that runs as the cron job to run Stone Ridge tests
     """
-    def __init__(self, srconffile, srnetconfig, srroot, srwork, srxpcout):
+    def __init__(self, srconffile, srnetconfig, srroot, srwork, srxpcout, log):
         """srconffile - .ini file containing stone ridge configuration
         srnetconfig - network configuration for current test
         srroot - installation directory of stone ridge
@@ -35,25 +37,27 @@ class StoneRidgeCronJob(object):
         self.srroot = srroot
         self.srwork = srwork
         self.srxpcout = srxpcout
-        self.logfile = None
-        self.log = None
+        self.logdir = os.path.dirname(log)
+        self.logfile = log
         self.archive_on_failure = False
         self.cleaner_called = False
+        self.procno = 1
 
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
         top level
         """
-        self.log.write('Error exit during %s' % (stage,))
+        logging.error('Error exit during %s' % (stage,))
         raise StoneRidgeException('Error running %s: see %s\n' % (stage,
             self.logfile))
 
     def run_process(self, stage, *args):
         """Run a particular subprocess with the default arguments, as well as
-        any arguments requested by the caller while writing status info to the
-        log
+        any arguments requested by the caller
         """
         script = os.path.join(self.srroot, 'stoneridge_%s.py' % (stage,))
+        logfile = os.path.join(self.logdir, '%02d_%s.txt' % (self.procno, stage))
+        self.procno += 1
 
         command = [sys.executable,
                    script,
@@ -61,18 +65,24 @@ class StoneRidgeCronJob(object):
                    '--netconfig', self.srnetconfig,
                    '--root', self.srroot,
                    '--workdir', self.srwork,
-                   '--xpcout', self.srxpcout]
+                   '--xpcout', self.srxpcout,
+                   '--log', logfile]
         command.extend(args)
 
-        self.log.write('### Running %s@%s\n' % (stage, int(time.time())))
-        self.log.write('   %s\n' % (' '.join(command),))
+        logging.debug('Running %s' % (stage,))
+        logging.debug(' '.join(command))
 
-        rval = subprocess.call(command, stdout=self.log,
+        proc_stdout = cStringIO.StringIO()
+
+        rval = subprocess.call(command, stdout=proc_stdout,
                 stderr=subprocess.STDOUT)
+
+        logging.debug(proc_stdout.getvalue())
+        proc_stdout.close()
 
         if rval:
             # The process failed to run correctly, we need to say so
-            self.log.write('### FAILED: %s@%s\n' % (stage, int(time.time())))
+            logging.debug('FAILED: %s' % (stage,))
             if self.archive_on_failure:
                 # We've reached the point in our run where we have something to
                 # save off for usage. Archive it, but don't try to archive again
@@ -93,7 +103,7 @@ class StoneRidgeCronJob(object):
             # Finally, bubble the error up to the top level
             self.do_error(stage)
         else:
-            self.log.write('### SUCCEEDED: %s@%s\n' % (stage, int(time.time())))
+            logging.debug('SUCCEEDED: %s' % (stage,))
 
     def run(self):
         stoneridge.setup_dirnames(self.srroot, self.srwork, self.srxpcout)
@@ -101,48 +111,40 @@ class StoneRidgeCronJob(object):
         for d in (stoneridge.outdir, stoneridge.downloaddir):
             os.mkdir(d)
 
-        for d in (stoneridge.archivedir, stoneridge.logdir):
-            if not os.path.exists(d):
-                os.mkdir(d)
+        if not os.path.exists(stoneridge.archivedir):
+            os.mkdir(d)
 
-        self.logfile = os.path.join(stoneridge.logdir,
-                'stoneridge_%s.log' % (int(time.time()),))
+        self.run_process('downloader')
 
-        with file(self.logfile, 'wb') as f:
-            self.log = f
+        self.run_process('unpacker')
 
-            self.run_process('downloader')
+        self.run_process('info_gatherer')
 
-            self.run_process('unpacker')
+        self.archive_on_failure = True
 
-            self.run_process('info_gatherer')
+        self.run_process('dns_updater')
 
-            self.archive_on_failure = True
+        self.run_process('runner')
 
-            self.run_process('dns_updater')
+        self.run_process('dns_updater', '--restore')
 
-            self.run_process('runner')
+        self.run_process('collator')
 
-            self.run_process('dns_updater', '--restore')
+        self.run_process('uploader')
 
-            self.run_process('collator')
+        self.archive_on_failure = False
 
-            self.run_process('uploader')
+        self.run_process('archiver')
 
-            self.archive_on_failure = False
-
-            self.run_process('archiver')
-
-            self.cleaner_called = True
-            self.run_process('cleaner')
-
-            self.log = None
+        self.cleaner_called = True
+        self.run_process('cleaner')
 
 
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', required=True)
+    parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
 
     # Figure out where we live so we know where our root directory is
@@ -161,5 +163,5 @@ def main():
         srxpcout = os.path.basename(tempfile.mktemp())
 
         cronjob = StoneRidgeCronJob(args.config, netconfig, srroot, srwork,
-                srxpcout)
+                srxpcout, args.log)
         cronjob.run()
