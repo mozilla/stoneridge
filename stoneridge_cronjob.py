@@ -6,7 +6,6 @@
 import argparse
 import ConfigParser
 import cStringIO
-import logging
 import os
 import subprocess
 import sys
@@ -14,6 +13,9 @@ import tempfile
 import time
 
 import stoneridge
+
+# Import this last so the configuration changes get picked up
+import logging
 
 class StoneRidgeException(Exception):
     """Specially-typed exception to indicate failure while running one of the
@@ -25,19 +27,22 @@ class StoneRidgeException(Exception):
 class StoneRidgeCronJob(object):
     """Class that runs as the cron job to run Stone Ridge tests
     """
-    def __init__(self, srconffile, srnetconfig, srroot, srwork, srxpcout, log):
+    def __init__(self, srconffile, srnetconfig, srroot, srwork, srxpcout, log,
+                 logdir):
         """srconffile - .ini file containing stone ridge configuration
         srnetconfig - network configuration for current test
         srroot - installation directory of stone ridge
         srwork - working directory for the current invocation (must exist)
         srxpcout - subdirectory to eventually dump xpcshell output to
+        log - name of log file
+        logdir - directory of log file
         """
         self.srconffile = srconffile
         self.srnetconfig = srnetconfig
         self.srroot = srroot
         self.srwork = srwork
         self.srxpcout = srxpcout
-        self.logdir = os.path.dirname(log)
+        self.logdir = logdir
         self.logfile = log
         self.archive_on_failure = False
         self.cleaner_called = False
@@ -56,7 +61,7 @@ class StoneRidgeCronJob(object):
         any arguments requested by the caller
         """
         script = os.path.join(self.srroot, 'stoneridge_%s.py' % (stage,))
-        logfile = os.path.join(self.logdir, '%02d_%s.txt' % (self.procno, stage))
+        logfile = os.path.join(self.logdir, '%02d_%s.log' % (self.procno, stage))
         self.procno += 1
 
         command = [sys.executable,
@@ -145,6 +150,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', required=True)
     parser.add_argument('--log', dest='log', required=True)
+    parser.add_argument('--logdir', dest='logdir', required=True)
     args = parser.parse_args()
 
     # Figure out where we live so we know where our root directory is
@@ -163,5 +169,5 @@ def main():
         srxpcout = os.path.basename(tempfile.mktemp())
 
         cronjob = StoneRidgeCronJob(args.config, netconfig, srroot, srwork,
-                srxpcout, args.log)
+                srxpcout, args.log, args.logdir)
         cronjob.run()
