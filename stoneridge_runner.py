@@ -35,8 +35,12 @@ class StoneRidgeRunner(object):
         if not self.tests:
             logging.debug('searching for all tests in %s' %
                     (stoneridge.testroot,))
-            tests = [os.path.basename(f) for f in
-                     glob.glob(os.path.join(stoneridge.testroot, '*.js'))]
+            if stoneridge.get_config('test', 'enabled'):
+                tests = ['fake.js']
+            else:
+                tests = [os.path.basename(f) for f in
+                         glob.glob(os.path.join(stoneridge.testroot, '*.js'))]
+                tests.remove('fake.js')
             logging.debug('tests found %s' % (tests,))
             return tests
 

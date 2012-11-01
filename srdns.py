@@ -21,6 +21,8 @@ dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
 
 rundir = tempfile.mkdtemp()
 
+nochange = False
+
 class BaseDnsModifier(SocketServer.BaseRequestHandler):
     """A class providing an interface for modifying DNS servers on a platform.
     """
@@ -87,7 +89,10 @@ class MacDnsModifier(BaseDnsModifier):
                 orig_dns = f.read().strip()
 
         if orig_dns is not None:
-            self._set_dns(orig_dns)
+            if nochange:
+                print 'Reset to %s' % (orig_dns,)
+            else:
+                self._set_dns(orig_dns)
 
     def set_dns(self, dnsserver):
         # Save the current primary dns server
@@ -104,7 +109,10 @@ class MacDnsModifier(BaseDnsModifier):
                 f.write('%s\n' % (' '.join(orig_dns),))
 
         # Now set the primary dns server to our new one
-        self._set_dns(dnsserver)
+        if nochange:
+            print 'Set to %s' % (dnsserver,)
+        else:
+            self._set_dns(dnsserver)
 
 class LinuxDnsModifier(BaseDnsModifier):
     def setup(self):
@@ -176,7 +184,11 @@ def main():
     parser.add_argument('--pidfile', dest='pidfile')
     parser.add_argument('--log', dest='log')
     parser.add_argument('--nodaemon', dest='nodaemon', action='store_true')
+    parser.add_argument('--nochange', dest='nochange', action='store_true')
     args = parser.parse_args()
+
+    global nochange
+    nochange = args.nochange
 
     if args.nodaemon:
         if args.pidfile:
