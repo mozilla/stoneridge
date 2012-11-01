@@ -17,7 +17,7 @@ args = parser.parse_args()
 now = int(time.time())
 logdir = os.path.join(args.logdir, 'stoneridge_logs_%s' % (now,))
 os.makedirs(logdir)
-cronjob_log = os.path.join(logdir, '00_cronjob.log')
+cronjob_log = os.path.join(logdir, '000_cronjob.log')
 mydir = os.path.split(os.path.abspath(__file__))[0]
 cronjob = os.path.join(mydir, 'stoneridge_cronjob.py')
 

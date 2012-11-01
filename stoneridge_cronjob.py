@@ -27,7 +27,7 @@ class StoneRidgeCronJob(object):
     """Class that runs as the cron job to run Stone Ridge tests
     """
     def __init__(self, srconffile, srnetconfig, srroot, srwork, srxpcout, log,
-                 logdir):
+                 logdir, ncid):
         """srconffile - .ini file containing stone ridge configuration
         srnetconfig - network configuration for current test
         srroot - installation directory of stone ridge
@@ -35,6 +35,7 @@ class StoneRidgeCronJob(object):
         srxpcout - subdirectory to eventually dump xpcshell output to
         log - name of log file
         logdir - directory of log file
+        ncid - numerical identifier of the netconfig being used
         """
         self.srconffile = srconffile
         self.srnetconfig = srnetconfig
@@ -47,6 +48,7 @@ class StoneRidgeCronJob(object):
         self.cleaner_called = False
         self.procno = 1
         self.childlog = None
+        self.ncid = ncid
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('srnetconfig: %s' % (self.srnetconfig,))
         logging.debug('srroot: %s' % (self.srroot,))
@@ -54,6 +56,7 @@ class StoneRidgeCronJob(object):
         logging.debug('srxpcout: %s' % (self.srxpcout,))
         logging.debug('logdir: %s' % (self.logdir,))
         logging.debug('logfile: %s' % (self.logfile,))
+        logging.debug('ncid: %s' % (self.ncid,))
 
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
@@ -68,7 +71,8 @@ class StoneRidgeCronJob(object):
         any arguments requested by the caller
         """
         script = os.path.join(self.srroot, 'stoneridge_%s.py' % (stage,))
-        logfile = os.path.join(self.logdir, '%02d_%s.log' % (self.procno, stage))
+        logfile = os.path.join(self.logdir, '%d%02d_%s_%s.log' %
+                (self.ncid, self.procno, stage, self.srnetconfig))
         self.procno += 1
 
         command = [sys.executable,
@@ -165,7 +169,7 @@ def main():
     cp.read([args.config])
     netconfigs = cp.options('dns')
 
-    for netconfig in netconfigs:
+    for ncid, netconfig in enumerate(netconfigs):
         # Create a working space for this run
         srwork = tempfile.mkdtemp()
 
@@ -174,5 +178,5 @@ def main():
         srxpcout = os.path.basename(tempfile.mktemp())
 
         cronjob = StoneRidgeCronJob(args.config, netconfig, srroot, srwork,
-                srxpcout, args.log, args.logdir)
+                srxpcout, args.log, args.logdir, ncid)
         cronjob.run()
