@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import cStringIO
 import glob
 import json
 import os
@@ -96,10 +95,8 @@ class StoneRidgeRunner(object):
                 '-e', 'do_stoneridge(); quit(0);'
             ]
             logging.debug('xpcshell args: %s' % (args,))
-            xpcshell_out = cStringIO.StringIO()
-            res, _ = stoneridge.run_xpcshell(args, stdout=xpcshell_out)
-            logging.debug('xpcshell output\n%s' % (xpcshell_out.getvalue(),))
-            xpcshell_out.close()
+            res, xpcshell_out = stoneridge.run_xpcshell(args)
+            logging.debug('xpcshell output\n%s' % (xpcshell_out,))
             if res:
                 logging.error('TEST FAILED: %s' % (test,))
             else:

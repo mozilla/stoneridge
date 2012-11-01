@@ -5,7 +5,6 @@
 
 import argparse
 import ConfigParser
-import cStringIO
 import os
 import subprocess
 import sys
@@ -77,17 +76,16 @@ class StoneRidgeCronJob(object):
         logging.debug('Running %s' % (stage,))
         logging.debug(' '.join(command))
 
-        proc_stdout = cStringIO.StringIO()
-
-        rval = subprocess.call(command, stdout=proc_stdout,
-                stderr=subprocess.STDOUT)
-
-        logging.debug(proc_stdout.getvalue())
-        proc_stdout.close()
-
-        if rval:
+        try:
+            proc_stdout = subprocess.check_output(command,
+                    stderr=subprocess.STDOUT)
+            logging.debug(proc_stdout)
+            logging.debug('SUCCEEDED: %s' % (stage,))
+        except subprocess.CalledProcessError as e:
             # The process failed to run correctly, we need to say so
-            logging.debug('FAILED: %s' % (stage,))
+            logging.error('FAILED: %s (%s)' % (stage, e.returncode))
+            logging.error(e.output)
+
             if self.archive_on_failure:
                 # We've reached the point in our run where we have something to
                 # save off for usage. Archive it, but don't try to archive again
@@ -107,8 +105,6 @@ class StoneRidgeCronJob(object):
 
             # Finally, bubble the error up to the top level
             self.do_error(stage)
-        else:
-            logging.debug('SUCCEEDED: %s' % (stage,))
 
     def run(self):
         stoneridge.setup_dirnames(self.srroot, self.srwork, self.srxpcout)
