@@ -20,4 +20,4 @@ os.makedirs(logdir)
 cronjob_log = os.path.join(logdir, '00_cronjob.log')
 
 sys.exit(subprocess.call([sys.executable, '--config', args.config,
-                          '--logdir', args.logdir, '--log', cronjob_log])
+                          '--logdir', args.logdir, '--log', cronjob_log]))
