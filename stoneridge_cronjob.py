@@ -113,7 +113,7 @@ class StoneRidgeCronJob(object):
             os.mkdir(d)
 
         if not os.path.exists(stoneridge.archivedir):
-            os.mkdir(d)
+            os.mkdir(stoneridge.archivedir)
 
         self.run_process('downloader')
 
