@@ -46,6 +46,7 @@ class StoneRidgeCronJob(object):
         self.archive_on_failure = False
         self.cleaner_called = False
         self.procno = 1
+        self.childlog = None
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('srnetconfig: %s' % (self.srnetconfig,))
         logging.debug('srroot: %s' % (self.srroot,))
@@ -60,14 +61,15 @@ class StoneRidgeCronJob(object):
         """
         logging.error('Error exit during %s' % (stage,))
         raise StoneRidgeException('Error running %s: see %s\n' % (stage,
-            self.logfile))
+            self.childlog))
 
     def run_process(self, stage, *args):
         """Run a particular subprocess with the default arguments, as well as
         any arguments requested by the caller
         """
         script = os.path.join(self.srroot, 'stoneridge_%s.py' % (stage,))
-        logfile = os.path.join(self.logdir, '%02d_%s.log' % (self.procno, stage))
+        self.childlog = os.path.join(self.logdir,
+                '%02d_%s.log' % (self.procno, stage))
         self.procno += 1
 
         command = [sys.executable,
@@ -77,7 +79,7 @@ class StoneRidgeCronJob(object):
                    '--root', self.srroot,
                    '--workdir', self.srwork,
                    '--xpcout', self.srxpcout,
-                   '--log', logfile]
+                   '--log', self.childlog]
         command.extend(args)
 
         logging.debug('Running %s' % (stage,))
