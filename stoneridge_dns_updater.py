@@ -17,7 +17,7 @@ class StoneRidgeDnsUpdater(object):
         self.restore = restore
         self.peer = ('127.0.0.1', 63250)
         logging.debug('restore: %s' % (restore,))
-        logging.debug('peer: %s' % (peer,))
+        logging.debug('peer: %s' % (self.peer,))
 
     def _converse(self, msgtype, msgdata=None):
         logging.debug('msgtype: %s' % (msgtype,))
