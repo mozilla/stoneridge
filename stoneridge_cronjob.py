@@ -46,6 +46,13 @@ class StoneRidgeCronJob(object):
         self.archive_on_failure = False
         self.cleaner_called = False
         self.procno = 1
+        logging.debug('srconffile: %s' % (self.srconffile,))
+        logging.debug('srnetconfig: %s' % (self.srnetconfig,))
+        logging.debug('srroot: %s' % (self.srroot,))
+        logging.debug('srwork: %s' % (self.srwork,))
+        logging.debug('srxpcout: %s' % (self.srxpcout,))
+        logging.debug('logdir: %s' % (self.logdir,))
+        logging.debug('logfile: %s' % (self.logfile,))
 
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
