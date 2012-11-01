@@ -50,7 +50,7 @@ _cp = None
 _xpcshell_environ = None
 
 # Logging configuration
-_parser = argparse.Argumentparser()
+_parser = argparse.ArgumentParser()
 _parser.add_argument('--log')
 _args, _ = _parser.parse_known_args()
 if _args.log:
