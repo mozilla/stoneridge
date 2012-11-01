@@ -52,14 +52,40 @@ def daemon():
     httpd = BaseHTTPServer.HTTPServer(('0.0.0.0', 8080), SRUploadHandler)
     httpd.serve_forever()
 
+def do_exit(parser, msg):
+    parser.print_usage()
+    parser.exit(2, msg % (parser.prog,))
+
+def do_mutex_exit(parser, arg):
+    msg = '%%s: error: argument %s: not allowed with argument --nodaemon\n'
+    do_exit(parser, msg % (arg,))
+
+def do_missing_exit(parser, arg):
+    msg = '%%s: error: argument %s is required\n'
+    do_exit(parser, msg % (arg,))
+
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', required=True)
-    parser.add_argument('--pidfile', dest='pidfile', required=True)
-    parser.add_argument('--log', dest='log', required=True)
+    parser.add_argument('--nodaemon', dest='nodaemon', action='store_true')
+    parser.add_argument('--pidfile', dest='pidfile')
+    parser.add_argument('--log', dest='log')
     args = parser.parse_args()
 
     stoneridge._conffile = args.config
+
+    if args.nodaemon:
+        if args.pidfile:
+            do_mutex_exit(parser, '--pidfile')
+        if args.log:
+            do_mutex_exit(parser, '--log')
+        daemon()
+        sys.exit(0)
+
+    if not args.pidfile:
+        do_missing_exit(parser, '--pidfile')
+    if not args.log:
+        do_missing_exit(parser, '--log')
 
     daemonize.start(daemon, args.pidfile, args.log)
