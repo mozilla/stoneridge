@@ -22,4 +22,4 @@ mydir = os.path.split(os.path.abspath(__file__))[0]
 cronjob = os.path.join(mydir, 'stoneridge_cronjob.py')
 
 sys.exit(subprocess.call([sys.executable, cronjob, '--config', args.config,
-                          '--logdir', args.logdir, '--log', cronjob_log]))
+                          '--logdir', logdir, '--log', cronjob_log]))
