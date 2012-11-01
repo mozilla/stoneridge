@@ -68,8 +68,7 @@ class StoneRidgeCronJob(object):
         any arguments requested by the caller
         """
         script = os.path.join(self.srroot, 'stoneridge_%s.py' % (stage,))
-        self.childlog = os.path.join(self.logdir,
-                '%02d_%s.log' % (self.procno, stage))
+        logfile = os.path.join(self.logdir, '%02d_%s.log' % (self.procno, stage))
         self.procno += 1
 
         command = [sys.executable,
@@ -79,7 +78,7 @@ class StoneRidgeCronJob(object):
                    '--root', self.srroot,
                    '--workdir', self.srwork,
                    '--xpcout', self.srxpcout,
-                   '--log', self.childlog]
+                   '--log', logfile]
         command.extend(args)
 
         logging.debug('Running %s' % (stage,))
@@ -92,6 +91,7 @@ class StoneRidgeCronJob(object):
             logging.debug('SUCCEEDED: %s' % (stage,))
         except subprocess.CalledProcessError as e:
             # The process failed to run correctly, we need to say so
+            self.childlog = logfile
             logging.error('FAILED: %s (%s)' % (stage, e.returncode))
             logging.error(e.output)
 
