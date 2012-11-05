@@ -135,19 +135,22 @@ class LinuxDnsModifier(BaseDnsModifier):
         # Go through and find the first nameserver line, and replace
         # it with our modified one
         replaced = False
-        for i, line in enumerate(lines):
+        newlines = []
+        for line in lines:
             if line.startswith('nameserver '):
-                lines[i] = nsline
-                replaced = True
-                break
+                if not replaced:
+                    newlines.append(nsline)
+                    replaced = True
+            else:
+                newlines.append(line)
 
         # If we didn't already have a nameserver line, let's add one now
         if not replaced:
-            lines.append(nsline)
+            newlines.append(nsline)
 
         # And save off the new resolv.conf
         with file(self.resolvconf, 'w') as f:
-            f.write('\n'.join(lines))
+            f.write('\n'.join(newlines))
 
 def daemon():
     sysname = platform.system()
