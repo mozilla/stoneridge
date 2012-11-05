@@ -100,7 +100,7 @@ class StoneRidgeRunner(object):
             ]
             logging.debug('xpcshell args: %s' % (args,))
             res, xpcshell_out = stoneridge.run_xpcshell(args)
-            logging.debug('xpcshell output\n%s' % (xpcshell_out,))
+            logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
             if res:
                 logging.error('TEST FAILED: %s' % (test,))
             else:
