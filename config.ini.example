@@ -28,3 +28,7 @@ project = stoneridge
 key = PUT_OAUTH_KEY_HERE
 secret = PUT_OAUTH_SECRET_HERE
 archives = /Users/hurley/srhome/ularchives
+
+[tcpdump]
+exe = /path/to/tcpdump
+interface = tcpdump_interface_name
