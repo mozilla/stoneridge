@@ -6,6 +6,7 @@ import argparse
 import ConfigParser
 import copy
 import inspect
+import logging
 import os
 import platform
 import StringIO
@@ -48,6 +49,27 @@ _conffile = None
 _cp = None
 _xpcshell_environ = None
 
+# Logging configuration
+_parser = argparse.ArgumentParser()
+_parser.add_argument('--log')
+_args, _ = _parser.parse_known_args()
+if _args.log:
+    _logger = logging.getLogger()
+    _logger.setLevel(logging.DEBUG)
+    _handler = logging.FileHandler(_args.log)
+    _log_fmt = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
+    _formatter = logging.Formatter(fmt=_log_fmt)
+    _handler.setFormatter(_formatter)
+    _logger.addHandler(_handler)
+
+def log(msg):
+    if _args.log:
+        logging.debug(msg)
+
+def log_exc(msg):
+    if _args.log:
+        logging.exception(msg)
+
 def main(_main):
     """Mark a function as the main function to run when run as a script.
     If that function throws an exception, we'll print the traceback to
@@ -56,14 +78,16 @@ def main(_main):
     parent = inspect.stack()[1][0]
     name = parent.f_locals.get('__name__', None)
     if name == '__main__':
-        rval = 0
+        log('%s' % (' '.join(sys.argv),))
         try:
             _main()
         except Exception, e:
+            log_exc('EXCEPTION')
             traceback.print_exception(type(e), e, sys.exc_info()[2], None,
                     sys.stderr)
             sys.exit(1)
-        sys.exit(rval)
+        log('FINISHED')
+        sys.exit(0)
     return _main
 
 def debug(msg):
@@ -75,13 +99,20 @@ def get_config(section, option, default=None):
     """
     global _cp
 
+    logging.debug('reading %s.%s (default %s)' %  (section, option, default))
+
     if _cp is None:
+        logging.debug('loading config file %s' % (_conffile,))
         _cp = ConfigParser.SafeConfigParser()
         _cp.read([_conffile])
 
     try:
-        return _cp.get(section, option)
+        val = _cp.get(section, option)
+        logging.debug('found %s.%s, returning %s' % (section, option, val))
+        return val
     except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
+        logging.debug('unable to find %s.%s, returning default %s' %
+                (section, option, default))
         return default
 
 def update(cfile=None):
@@ -178,6 +209,7 @@ def _determine_os_name():
     os_name = platform.system().lower()
     if os_name == 'darwin':
         os_name = 'mac'
+    logging.debug('sr os_name: %s' % (os_name,))
 
 def _determine_os_version():
     """Determine the os version
@@ -191,6 +223,7 @@ def _determine_os_version():
         os_version = platform.win32_ver()[1]
     else:
         os_version = 'Unknown'
+    logging.debug('sr os_version: %s' % (os_version,))
 
 def _determine_download_platform():
     """Determine which platform to download files for
@@ -208,6 +241,7 @@ def _determine_download_platform():
             download_platform = 'win32'
     else:
         download_platform = os_name
+    logging.debug('sr download_platform: %s' % (download_platform,))
 
 def _determine_download_suffix():
     """Determine the suffix of the firefox archive to download
@@ -219,6 +253,7 @@ def _determine_download_suffix():
         download_suffix = 'dmg'
     else:
         download_suffix = 'zip'
+    logging.debug('sr download_suffix: %s' % (download_suffix,))
 
 def _determine_bindir():
     """Determine the location of the firefox binary based on platform
@@ -229,6 +264,7 @@ def _determine_bindir():
                 'MacOS')
     else:
         bindir = os.path.join(workdir, 'firefox')
+    logging.debug('sr bindir: %s' % (bindir,))
 
 def setup_dirnames(srroot, srwork, srxpcout):
     """Determine the directory names and platform information to be used
@@ -252,6 +288,13 @@ def setup_dirnames(srroot, srwork, srxpcout):
     outdir = os.path.join(workdir, 'out')
     archivedir = os.path.join(installroot, 'archives')
     logdir = os.path.join(installroot, 'logs')
+    logging.debug('sr installroot: %s' % (srroot,))
+    logging.debug('sr workdir: %s' % (workdir,))
+    logging.debug('sr downloaddir: %s' % (downloaddir,))
+    logging.debug('sr testroot: %s' % (testroot,))
+    logging.debug('sr outdir: %s' % (outdir,))
+    logging.debug('sr archivedir: %s' % (archivedir,))
+    logging.debug('sr logdir: %s' % (logdir,))
 
     _determine_os_name()
     _determine_os_version()
@@ -260,14 +303,19 @@ def setup_dirnames(srroot, srwork, srxpcout):
     _determine_bindir()
 
     xpcshell = os.path.join(bindir, get_xpcshell_bin())
+    logging.debug('sr xpcshell: %s' % (xpcshell,))
 
     xpcoutleaf = srxpcout
+    logging.debug('sr xpcoutleaf: %s' % (xpcoutleaf,))
     try:
         xpctmp = _get_xpcshell_tmp()
         xpcoutdir = os.path.join(xpctmp, srxpcout)
+        logging.debug('sr xpctmp: %s' % (xpctmp,))
+        logging.debug('sr xpcoutdir: %s' % (xpcoutdir,))
     except OSError:
         # We only need this after the point where we can run xpcshell, so
         # don't worry if we can't get it earlier in the process
+        logging.debug('xpcshell not available yet')
         pass
 
 _netconfig_ids = {
@@ -299,6 +347,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 help='Directory to do all the work in')
         self.add_argument('--xpcout', dest='_sr_xpcout_', default='stoneridge',
                 help='Subdirectory of xpcshell temp to write output to')
+        self.add_argument('--log', dest='_sr_log_', default=None, required=True,
+                help='File to place log info in')
 
     def parse_args(self, **kwargs):
         global _conffile
@@ -309,9 +359,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
         _conffile = args._sr_config_
         current_netconfig = args._sr_netconfig_
+        logging.debug('sr _conffile: %s' % (_conffile,))
+        logging.debug('sr current_netconfig: %s' % (current_netconfig,))
 
         setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)
 
         buildid_suffix = _os_ids[os_name] + _netconfig_ids[current_netconfig]
+        logging.debug('sr buildid_suffix: %s' % (buildid_suffix,))
 
         return args
