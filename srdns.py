@@ -57,62 +57,58 @@ class BaseDnsModifier(SocketServer.BaseRequestHandler):
 
 class MacDnsModifier(BaseDnsModifier):
     def setup(self):
-        self.dnskey = None
-        out = self._scutil('show State:/Network/Global/IPv4').split('\n')
-        for line in out:
-            line = line.strip()
-            if line.startswith('PrimaryService'):
-                bits = [x.strip() for x in line.split(':')]
-                uuid = bits[1]
-                self.dnskey = 'State:/Network/Service/%s/DNS' % (uuid,)
-                break
+        p = subprocess.Popen(['networksetup', '-listnetworkserviceorder'],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p.wait()
+        lines = p.stdout.readlines()
+        mainline = None
+        srline = None
+        for line in lines:
+            if line.startswith('(1)'):
+                mainline = line
+            elif line.startswith('(2)'):
+                srline = line
 
-        if self.dnskey is None:
-            raise ValueError('Could not determine DNS key')
-
+        self.main_if = mainline.strip().split(' ', 1)[1]
+        self.sr_if = srline.strip().split(' ', 1)[1]
         self.dnsbackup = os.path.join(rundir, 'dnsbackup')
 
-    def _scutil(self, cmd):
-        p = subprocess.Popen(['scutil'], stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return p.communicate(cmd)[0]
-
-    def _set_dns(self, dnsserver):
-        command = 'd.init\nd.add ServerAddresses * %s\nset %s' % \
-                (dnsserver, self.dnskey)
-        self._scutil(command)
+    def _set_dns(self, dnsservers):
+        args = ['networksetup', '-setdnsservers', self.main_if] + dnsservers
+        p = subprocess.Popen(args, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
+        p.wait()
 
     def reset_dns(self):
         orig_dns = None
         if os.path.exists(self.dnsbackup):
             with file(self.dnsbackup) as f:
-                orig_dns = f.read().strip()
+                orig_dns = [line.strip() for line in f.readlines()]
+                orig_dns = [d for d in orig_dns if d] # Filter out empty lines
 
-        if orig_dns is not None:
+        if orig_dns:
             if nochange:
                 print 'Reset to %s' % (orig_dns,)
             else:
                 self._set_dns(orig_dns)
 
     def set_dns(self, dnsserver):
-        # Save the current primary dns server
-        orig_dns = []
-        out = self._scutil('show %s' % (self.dnskey,)).split('\n')
-        for line in out:
-            line = line.strip()
-            match = dnspat.match(line)
-            if match:
-                orig_dns.append(match.groups()[0])
+        if not os.path.exists(self.dnsbackup):
+            # Only need to bother saving this once per run
+            args = ['networksetup', '-getdnsservers', self.main_if]
+            p = subprocess.Popen(args, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT)
+            p.wait()
 
-        if orig_dns:
-            with file(self.dnsbackup, 'w') as f:
-                f.write('%s\n' % (' '.join(orig_dns),))
+            dns_servers = p.stdout.readlines()
+            if dns_servers:
+                with file(self.dnsbackup, 'w') as f:
+                    f.write(''.join(dns_servers))
 
-        # Now set the primary dns server to our new one
         if nochange:
             print 'Set to %s' % (dnsserver,)
         else:
-            self._set_dns(dnsserver)
+            self._set_dns([dnsserver])
 
 class LinuxDnsModifier(BaseDnsModifier):
     def setup(self):
