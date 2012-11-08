@@ -2,6 +2,7 @@ import argparse
 import BaseHTTPServer
 import cgi
 import daemonize
+import logging
 import os
 import posixpath
 import SimpleHTTPServer
@@ -15,6 +16,8 @@ class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
         """Handle getting uploaded results from the clients
         """
+        logging.debug('Handling request from %s' % (self.client_address,))
+        logging.debug('Path: %s' % (self.path,))
         rootdir = stoneridge.get_config('server', 'uploads')
         now = int(time.time())
         idx = 0
@@ -24,9 +27,17 @@ class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                          'CONTENT_TYPE':self.headers['Content-Type']})
 
         for k in post.keys():
+            v = post[k].value
+            logging.debug('Processing post variable %s' % (k,))
+            logging.debug('%s value = %s' % (k, v))
+            if len(v) < 10:
+                # Stupid check to filter out junk data that gets submitted from
+                # time to time, until we can figure out why said junk data gets
+                # submitted
+                logging.debug('Skipping invalid json value')
+                continue
             pfx = '%s_%s_' % (now, idx)
             idx += 1
-            v = post[k].value
 
             fd, name = tempfile.mkstemp(dir=rootdir, prefix=pfx, suffix='.json')
             os.write(fd, v)
@@ -38,14 +49,21 @@ class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         """Override the base translate_path to get something with a configurable
         root
         """
+        logging.debug('Translating path %s' % (path,))
         rootdir = stoneridge.get_config('server', 'downloads')
         path = path.split('?', 1)[0]
+        logging.debug('Without query string: %s' % (path,))
         path = path.split('#', 1)[0]
+        logging.debug('Without fragment: %s' % (path,))
         path = posixpath.normpath(urllib.unquote(path))
+        logging.debug('Normalized path: %s' % (path,))
         words = [w for w in path.split('/') if w]
+        logging.debug('Non-empty path components: %s' % (words,))
         path = rootdir
+        logging.debug('Root of translated path: %s' % (path,))
         for w in words:
             path = os.path.join(path, w)
+        logging.debug('Translated path: %s' % (path,))
         return path
 
 def daemon():
@@ -88,4 +106,4 @@ def main():
     if not args.log:
         do_missing_exit(parser, '--log')
 
-    daemonize.start(daemon, args.pidfile, args.log)
+    daemonize.start(daemon, args.pidfile, args.log, debug=True)
