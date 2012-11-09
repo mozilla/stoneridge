@@ -200,7 +200,7 @@ def daemon():
         logging.debug('Running on OS X, using MacDnsModifier')
         DnsModifier = MacDnsModifier
     else:
-        msg = 'Invalid system: %s' % (sysname,))
+        msg = 'Invalid system: %s' % (sysname,)
         logging.critical(msg)
         raise ValueError(msg)
 
