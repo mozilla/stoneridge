@@ -27,3 +27,4 @@ host = datazilla.mozilla.com
 project = stoneridge
 key = PUT_OAUTH_KEY_HERE
 secret = PUT_OAUTH_SECRET_HERE
+archives = /Users/hurley/srhome/ularchives
