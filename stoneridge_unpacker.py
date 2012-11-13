@@ -120,8 +120,9 @@ class MacUnpacker(StoneRidgeUnpacker):
         # MAC, Y U NO USE REGULAR ARCHIVE?!
         installdmg = os.path.join(stoneridge.installroot, 'installdmg.sh')
         logging.debug('mac using installdmg at %s' % (installdmg,))
-        subprocess.call(['/bin/bash', installdmg, self.firefoxpkg],
-                cwd=stoneridge.workdir)
+        out = subprocess.check_output(['/bin/bash', installdmg, self.firefoxpkg],
+                cwd=stoneridge.workdir, stderr=subprocess.STDOUT)
+        logging.debug(out)
 
 @stoneridge.main
 def main():
