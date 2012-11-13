@@ -41,6 +41,7 @@ class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
             fd, name = tempfile.mkstemp(dir=rootdir, prefix=pfx, suffix='.json')
             os.write(fd, v)
+            os.fchmod(fd, 0644)
             os.close(fd)
 
         self.send_response(200)
