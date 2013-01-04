@@ -410,7 +410,7 @@ class QueueListener(object):
     def setup(self):
         pass
 
-    def handle(self, msg):
+    def handle(self, **kwargs):
         raise NotImplementedError
 
     def _handle(self, channel, method, properties, body):
