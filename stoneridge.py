@@ -14,6 +14,8 @@ import subprocess
 import sys
 import traceback
 
+import pika
+
 # Network configurations we have available. Map internal/parameter name
 # to descriptive name
 netconfigs = {
@@ -313,6 +315,23 @@ def setup_dirnames(srroot, srwork, srxpcout):
         logging.debug('xpcshell not available yet')
         pass
 
+def run_process(*args):
+    """Run a python process under the stoneridge environment
+    """
+    procname = args[0]
+    command = [sys.executable] + args
+    logging.debug('Running %s' % (procname,))
+    logging.debug(' '.join(command))
+    try:
+        proc_stdout = subprocess.check_output(command,
+                stderr=subprocess.STDOUT)
+        logging.debug(proc_stdout)
+        logging.debug('SUCCEEDED: %s' % (procname,))
+    except subprocess.CalledProcessError, e:
+        logging.error('FAILED: %s (%s)' % (procname, e.returncode))
+        logging.error(e.output)
+        raise # Do this in case caller has any special handling
+
 _netconfig_ids = {
     'broadband':'0',
     'umts':'1',
@@ -363,3 +382,50 @@ class ArgumentParser(argparse.ArgumentParser):
         logging.debug('sr buildid_suffix: %s' % (buildid_suffix,))
 
         return args
+
+class QueueListener(object):
+    queue = None
+
+    def __init__(self, host, **kwargs):
+        self.host = host
+        self.params = pika.ConnectionParameters(host=host)
+        self.args = kwargs
+        self.setup()
+
+    def setup(self):
+        pass
+
+    def handle(self, msg):
+        raise NotImplementedError
+
+    def _handle(self, channel, method, properties, body):
+        msg = json.loads(body)
+        self.handle(**msg)
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+
+    def run(self):
+        if self.queue is None:
+            raise Exception('You must set queue for %s' % (type(self),))
+
+        connection = pika.BlockingConnection(self.params)
+        channel = connection.channel()
+
+        channel.basic_qos(prefetch_count=1)
+        channel.basic_consume(self._handle, queue=self.queue)
+
+        channel.start_consuming()
+
+class QueueWriter(object):
+    def __init__(self, host, queue):
+        self.host = host
+        self.params = pika.ConnectionParameters(host=host)
+        self.queue = queue
+
+    def enqueue(self, **msg):
+        connection = pika.BlockingConnection(self.params)
+        channel = connection.channel()
+
+        body = json.dumps(msg)
+        channel.basic_publish(exchange='', routing_key=self.queue, body=body,
+                properties=pika.BasicProperties(delivery_mode=2)) # Durable
+        connection.close() # Ensures the message is sent

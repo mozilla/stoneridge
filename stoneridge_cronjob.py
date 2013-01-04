@@ -75,8 +75,7 @@ class StoneRidgeCronJob(object):
                 (self.ncid, self.procno, stage, self.srnetconfig))
         self.procno += 1
 
-        command = [sys.executable,
-                   script,
+        command = [script,
                    '--config', self.srconffile,
                    '--netconfig', self.srnetconfig,
                    '--root', self.srroot,
@@ -84,20 +83,11 @@ class StoneRidgeCronJob(object):
                    '--xpcout', self.srxpcout,
                    '--log', logfile]
         command.extend(args)
-
-        logging.debug('Running %s' % (stage,))
-        logging.debug(' '.join(command))
-
         try:
-            proc_stdout = subprocess.check_output(command,
-                    stderr=subprocess.STDOUT)
-            logging.debug(proc_stdout)
-            logging.debug('SUCCEEDED: %s' % (stage,))
+            stoneridge.run_process(*command)
         except subprocess.CalledProcessError as e:
             # The process failed to run correctly, we need to say so
             self.childlog = logfile
-            logging.error('FAILED: %s (%s)' % (stage, e.returncode))
-            logging.error(e.output)
 
             if self.archive_on_failure:
                 # We've reached the point in our run where we have something to
