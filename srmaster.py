@@ -7,13 +7,14 @@ import subprocess
 import stoneridge
 
 class StoneRidgeMaster(stoneridge.QueueListener):
-    queue = 'sr_incoming'
+    queue = stoneridge.INCOMING_QUEUE
 
     def setup(self):
         self.queues = {
-            'broadband':stoneridge.QueueWriter(self.host, 'nc_broadband'),
-            'umts':stoneridge.QueueWriter(self.host, 'nc_umts'),
-            'gsm':stoneridge.QueueWriter(self.host, 'nc_gsm')
+            'broadband':stoneridge.QueueWriter(self.host,
+                stoneridge.BROADBAND_QUEUE),
+            'umts':stoneridge.QueueWriter(self.host, stoneridge.UMTS_QUEUE),
+            'gsm':stoneridge.QueueWriter(self.host, stoneridge.GSM_QUEUE)
         }
 
     def handle(self, nightly, ldap, sha, netconfigs):

@@ -50,6 +50,21 @@ _conffile = None
 _cp = None
 _xpcshell_environ = None
 
+# RabbitMQ queue names
+INCOMING_QUEUE = 'sr_incoming'
+OUTGOING_QUEUE = 'sr_outgoing'
+
+BROADBAND_QUEUE = 'sr_nc_broadband'
+BROADBAND_COMPLETE_QUEUE = 'sr_nc_broadband_done'
+UMTS_QUEUE = 'sr_nc_umts'
+UMTS_COMPLETE_QUEUE = 'sr_nc_umts_done'
+GSM_QUEUE = 'sr_nc_gsm'
+GSM_COMPLETE_QUEUE = 'sr_nc_gsm_done'
+
+LINUX_QUEUE = 'sr_ct_linux'
+MAC_QUEUE = 'sr_ct_mac'
+WINDOWS_QUEUE = 'sr_ct_windows'
+
 # Logging configuration
 log_fmt = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
 _parser = argparse.ArgumentParser()
