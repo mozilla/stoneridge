@@ -16,7 +16,7 @@ gsm = 9.10.11.12
 
 [cloner]
 host = ftp.mozilla.org
-path = /pub/mozilla.org/firefox/nightly/latest-mozilla-central
+root = /pub/mozilla.org/firefox
 
 [server]
 uploads = /Users/hurley/stone_ridge/srv/ul

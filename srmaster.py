@@ -3,6 +3,7 @@
 import argparse
 import logging
 import subprocess
+import uuid
 
 import stoneridge
 
@@ -18,15 +19,18 @@ class StoneRidgeMaster(stoneridge.QueueListener):
         }
 
     def handle(self, nightly, ldap, sha, netconfigs):
+        srid = str(uuid.uuid4())
+        args = ['srcloner.py', '--path', path, '--config', self.args['config'],
+                '--srid', srid]
         if nightly:
             path = 'nightly/latest-mozilla-central'
+            args.append('--nightly')
         else:
             path = 'try-builds/%s-%s' % (ldap, sha)
         logging.debug('Path to builds: %s' % (path,))
 
         try:
-            stoneridge.run_process('srcloner.py', '--path', path,
-                    '--config', self.args['config'])
+            stoneridge.run_process(*args)
         except subprocess.CalledProcessError as e:
             # Either we will retry this later, at the cloner's request, or the
             # error has already been logged by run_process and there's no
@@ -40,7 +44,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
                 continue
 
             queue.enqueue(operating_systems=operating_systems,
-                    nightly=nightly, ldap=ldap, sha=sha)
+                    nightly=nightly, ldap=ldap, sha=sha, srid=srid)
 
 @stoneridge.main
 def main():

@@ -5,7 +5,6 @@
 
 import argparse
 import ftplib
-import glob
 import logging
 import os
 import requests
@@ -39,14 +38,18 @@ class StoneRidgeCloner(object):
     web server. Those clients use stoneridge_downloader.py to get the files they
     need from the central server.
     """
-    def __init__(self):
+    def __init__(self, path, nightly, srid, linux, mac, windows):
         self.host = stoneridge.get_config('cloner', 'host')
-        self.path = stoneridge.get_config('cloner', 'path')
+        root = stoneridge.get_config('cloner', 'root')
+        self.path = '/'.join(root, path)
+        self.nightly = nightly
         self.outroot = stoneridge.get_config('server', 'downloads')
         self.tstamp = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-        self.outdir = os.path.join(self.outroot, self.tstamp)
-        self.latest = os.path.join(self.outroot, 'latest')
-        self.keep = stoneridge.get_config('server', 'keep', default=5)
+        self.outdir = os.path.join(self.outroot, srid)
+        self.keep = stoneridge.get_config('server', 'keep', default=50)
+        self.linux = linux
+        self.mac = mac
+        self.windows = windows
 
         if not os.path.exists(self.outroot):
             os.mkdir(self.outroot)
@@ -56,11 +59,14 @@ class StoneRidgeCloner(object):
                 format=stoneridge.log_fmt)
         logging.debug('host: %s' % (self.host,))
         logging.debug('path: %s' % (self.path,))
+        logging.debug('nightly: %s' % (self.nightly,))
         logging.debug('output root: %s' % (self.outroot,))
         logging.debug('timestamp: %s' % (self.tstamp,))
         logging.debug('output directory: %s' % (self.outdir,))
-        logging.debug('latest directory: %s' % (self.latest,))
         logging.debug('keep history: %s' % (self.keep,))
+        logging.debug('linux: %s' % (self.linux,))
+        logging.debug('mac: %s' % (self.mac,))
+        logging.debug('windows: %s' % (self.windows,))
 
         self.prefix = ''
 
@@ -90,45 +96,17 @@ class StoneRidgeCloner(object):
         logging.debug('url: %s' % (url,))
         return url
 
-    def _get_stamp_and_prefix(self, files):
-        """Get the ID stamp of the latest available build, as well as the
-        filename prefix that is common to all the files we'll need to
+    def _get_prefix(self, files):
+        """Get the filename prefix that is common to all the files we'll need to
         download
 
-        Returns: (<id_stamp (string)>, <prefix (string)>)
+        Returns: <prefix (string)>
         """
-        logging.debug('getting ID stamp and filename prefix')
-        stampfile = [f for f in files if f.endswith('.mac.checksums.asc')][-1]
-        logging.debug('stampfile: %s' % (stampfile,))
-        url = self._build_dl_url(stampfile)
-        logging.debug('getting stamp file from %s' % (url,))
-        resp = requests.get(url)
-        stamp = resp.content
-        logging.debug('id stamp: %s' % (stamp,))
-        prefix = stampfile.replace('.mac.checksums.asc', '')
+        logging.debug('getting filename prefix')
+        prefixfile = [f for f in files if f.endswith('.mac.checksums.asc')][-1]
+        prefix = prefixfile.replace('.mac.checksums.asc', '')
         logging.debug('filename prefix: %s' % (prefix,))
-        return stamp, prefix
-
-    def _get_last_stamp(self):
-        """Get the ID stamp of the latest build we downloaded
-
-        Returns: ID stamp string
-        """
-        logging.debug('getting ID stamp of most recently downloaded build')
-        if not os.path.exists(self.latest):
-            logging.debug('no builds!')
-            logging.debug('stamp: None')
-            return None
-        lateststamp = os.path.join(self.latest, 'stamp')
-        logging.debug('stampfile: %s' % (lateststamp,))
-        if not os.path.exists(lateststamp):
-            logging.error('stampfile does not exist!')
-            logging.debug('stamp: None')
-            return None
-        with file(lateststamp, 'rb') as f:
-            stamp = f.read()
-        logging.debug('stamp: %s' % (stamp,))
-        return stamp
+        return prefix
 
     def _ensure_outdir(self, platform):
         """Ensure the output directory for a platform exists
@@ -221,46 +199,30 @@ class StoneRidgeCloner(object):
 
             self._dl_test_zip('win%s' % (archid,), outdir)
 
-    def _update_latest(self):
-        """Update the "latest" symlink to point to the set of builds
-        we just downloaded
-        """
-        logging.debug('linking latest => %s' % (self.outdir,))
-        with cwd(self.outroot):
-            if os.path.exists('latest'):
-                logging.debug('latest already exists, removing')
-                os.unlink('latest')
-            target = os.path.basename(self.outdir)
-            logging.debug('target directory: %s' % (target,))
-            logging.debug('linking to target directory')
-            os.symlink(target, 'latest')
-
     def _cleanup_old_directories(self):
         """We only keep around so many directories of historical firefoxen. This
         gets rid of ones we don't care about any more
         """
         logging.debug('cleaning up old directories')
         with cwd(self.outroot):
-            # Until the year 3000, all our directories will start with the
-            # number 2
-            listing = glob.glob('2*')
+            listing = os.listdir('.')
             logging.debug('candidate files: %s' %  (listing,))
 
-            # We want to make sure they're sorted by date, and that we're not
-            # looking at anything that's not a directory that may have somehow
-            # gotten into our directory
-            directories = sorted([l for l in listing if os.path.isdir(l)])
+            # We want to make sure that we're not looking at anything that's not
+            # a directory that may have somehow gotten into our directory. We
+            # also need to ignore dotfiles.
+            directories = [l for l in listing
+                           if os.path.isdir(l) and not l.startswith('.')]
             logging.debug('directories: %s' % (directories,))
 
-            delete_us = directories[:-self.keep]
-            logging.debug('directories to delete: %s' % (delete_us,))
+            # Find out when the directories were last modified, and sort the
+            # list by that, so we can delete the oldest ones.
+            times = [(d, os.stat(d).st_mtime) for d in directories]
+            times.sort(key=lambda x: x[1])
 
-            # Make sure we don't accidentally delete the directory that is
-            # currently linked as the latest
-            latest = os.readlink('latest')
-            logging.debug('current latest: %s' % (latest,))
-            delete_us = [d for d in delete_us if d != latest]
-            logging.debug('after filtering latest: %s' % (delete_us,))
+            # Now we can figure out which directories to delete!
+            delete_us = times[:-self.keep]
+            logging.debug('directories to delete: %s' % (delete_us,))
 
             for d in delete_us:
                 logging.debug('removing %s' % (d,))
@@ -268,31 +230,20 @@ class StoneRidgeCloner(object):
 
     def run(self):
         files = self._gather_filelist()
-        stamp, self.prefix = self._get_stamp_and_prefix(files)
-        if stamp == self._get_last_stamp():
-            # We've done everything for these builds already, no need to try
-            # again
-            logging.debug('stamp unchanged, nothing to do')
-            return
+        self.prefix = self._get_prefix(files)
 
         # Make sure our output directory exists
         if not os.path.exists(self.outdir):
             logging.debug('creating output directory')
             os.mkdir(self.outdir)
 
-        # Save the new stamp for checking later on
-        stampfile = os.path.join(self.outdir, 'stamp')
-        logging.debug('saving stamp %s to file %s' % (stamp, stampfile))
-        with file(stampfile, 'w') as f:
-            f.write(stamp)
-
         # Now download all the builds and test zipfiles
-        self._clone_mac()
-        self._clone_linux()
-        self._clone_win()
-
-        # Update our "latest" pointer to point to this newest clone
-        self._update_latest()
+        if self.mac:
+            self._clone_mac()
+        if self.linux:
+            self._clone_linux()
+        if self.windows:
+            self._clone_win()
 
         self._cleanup_old_directories()
 
@@ -300,9 +251,20 @@ class StoneRidgeCloner(object):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', required=True)
+    parser.add_argument('--path', dest='path', required=True)
+    parser.add_argument('--nightly', dest='nightly', action='store_true',
+            default=False)
+    parser.add_argument('--srid', dest='srid', required=True)
+    parser.add_argument('--linux', dest='linux', action='store_true',
+            default=False)
+    parser.add_argument('--mac', dest='mac', action='store_true',
+            default=False)
+    parser.add_argument('--windows', dest='windows', action='store_true',
+            default=False)
     args = parser.parse_args()
 
     stoneridge._conffile = args.config
 
-    cloner = StoneRidgeCloner()
+    cloner = StoneRidgeCloner(args.path, args.nightly, args.srid, args.linux,
+            args.mac, args.windows)
     cloner.run()
