@@ -70,7 +70,7 @@ class StoneRidgeCronJob(object):
         """Run a particular subprocess with the default arguments, as well as
         any arguments requested by the caller
         """
-        script = os.path.join(self.srroot, 'stoneridge_%s.py' % (stage,))
+        script = os.path.join(self.srroot, 'sr%s.py' % (stage,))
         logfile = os.path.join(self.logdir, '%d%02d_%s_%s.log' %
                 (self.ncid, self.procno, stage, self.srnetconfig))
         self.procno += 1
@@ -122,15 +122,15 @@ class StoneRidgeCronJob(object):
 
         self.run_process('unpacker')
 
-        self.run_process('info_gatherer')
+        self.run_process('infogatherer')
 
         self.archive_on_failure = True
 
-        self.run_process('dns_updater')
+        self.run_process('dnsupdater')
 
         self.run_process('runner')
 
-        self.run_process('dns_updater', '--restore')
+        self.run_process('dnsupdater', '--restore')
 
         self.run_process('collator')
 
