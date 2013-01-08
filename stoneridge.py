@@ -230,10 +230,8 @@ def _determine_download_platform():
         else:
             download_platform = 'linux32'
     elif os_name == 'windows':
-        if platform.machine() == 'x86_64':
-            download_platform = 'win64'
-        else:
-            download_platform = 'win32'
+        # win64 is a tier-3 platform, so we don't bother with it
+        download_platform = 'win32'
     else:
         download_platform = os_name
     logging.debug('sr download_platform: %s' % (download_platform,))
