@@ -13,6 +13,10 @@ import time
 
 import stoneridge
 
+LINUX_SUBDIRS = ('try-linux', 'try-linux64')
+MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
+WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
+
 class cwd(object):
     """A context manager to change our working directory when we enter the
     context, and then change back to the original working directory when we
@@ -70,7 +74,7 @@ class StoneRidgeCloner(object):
 
         self.prefix = ''
 
-    def _gather_filelist(self):
+    def _gather_filelist(self, path):
         """Get the list of files available on our FTP server
 
         Returns: list of filenames relative to the path on the server
@@ -78,13 +82,13 @@ class StoneRidgeCloner(object):
         logging.debug('gathering files from ftp server')
         ftp = ftplib.FTP(self.host)
         ftp.login()
-        ftp.cwd(self.path)
+        ftp.cwd(path)
         files = ftp.nlst()
         ftp.quit()
-        logging.debug('files on server: %s' % (files,))
+        logging.debug('files in %s: %s' % (path, files))
         return files
 
-    def _build_dl_url(self, fname):
+    def _build_dl_url(self, try_subdir, fname):
         """Create a download (https) URL for a particular file
 
         Returns: a URL string
@@ -93,6 +97,8 @@ class StoneRidgeCloner(object):
         remotefile = os.path.join(self.path, fname)
         logging.debug('remote filename: %s' % (remotefile,))
         url = 'https://%s%s' % (self.host, remotefile)
+        if not self.nightly:
+            url = '%s/%s' % (url, try_subdir)
         logging.debug('url: %s' % (url,))
         return url
 
@@ -103,8 +109,9 @@ class StoneRidgeCloner(object):
         Returns: <prefix (string)>
         """
         logging.debug('getting filename prefix')
-        prefixfile = [f for f in files if f.endswith('.mac.checksums.asc')][-1]
-        prefix = prefixfile.replace('.mac.checksums.asc', '')
+        prefixfile = [f for f in files if f.endswith('.checksums.asc')][-1]
+        prefix = prefixfile.replace('.checksums.asc', '')
+        prefix = prefix.rsplit('.', 1)[0] # Strip off the platform information
         logging.debug('filename prefix: %s' % (prefix,))
         return prefix
 
@@ -131,14 +138,14 @@ class StoneRidgeCloner(object):
             logging.debug('writing file contents')
             f.write(resp.content)
 
-    def _dl_test_zip(self, archid, outdir):
+    def _dl_test_zip(self, try_subdir, archid, outdir):
         """Download the test zip for a particular architecture id (<archid>) and
         save it at <outdir>/tests.zip
         """
         logging.debug('downloading test zip for %s to %s' % (archid, outdir))
         srcfile = '%s.%s.tests.zip' % (self.prefix, archid)
         logging.debug('zip source filename: %s' % (srcfile,))
-        url = self._build_dl_url(srcfile)
+        url = self._build_dl_url(try_subdir, srcfile)
         outfile = os.path.join(self.outdir, outdir, 'tests.zip')
         logging.debug('zip dest filename: %s' % (outfile,))
         self._dl_to_file(url, outfile)
@@ -152,19 +159,21 @@ class StoneRidgeCloner(object):
         logging.debug('downloading firefox dmg')
         dmg = '%s.mac.dmg' % (self.prefix,)
         logging.debug('dmg source filename: %s' % (dmg,))
-        url = self._build_dl_url(dmg)
+        url = self._build_dl_url(MAC_SUBDIRS[0], dmg)
         outfile = os.path.join(self.outdir, 'mac', 'firefox.dmg')
         logging.debug('dmg dest filename: %s' % (outfile,))
         self._dl_to_file(url, outfile)
 
-        self._dl_test_zip('mac', 'mac')
+        self._dl_test_zip(MAC_SUBDIRS[0], 'mac', 'mac')
 
     def _clone_linux(self):
         """Clone the .tar.bz2 and tests zip for both 32-bit and 64-bit linux
         builds
         """
         logging.debug('cloning linux builds')
-        for archid, outdir in (('i686', 'linux32'), ('x86_64', 'linux64')):
+        archids = ('i686', 'x86_64')
+        outdirs = ('linux32', 'linux64')
+        for archid, outdir, subdir in zip(archids, outdirs, LINUX_SUBDIRS):
             logging.debug('architecture: %s' % (archid,))
             logging.debug('outdir: %s' % (outdir,))
             self._ensure_outdir(outdir)
@@ -172,32 +181,29 @@ class StoneRidgeCloner(object):
             logging.debug('downloading firefox tarball')
             srcfile = '%s.linux-%s.tar.bz2' % (self.prefix, archid)
             logging.debug('tarball source filename: %s' % (srcfile,))
-            url = self._build_dl_url(srcfile)
+            url = self._build_dl_url(subdir, srcfile)
             outfile = os.path.join(self.outdir, outdir, 'firefox.tar.bz2')
             logging.debug('tarball dest filename: %s' % (outfile,))
             self._dl_to_file(url, outfile)
 
-            self._dl_test_zip('linux-%s' % (archid,), outdir)
+            self._dl_test_zip(subdir, 'linux-%s' % (archid,), outdir)
 
     def _clone_win(self):
         """Clone the firefox zip and tests zip for both 32-bit and 64-bit
         windows builds
         """
-        logging.debug('cloning windows builds')
-        for archid, outdir in (('32', 'win32'), ('64-x86_64', 'win64')):
-            logging.debug('architecture: %s' % (archid,))
-            logging.debug('outdir: %s' % (outdir,))
-            self._ensure_outdir(outdir)
+        logging.debug('cloning windows build')
+        self._ensure_outdir(outdir)
 
-            logging.debug('downloading firefox zip')
-            srcfile = '%s.win%s.zip' % (self.prefix, archid)
-            logging.debug('zip source filename: %s' % (srcfile,))
-            url = self._build_dl_url(srcfile)
-            outfile = os.path.join(self.outdir, outdir, 'firefox.zip')
-            logging.debug('zip dest filename: %s' % (outfile,))
-            self._dl_to_file(url, outfile)
+        logging.debug('downloading firefox zip')
+        srcfile = '%s.win32.zip' % (self.prefix,)
+        logging.debug('zip source filename: %s' % (srcfile,))
+        url = self._build_dl_url(WINDOWS_SUBDIRS[0], srcfile)
+        outfile = os.path.join(self.outdir, 'win32', 'firefox.zip')
+        logging.debug('zip dest filename: %s' % (outfile,))
+        self._dl_to_file(url, outfile)
 
-            self._dl_test_zip('win%s' % (archid,), outdir)
+        self._dl_test_zip(WINDOWS_SUBDIRS[0], 'win32', 'win32')
 
     def _cleanup_old_directories(self):
         """We only keep around so many directories of historical firefoxen. This
@@ -228,8 +234,48 @@ class StoneRidgeCloner(object):
                 logging.debug('removing %s' % (d,))
                 shutil.rmtree(d)
 
+
     def run(self):
-        files = self._gather_filelist()
+        files = self._gather_filelist(self.path)
+        if not self.nightly:
+            # For some ungodly reason, try builds have a different directory
+            # structure than nightly builds, so we have to handle them
+            # differently. Instead of all output being at the same level,
+            # they are separated out by platform for try builds. Le sigh.
+            subdirs = []
+            dist_files = None
+            if self.linux:
+                subdirs.extend(LINUX_SUBDIRS)
+                if dist_files is None:
+                    dist_files = self._gather_filelist(
+                        '/'.join(self.path, LINUX_SUBDIRS[0]))
+            if self.mac:
+                subdirs.extend(MAC_SUBDIRS)
+                if dist_files is None:
+                    dist_files = self._gather_filelist(
+                        '/'.join(self.path, MAC_SUBDIRS[0]))
+            if self.windows:
+                subdirs.extend(WINDOWS_SUBDIRS)
+                if dist_files is None:
+                    dist_files = self._gather_filelist(
+                        '/'.join(self.path, WINDOWS_SUBDIRS[0]))
+
+            # Be reasonably sure the try run is complete, such that everything
+            # is ready for us to download.
+            for d in subdirs:
+                if d not in files:
+                    # TODO: spawn task to re-queue after configured wait time
+                    # TODO: add logging for this
+                    sys.exit(1)
+
+            if not dist_files:
+                # We didn't get any files listed, but we should have. Just drop
+                # this run on the floor
+                # TODO: add logging for this
+                sys.exit(1)
+
+            files = dist_files
+
         self.prefix = self._get_prefix(files)
 
         # Make sure our output directory exists
