@@ -11,8 +11,6 @@ import uuid
 import stoneridge
 
 class StoneRidgeMaster(stoneridge.QueueListener):
-    queue = stoneridge.INCOMING_QUEUE
-
     def setup(self):
         self.queues = {
             'broadband':stoneridge.QueueWriter(self.host,
@@ -69,5 +67,6 @@ def main():
 
     stoneridge._conffile = args.config
 
-    master = StoneRidgeMaster(args.host, config=args.config)
+    master = StoneRidgeMaster(args.host, stoneridge.INCOMING_QUEUE,
+            config=args.config)
     master.run()

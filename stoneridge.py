@@ -395,10 +395,9 @@ class ArgumentParser(argparse.ArgumentParser):
         return args
 
 class QueueListener(object):
-    queue = None
-
-    def __init__(self, host, **kwargs):
+    def __init__(self, host, queue, **kwargs):
         self.host = host
+        self.queue = queue
         self.params = pika.ConnectionParameters(host=host)
         self.args = kwargs
         self.setup()
