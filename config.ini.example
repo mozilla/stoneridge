@@ -1,4 +1,5 @@
 [stoneridge]
+root = /Users/hurley/src/stoneridge
 logs = /Users/hurley/src/stoneridge/testroot/logs
 
 [update]
