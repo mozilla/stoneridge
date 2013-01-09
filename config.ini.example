@@ -1,3 +1,6 @@
+[stoneridge]
+logs = /Users/hurley/src/stoneridge/testroot/logs
+
 [update]
 scheme = git
 url = http://github.com/todesschaf/stoneridge.git

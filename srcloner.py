@@ -9,6 +9,7 @@ import logging
 import os
 import requests
 import shutil
+import sys
 import time
 
 import stoneridge
@@ -45,7 +46,7 @@ class StoneRidgeCloner(object):
     def __init__(self, path, nightly, srid, linux, mac, windows):
         self.host = stoneridge.get_config('cloner', 'host')
         root = stoneridge.get_config('cloner', 'root')
-        self.path = '/'.join(root, path)
+        self.path = '/'.join([root, path])
         self.nightly = nightly
         self.outroot = stoneridge.get_config('server', 'downloads')
         self.outdir = os.path.join(self.outroot, srid)
@@ -75,11 +76,21 @@ class StoneRidgeCloner(object):
         Returns: list of filenames relative to the path on the server
         """
         logging.debug('gathering files from ftp server')
-        ftp = ftplib.FTP(self.host)
-        ftp.login()
-        ftp.cwd(path)
-        files = ftp.nlst()
-        ftp.quit()
+
+        try:
+            ftp = ftplib.FTP(self.host)
+            ftp.login()
+            ftp.cwd(path)
+            files = ftp.nlst()
+            ftp.quit()
+        except:
+            # We blanket-catch exceptions here, because we want the error
+            # handling in the top level to take precedence for ANY problem that
+            # happens while listing the directory. Logging helps us track down
+            # unexpected errors that may occur.
+            logging.exception('Unable to list files in %s' % (path,))
+            return []
+
         logging.debug('files in %s: %s' % (path, files))
         return files
 
@@ -89,11 +100,12 @@ class StoneRidgeCloner(object):
         Returns: a URL string
         """
         logging.debug('creating download url for %s' % (fname,))
-        remotefile = os.path.join(self.path, fname)
+        remotefile = self.path
+        if not self.nightly:
+            remotefile = '/'.join([remotefile, try_subdir])
+        remotefile = '/'.join([remotefile, fname])
         logging.debug('remote filename: %s' % (remotefile,))
         url = 'https://%s%s' % (self.host, remotefile)
-        if not self.nightly:
-            url = '%s/%s' % (url, try_subdir)
         logging.debug('url: %s' % (url,))
         return url
 
@@ -188,7 +200,7 @@ class StoneRidgeCloner(object):
         windows builds
         """
         logging.debug('cloning windows build')
-        self._ensure_outdir(outdir)
+        self._ensure_outdir('win32')
 
         logging.debug('downloading firefox zip')
         srcfile = '%s.win32.zip' % (self.prefix,)
@@ -241,32 +253,27 @@ class StoneRidgeCloner(object):
             dist_files = None
             if self.linux:
                 subdirs.extend(LINUX_SUBDIRS)
-                if dist_files is None:
-                    dist_files = self._gather_filelist(
-                        '/'.join(self.path, LINUX_SUBDIRS[0]))
             if self.mac:
                 subdirs.extend(MAC_SUBDIRS)
-                if dist_files is None:
-                    dist_files = self._gather_filelist(
-                        '/'.join(self.path, MAC_SUBDIRS[0]))
             if self.windows:
                 subdirs.extend(WINDOWS_SUBDIRS)
-                if dist_files is None:
-                    dist_files = self._gather_filelist(
-                        '/'.join(self.path, WINDOWS_SUBDIRS[0]))
 
             # Be reasonably sure the try run is complete, such that everything
             # is ready for us to download.
             for d in subdirs:
                 if d not in files:
                     # TODO: spawn task to re-queue after configured wait time
-                    # TODO: add logging for this
+                    #       or kill run if we've exceeded our retry limit
+                    logging.debug('Run %s not available: retry later' % (d,))
                     sys.exit(1)
+
+            dist_path = '/'.join([self.path, subdirs[0]])
+            dist_files = self._gather_filelist(dist_path)
 
             if not dist_files:
                 # We didn't get any files listed, but we should have. Just drop
                 # this run on the floor
-                # TODO: add logging for this
+                logging.error('No files found! Dropping srid %s' % (self.srid,))
                 sys.exit(1)
 
             files = dist_files
@@ -279,11 +286,11 @@ class StoneRidgeCloner(object):
             os.mkdir(self.outdir)
 
         # Now download all the builds and test zipfiles
-        if self.mac:
+        if self.nightly or self.mac:
             self._clone_mac()
-        if self.linux:
+        if self.nightly or self.linux:
             self._clone_linux()
-        if self.windows:
+        if self.nightly or self.windows:
             self._clone_win()
 
         self._cleanup_old_directories()

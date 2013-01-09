@@ -40,7 +40,6 @@ bindir = None
 testroot = None
 outdir = None
 archivedir = None
-logdir = None
 xpcoutdir = None
 xpcoutleaf = None
 
@@ -288,7 +287,6 @@ def setup_dirnames(srroot, srwork, srxpcout):
     global testroot
     global outdir
     global archivedir
-    global logdir
     global xpcshell
     global xpcoutdir
     global xpcoutleaf
@@ -299,14 +297,12 @@ def setup_dirnames(srroot, srwork, srxpcout):
     testroot = os.path.join(installroot, 'tests')
     outdir = os.path.join(workdir, 'out')
     archivedir = os.path.join(installroot, 'archives')
-    logdir = os.path.join(installroot, 'logs')
     logging.debug('sr installroot: %s' % (srroot,))
     logging.debug('sr workdir: %s' % (workdir,))
     logging.debug('sr downloaddir: %s' % (downloaddir,))
     logging.debug('sr testroot: %s' % (testroot,))
     logging.debug('sr outdir: %s' % (outdir,))
     logging.debug('sr archivedir: %s' % (archivedir,))
-    logging.debug('sr logdir: %s' % (logdir,))
 
     _determine_os_name()
     _determine_os_version()
