@@ -53,12 +53,11 @@ _xpcshell_environ = None
 INCOMING_QUEUE = 'sr_incoming'
 OUTGOING_QUEUE = 'sr_outgoing'
 
-BROADBAND_QUEUE = 'sr_nc_broadband'
-BROADBAND_COMPLETE_QUEUE = 'sr_nc_broadband_done'
-UMTS_QUEUE = 'sr_nc_umts'
-UMTS_COMPLETE_QUEUE = 'sr_nc_umts_done'
-GSM_QUEUE = 'sr_nc_gsm'
-GSM_COMPLETE_QUEUE = 'sr_nc_gsm_done'
+NETCONFIG_QUEUES = {
+    'broadband': {'incoming': 'sr_nc_broadband', 'rpc': 'sr_nc_broadband_rpc'},
+    'umts': {'incoming': 'sr_nc_umts', 'rpc': 'sr_nc_umts_rpc'},
+    'gsm': {'incoming': 'sr_nc_gsm', 'rpc': 'sr_nc_gsm_rpc'}
+}
 
 LINUX_QUEUE = 'sr_ct_linux'
 MAC_QUEUE = 'sr_ct_mac'
@@ -439,3 +438,37 @@ class QueueWriter(object):
         channel.basic_publish(exchange='', routing_key=self.queue, body=body,
                 properties=pika.BasicProperties(delivery_mode=2)) # Durable
         connection.close() # Ensures the message is sent
+
+class RpcCaller(object):
+    def __init__(self, host, outgoing_queue, incoming_queue):
+        self.outgoing_queue = outgoing_queue
+        self.incoming_queue = incoming_queue
+
+        params = pika.ConnectionParameters(host=host)
+        self.connection = pika.BlockingConnection(params)
+        self.channel = self.connection.channel
+        self.channel.basic_consume(self._on_rpc_done, no_ack=True,
+                queue=self.incoming_queue)
+
+    def _on_rpc_done(self, channel, method, properties, body):
+        if self.srid == properties.correlation_id:
+            self.response = body
+
+    def __call__(self, **msg):
+        if 'srid' not in msg:
+            logging.error('Attempted to make an RPC call without an srid!')
+            return None
+
+        self.response = None
+        self.srid = msg['srid']
+
+        properties = pika.BasicProperties(reply_to=self.incoming_queue,
+                correlation_id=self.srid)
+        body = json.dumps(msg)
+        self.channel.basic_publish(exchange='', routing_key=self.outgoing_queue,
+                body=body, properties=properties)
+
+        while self.response is None:
+            self.connection.process_data_events()
+
+        return json.loads(self.response)

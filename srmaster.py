@@ -54,8 +54,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
                 logging.warning('Got request for invalid netconfig %s' % (nc,))
                 continue
 
-            queue.enqueue(operating_systems=operating_systems,
-                    nightly=nightly, ldap=ldap, sha=sha, srid=srid)
+            queue.enqueue(operating_systems=operating_systems, srid=srid)
 
 @stoneridge.main
 def main():
