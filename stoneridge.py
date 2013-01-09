@@ -59,9 +59,11 @@ NETCONFIG_QUEUES = {
     'gsm': {'incoming': 'sr_nc_gsm', 'rpc': 'sr_nc_gsm_rpc'}
 }
 
-LINUX_QUEUE = 'sr_ct_linux'
-MAC_QUEUE = 'sr_ct_mac'
-WINDOWS_QUEUE = 'sr_ct_windows'
+CLIENT_QUEUES = {
+    'linux': 'sr_ct_linux',
+    'mac': 'sr_ct_mac',
+    'windows': 'sr_ct_windows'
+}
 
 # Logging configuration
 log_fmt = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
@@ -325,21 +327,21 @@ def setup_dirnames(srroot, srwork, srxpcout):
         logging.debug('xpcshell not available yet')
         pass
 
-def run_process(*args):
+def run_process(*args, logger=logging):
     """Run a python process under the stoneridge environment
     """
     procname = args[0]
     command = [sys.executable] + args
-    logging.debug('Running %s' % (procname,))
-    logging.debug(' '.join(command))
+    logger.debug('Running %s' % (procname,))
+    logger.debug(' '.join(command))
     try:
         proc_stdout = subprocess.check_output(command,
                 stderr=subprocess.STDOUT)
-        logging.debug(proc_stdout)
-        logging.debug('SUCCEEDED: %s' % (procname,))
+        logger.debug(proc_stdout)
+        logger.debug('SUCCEEDED: %s' % (procname,))
     except subprocess.CalledProcessError, e:
-        logging.error('FAILED: %s (%s)' % (procname, e.returncode))
-        logging.error(e.output)
+        logger.error('FAILED: %s (%s)' % (procname, e.returncode))
+        logger.error(e.output)
         raise # Do this in case caller has any special handling
 
 _netconfig_ids = {
@@ -472,3 +474,16 @@ class RpcCaller(object):
             self.connection.process_data_events()
 
         return json.loads(self.response)
+
+class RpcHandler(QueueListener):
+    def _handle(self, channel, method, properties, body):
+        msg = json.loads(body)
+        res = self.handle(**msg)
+
+        body = json.dumps(res)
+        res_properties = pika.BasicProperties(
+                correlation_id=properties.correlation_id)
+        channel.basic_publish(exchange='', routing_key=properties.reply_to,
+                properties=res_properties, body=body)
+
+        channel.basic_ack(delivery_tag=method.delivery_tag)
