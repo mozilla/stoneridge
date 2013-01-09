@@ -83,6 +83,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.procno = -1
         self.childlog = None
         self.logdir = None
+        self.logger = None
 
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
