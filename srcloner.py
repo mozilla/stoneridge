@@ -48,7 +48,6 @@ class StoneRidgeCloner(object):
         self.path = '/'.join(root, path)
         self.nightly = nightly
         self.outroot = stoneridge.get_config('server', 'downloads')
-        self.tstamp = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         self.outdir = os.path.join(self.outroot, srid)
         self.keep = stoneridge.get_config('server', 'keep', default=50)
         self.linux = linux
@@ -58,14 +57,10 @@ class StoneRidgeCloner(object):
         if not os.path.exists(self.outroot):
             os.mkdir(self.outroot)
 
-        logfile = os.path.join(self.outroot, 'cloner_%s.log' % (self.tstamp,))
-        logging.basicConfig(filename=logfile, level=logging.DEBUG,
-                format=stoneridge.log_fmt)
         logging.debug('host: %s' % (self.host,))
         logging.debug('path: %s' % (self.path,))
         logging.debug('nightly: %s' % (self.nightly,))
         logging.debug('output root: %s' % (self.outroot,))
-        logging.debug('timestamp: %s' % (self.tstamp,))
         logging.debug('output directory: %s' % (self.outdir,))
         logging.debug('keep history: %s' % (self.keep,))
         logging.debug('linux: %s' % (self.linux,))
@@ -307,6 +302,7 @@ def main():
             default=False)
     parser.add_argument('--windows', dest='windows', action='store_true',
             default=False)
+    parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
 
     stoneridge._conffile = args.config
