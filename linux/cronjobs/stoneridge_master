@@ -1,4 +1,3 @@
 MAILTO=hurley@mozilla.com
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 HOME=/home/hurley
-0 13 * * * root python $HOME/srhome/stoneridge/srrun.py $HOME/srhome/stoneridge/stoneridge_reporter.py --config $HOME/srhome/stoneridge.ini
