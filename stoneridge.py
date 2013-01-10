@@ -15,6 +15,7 @@ import traceback
 
 import pika
 
+
 # Network configurations we have available. Map internal/parameter name
 # to descriptive name
 netconfigs = {
@@ -23,46 +24,21 @@ netconfigs = {
     'gsm':'Legacy Cellular (GSM/EDGE)',
 }
 
-# General information common to all stoneridge programs
-os_name = None
-os_version = None
-download_platform = None
-download_suffix = None
-current_netconfig = None
-buildid_suffix = None
-
-# Paths that multiple programs need to know about
-installroot = None
-workdir = None
-downloaddir = None
-bindir = None
-testroot = None
-outdir = None
-archivedir = None
-xpcoutdir = None
-xpcoutleaf = None
-
-# Misc configuration
-_xpcshell_tmp_dir = None
-_conffile = None
-_cp = None
-_xpcshell_environ = None
 
 # RabbitMQ queue names
 INCOMING_QUEUE = 'sr_incoming'
 OUTGOING_QUEUE = 'sr_outgoing'
-
 NETCONFIG_QUEUES = {
     'broadband': {'incoming': 'sr_nc_broadband', 'rpc': 'sr_nc_broadband_rpc'},
     'umts': {'incoming': 'sr_nc_umts', 'rpc': 'sr_nc_umts_rpc'},
     'gsm': {'incoming': 'sr_nc_gsm', 'rpc': 'sr_nc_gsm_rpc'}
 }
-
 CLIENT_QUEUES = {
     'linux': 'sr_ct_linux',
     'mac': 'sr_ct_mac',
     'windows': 'sr_ct_windows'
 }
+
 
 # Logging configuration
 LOG_FMT = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
@@ -105,29 +81,45 @@ def main(_main):
         sys.exit(0)
     return _main
 
+
+_cp = None
+_srconf = None
+_runconf = None
+
+
 def get_config(section, option, default=None):
-    """Read a config entry from the stoneridge.ini file
+    """Read a config entry from the stoneridge ini files.
     """
     global _cp
 
     logging.debug('reading %s.%s (default %s)' %  (section, option, default))
 
     if _cp is None:
-        logging.debug('loading config file %s' % (_conffile,))
         _cp = ConfigParser.SafeConfigParser()
-        _cp.read([_conffile])
+
+        if _srconf:
+            logging.debug('loading stoneridge config file %s' % (_srconf,))
+            _cp.read(_srconf)
+
+        if _runconf:
+            logging.debug('loading run config file %s' % (_runconf,))
+            _cp.read(_runconf)
 
     try:
         val = _cp.get(section, option)
         logging.debug('found %s.%s, returning %s' % (section, option, val))
         return val
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError), e:
+    except ConfigParser.NoSectionError, ConfigParser.NoOptionError as e:
         logging.debug('unable to find %s.%s, returning default %s' %
                 (section, option, default))
         return default
 
+
+_xpcshell_environ = None
+
+
 def run_xpcshell(args, stdout=subprocess.PIPE):
-    """Run xpcshell with the appropriate args
+    """Run xpcshell with the appropriate args.
     """
     global _xpcshell_environ
     if _xpcshell_environ is None:
@@ -146,13 +138,17 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
     res = proc.wait()
     return (res, proc.stdout)
 
-def _get_xpcshell_tmp():
-    """Determine the temporary directory as xpcshell thinks of it
-    """
-    global _xpcshell_tmp_dir
 
-    if _xpcshell_tmp_dir is None:
-        # TODO - make sure this works on windows to create a file in python
+_xpcoutdir = None
+
+
+def get_xpcshell_output_directory():
+    """Get the directory where xpcshell output will be placed.
+    """
+    global _xpcoutdir
+
+    if _xpcoutdir is None:
+        xpcshell_tmp_dir = None
         _, stdout = run_xpcshell(['-e',
             'dump("SR-TMP-DIR:" + '
             '     Components.classes["@mozilla.org/file/directory_service;1"]'
@@ -163,132 +159,70 @@ def _get_xpcshell_tmp():
 
         for line in stdout:
             if line.startswith('SR-TMP-DIR:'):
-                _xpcshell_tmp_dir = line.strip().split(':', 1)[1]
+                xpcshell_tmp_dir = line.strip().split(':', 1)[1]
 
-    return _xpcshell_tmp_dir
+        if xpcshell_tmp_dir is None:
+            # TODO - maybe raise exception?
+            return None
 
-def get_xpcshell_bin():
-    """Return the name of the xpcshell binary
+        xpcoutleaf = get_config('run', 'xpcoutleaf')
+        _xpcoutdir = os.path.join(xpctmp, xpcoutleaf)
+
+    return _xpcoutdir
+
+
+_os_version = None
+
+
+def get_os_version():
+    """Return the OS version in use.
     """
-    if os_name == 'windows':
-        return 'xpcshell.exe'
-    return 'xpcshell'
+    global _os_version
 
-def _determine_os_name():
-    """Determine the os from platform.system
-    """
-    global os_name
-    os_name = platform.system().lower()
-    if os_name == 'darwin':
-        os_name = 'mac'
-    logging.debug('sr os_name: %s' % (os_name,))
-
-def _determine_os_version():
-    """Determine the os version
-    """
-    global os_version
-    if os_name == 'linux':
-        os_version = ' '.join(platform.linux_distribution()[0:2])
-    elif os_name == 'mac':
-        os_version = platform.mac_ver()[0]
-    elif os_name == 'windows':
-        os_version = platform.win32_ver()[1]
-    else:
-        os_version = 'Unknown'
-    logging.debug('sr os_version: %s' % (os_version,))
-
-def _determine_download_platform():
-    """Determine which platform to download files for
-    """
-    global download_platform
-    if os_name == 'linux':
-        if platform.machine() == 'x86_64':
-            download_platform = 'linux64'
+    if _os_version is None:
+        os_name = get_config('machine', 'os')
+        if os_name == 'linux':
+            _os_version = ' '.join(platform.linux_distribution()[0:2])
+        elif os_name == 'mac':
+            _os_version = platform.mac_ver()[0]
+        elif os_name == 'windows':
+            _os_version = platform.win32_ver()[1]
         else:
-            download_platform = 'linux32'
-    elif os_name == 'windows':
-        if platform.machine() == 'x86_64':
-            download_platform = 'win64'
-        else:
-            download_platform = 'win32'
-    else:
-        download_platform = os_name
-    logging.debug('sr download_platform: %s' % (download_platform,))
+            _os_version = 'Unknown'
 
-def _determine_download_suffix():
-    """Determine the suffix of the firefox archive to download
+    return _os_version
+
+
+_netconfig_ids = {
+    'broadband':'0',
+    'umts':'1',
+    'gsm':'2',
+}
+
+
+_os_ids = {
+    'windows':'w',
+    'linux':'l',
+    'mac':'m',
+}
+
+
+_buildid_suffix = None
+
+
+def get_buildid_suffix():
+    """Return the suffix to be used to uniquify the build id.
     """
-    global download_suffix
-    if os_name == 'linux':
-        download_suffix = 'tar.bz2'
-    elif os_name == 'mac':
-        download_suffix = 'dmg'
-    else:
-        download_suffix = 'zip'
-    logging.debug('sr download_suffix: %s' % (download_suffix,))
+    global _buildid_suffix
 
-def _determine_bindir():
-    """Determine the location of the firefox binary based on platform
-    """
-    global bindir
-    if os_name == 'mac':
-        bindir = os.path.join(workdir, 'FirefoxNightly.app', 'Contents',
-                'MacOS')
-    else:
-        bindir = os.path.join(workdir, 'firefox')
-    logging.debug('sr bindir: %s' % (bindir,))
+    if _buildid_suffix is None:
+        _buildid_suffix = _os_ids[os_name] + _netconfig_ids[current_netconfig]
 
-def setup_dirnames(srroot, srwork, srxpcout):
-    """Determine the directory names and platform information to be used
-    by this run of stone ridge
-    """
-    global installroot
-    global workdir
-    global downloaddir
-    global testroot
-    global outdir
-    global archivedir
-    global xpcshell
-    global xpcoutdir
-    global xpcoutleaf
+    return _buildid_suffix
 
-    installroot = os.path.abspath(srroot)
-    workdir = os.path.abspath(srwork)
-    downloaddir = os.path.join(workdir, 'dl')
-    testroot = os.path.join(installroot, 'tests')
-    outdir = os.path.join(workdir, 'out')
-    archivedir = os.path.join(installroot, 'archives')
-    logging.debug('sr installroot: %s' % (srroot,))
-    logging.debug('sr workdir: %s' % (workdir,))
-    logging.debug('sr downloaddir: %s' % (downloaddir,))
-    logging.debug('sr testroot: %s' % (testroot,))
-    logging.debug('sr outdir: %s' % (outdir,))
-    logging.debug('sr archivedir: %s' % (archivedir,))
-
-    _determine_os_name()
-    _determine_os_version()
-    _determine_download_platform()
-    _determine_download_suffix()
-    _determine_bindir()
-
-    xpcshell = os.path.join(bindir, get_xpcshell_bin())
-    logging.debug('sr xpcshell: %s' % (xpcshell,))
-
-    xpcoutleaf = srxpcout
-    logging.debug('sr xpcoutleaf: %s' % (xpcoutleaf,))
-    try:
-        xpctmp = _get_xpcshell_tmp()
-        xpcoutdir = os.path.join(xpctmp, srxpcout)
-        logging.debug('sr xpctmp: %s' % (xpctmp,))
-        logging.debug('sr xpcoutdir: %s' % (xpcoutdir,))
-    except OSError:
-        # We only need this after the point where we can run xpcshell, so
-        # don't worry if we can't get it earlier in the process
-        logging.debug('xpcshell not available yet')
-        pass
 
 def run_process(*args, logger=logging):
-    """Run a python process under the stoneridge environment
+    """Run a python process under the stoneridge environment.
     """
     procname = args[0]
     command = [sys.executable] + args
@@ -304,58 +238,55 @@ def run_process(*args, logger=logging):
         logger.error(e.output)
         raise # Do this in case caller has any special handling
 
-_netconfig_ids = {
-    'broadband':'0',
-    'umts':'1',
-    'gsm':'2',
-}
-
-_os_ids = {
-    'windows':'w',
-    'linux':'l',
-    'mac':'m',
-}
 
 class ArgumentParser(argparse.ArgumentParser):
     """An argument parser for stone ridge programs that handles the arguments
-    required by all of them
+    required by all of them.
     """
     def __init__(self, **kwargs):
         argparse.ArgumentParser.__init__(self, **kwargs)
 
         self.add_argument('--config', dest='_sr_config_', required=True,
                 help='Configuration file')
-        self.add_argument('--netconfig', dest='_sr_netconfig_', required=True,
-                help='Network Configuration in use', choices=netconfigs.keys())
-        self.add_argument('--root', dest='_sr_root_', required=True,
-                help='Root of Stone Ridge installation')
-        self.add_argument('--workdir', dest='_sr_work_', required=True,
-                help='Directory to do all the work in')
-        self.add_argument('--xpcout', dest='_sr_xpcout_', default='stoneridge',
-                help='Subdirectory of xpcshell temp to write output to')
         self.add_argument('--log', dest='_sr_log_', default=None, required=True,
                 help='File to place log info in')
 
     def parse_args(self, **kwargs):
-        global _conffile
-        global current_netconfig
-        global buildid_suffix
+        global _srconf
 
         args = argparse.ArgumentParser.parse_args(self, **kwargs)
 
-        _conffile = args._sr_config_
-        current_netconfig = args._sr_netconfig_
-        logging.debug('sr _conffile: %s' % (_conffile,))
-        logging.debug('sr current_netconfig: %s' % (current_netconfig,))
-
-        setup_dirnames(args._sr_root_, args._sr_work_, args._sr_xpcout_)
-
-        buildid_suffix = _os_ids[os_name] + _netconfig_ids[current_netconfig]
-        logging.debug('sr buildid_suffix: %s' % (buildid_suffix,))
+        _srconf = args._sr_config_
+        logging.debug('_srconf: %s' % (_srconf,))
 
         return args
 
+
+class TestRunArgumentParser(ArgumentParser):
+    """Like stoneridge.ArgumentParser, but adds arguments specific for programs
+    that are run as part of a test run.
+    """
+    def __init__(self, **kwargs):
+        ArgumentParser.__init__(self, **kwargs)
+
+        self.add_argument('--runconfig', dest='_sr_runconfig_', required=True,
+                help='Run-specific configuration file')
+
+    def parse_args(self, **kwargs):
+        global _runconf
+
+        args = ArgumentParser.parse_args(self, **kwargs)
+
+        _runconf = args._sr_runconfig_
+        logging.debug('_runconf: %s' % (_runconf,))
+
+        return args
+
+
 class QueueListener(object):
+    """A class to be used as the base for stone ridge daemons that need to
+    respond to entries on a queue.
+    """
     def __init__(self, host, queue, **kwargs):
         self._host = host
         self._queue = queue
@@ -363,18 +294,30 @@ class QueueListener(object):
         self._args = kwargs
         self.setup(**kwargs)
 
-    def setup(self):
+    def setup(self, **kwargs):
+        """Used for class-specific things that would normally go in __init__.
+        """
         pass
 
     def handle(self, **kwargs):
+        """The callback that is called when a message is received on the queue.
+        All subclasses must override this. Nothing is done with the returned
+        value.
+        """
         raise NotImplementedError
 
     def _handle(self, channel, method, properties, body):
+        """Internal callback for when a message is received. Deserializes the
+        message and calls handle. Once handle succeeds, the message is
+        acknowledged.
+        """
         msg = json.loads(body)
         self.handle(**msg)
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     def run(self):
+        """Main event loop for a queue listener.
+        """
         if self._queue is None:
             raise Exception('You must set queue for %s' % (type(self),))
 
@@ -386,13 +329,19 @@ class QueueListener(object):
 
         channel.start_consuming()
 
+
 class QueueWriter(object):
+    """Used when someone needs to write to a stone ridge queue.
+    """
     def __init__(self, host, queue):
         self._host = host
         self._params = pika.ConnectionParameters(host=host)
         self._queue = queue
 
     def enqueue(self, **msg):
+        """Place a message on the queue. The message is serialized as a JSON
+        string before being placed on the queue.
+        """
         connection = pika.BlockingConnection(self._params)
         channel = connection.channel()
 
@@ -401,7 +350,10 @@ class QueueWriter(object):
                 properties=pika.BasicProperties(delivery_mode=2)) # Durable
         connection.close() # Ensures the message is sent
 
+
 class RpcCaller(object):
+    """Used to call remote functions via the stone ridge mq of choice.
+    """
     def __init__(self, host, outgoing_queue, incoming_queue):
         self._host = host
         self._outgoing_queue = outgoing_queue
@@ -414,6 +366,9 @@ class RpcCaller(object):
                 queue=self._incoming_queue)
 
     def _on_rpc_done(self, channel, method, properties, body):
+        """The callback that is called when the remote function call
+        is complete.
+        """
         if self._srid == properties.correlation_id:
             self._response = body
 
@@ -437,8 +392,21 @@ class RpcCaller(object):
 
         return json.loads(self._response)
 
+
 class RpcHandler(QueueListener):
+    """Like stoneridge.QueueListener, but for programs that service RPC instead
+    of asynchronous queue events.
+    """
+    def handle(self, **kwargs):
+        """Just like stoneridge.QueueListener.handle, except the return value
+        from this must be serializable as a JSON string.
+        """
+        raise NotImplementedError
+
     def _handle(self, channel, method, properties, body):
+        """Internal message callback to perform the RPC and return the result
+        to the caller.
+        """
         msg = json.loads(body)
         res = self.handle(**msg)
 

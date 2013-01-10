@@ -1,0 +1,8 @@
+[run]
+netconfig = somenetconfigname
+workdir = /tmp/somedirectoryname
+downloaddir = <workdir>/downloads
+bindir = <workdir>/<fxapppath>
+outdir = <workdir>/out
+xpcoutleaf = somedirectoryname
+srid = someuuid

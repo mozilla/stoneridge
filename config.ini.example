@@ -1,6 +1,9 @@
 [stoneridge]
 root = /Users/hurley/src/stoneridge
 logs = /Users/hurley/src/stoneridge/testroot/logs
+testroot = /Users/hurley/src/stoneridge/tests
+archives = /Users/hurley/src/stoneridge/testroot/archives
+mqhost = localhost
 
 [download]
 server = localhost:8080
@@ -28,3 +31,8 @@ project = stoneridge
 key = PUT_OAUTH_KEY_HERE
 secret = PUT_OAUTH_SECRET_HERE
 archives = /Users/hurley/src/stoneridge/testroot/ularchives
+
+[machine]
+os_name = <linux|mac|windows>
+download_platform = <linux64|linux32|mac|win64|win32>
+download_suffix = <tar.bz2|dmg|zip>
