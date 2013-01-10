@@ -11,7 +11,9 @@ from replay import configure_logging
 
 import stoneridge
 
+
 listen_ip = None
+
 
 class NeckoDnsProxyServer(DnsProxyServer):
     def necko_get_ip(self, client):
@@ -81,6 +83,7 @@ def daemon():
         print traceback.format_exc()
         sys.exit(2)
     sys.exit(0)
+
 
 @stoneridge.main
 def main():

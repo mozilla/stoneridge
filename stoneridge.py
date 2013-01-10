@@ -18,7 +18,7 @@ import pika
 
 # Network configurations we have available. Map internal/parameter name
 # to descriptive name
-netconfigs = {
+NETCONFIGS = {
     'broadband':'Modern Wired Broadband (Cable/ADSL)',
     'umts':'Modern Cellular (UMTS)',
     'gsm':'Legacy Cellular (GSM/EDGE)',
@@ -122,6 +122,9 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
     """Run xpcshell with the appropriate args.
     """
     global _xpcshell_environ
+    bindir = get_config('run', 'bin')
+    if bindir is None:
+        return (None, None)
     if _xpcshell_environ is None:
         _xpcshell_environ = copy.copy(os.environ)
         ldlibpath = _xpcshell_environ.get('LD_LIBRARY_PATH')
@@ -215,6 +218,8 @@ def get_buildid_suffix():
     """
     global _buildid_suffix
 
+    os_name = get_config('machine', 'os')
+    current_netconfig = get_config('run', 'netconfig')
     if _buildid_suffix is None:
         _buildid_suffix = _os_ids[os_name] + _netconfig_ids[current_netconfig]
 

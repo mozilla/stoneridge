@@ -28,18 +28,20 @@ class StoneRidgeRunner(object):
         logging.debug('requested tests: %s' % (tests,))
         logging.debug('heads: %s' % (heads,))
 
+        self.testroot = stoneridge.get_config('stoneridge', 'tests')
+
     def _build_testlist(self):
         """Return a list of test file names, all relative to the test root.
         This weeds out any tests that may be missing from the directory.
         """
         if not self.tests:
             logging.debug('searching for all tests in %s' %
-                    (stoneridge.testroot,))
+                    (self.testroot,))
             if stoneridge.get_config('test', 'enabled'):
                 tests = ['fake.js']
             else:
                 tests = [os.path.basename(f) for f in
-                         glob.glob(os.path.join(stoneridge.testroot, '*.js'))]
+                         glob.glob(os.path.join(self.testroot, '*.js'))]
                 tests.remove('fake.js')
             logging.debug('tests found %s' % (tests,))
             return tests
@@ -49,7 +51,7 @@ class StoneRidgeRunner(object):
             logging.debug('candidate test %s' % (candidate,))
             if not candidate.endswith('.js'):
                 logging.error('invalid test filename %s' % (candidate,))
-            elif not os.path.exists(os.path.join(stoneridge.testroot, candidate)):
+            elif not os.path.exists(os.path.join(self.testroot, candidate)):
                 logging.error('missing test %s' % (candidate,))
             else:
                 logging.debug('valid test file %s' % (candidate,))
@@ -79,23 +81,27 @@ class StoneRidgeRunner(object):
         logging.debug('args to prepend: %s' % (preargs,))
 
         # Ensure our output directory exists
-        logging.debug('ensuring %s exists' % (stoneridge.xpcoutdir,))
+        xpcoutdir = stoneridge.get_xpcshell_output_directory()
+        logging.debug('ensuring %s exists' % (xpcoutdir,))
         try:
-            os.makedirs(stoneridge.xpcoutdir)
-            logging.debug('%s created' % (stoneridge.xpcoutdir,))
+            os.makedirs(xpcoutdir)
+            logging.debug('%s created' % (xpcoutdir,))
         except OSError:
-            logging.debug('%s already exists' % (stoneridge.xpcoutdir,))
+            logging.debug('%s already exists' % (xpcoutdir,))
             pass
+
+        installroot = stoneridge.get_config('stoneridge', 'root')
+        xpcoutleaf = stoneridge.get_config('run', 'xpcoutleaf')
 
         for test in tests:
             logging.debug('test: %s' % (test,))
             outfile = '%s.out' % (test,)
             logging.debug('outfile: %s' % (outfile,))
             args = preargs + [
-                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (stoneridge.xpcoutleaf,),
+                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (xpcoutleaf,),
                 '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
-                '-f', os.path.join(stoneridge.installroot, 'head.js'),
-                '-f', os.path.join(stoneridge.testroot, test),
+                '-f', os.path.join(installroot, 'head.js'),
+                '-f', os.path.join(self.testroot, test),
                 '-e', 'do_stoneridge(); quit(0);'
             ]
             logging.debug('xpcshell args: %s' % (args,))

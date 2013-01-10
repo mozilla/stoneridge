@@ -10,6 +10,7 @@ import uuid
 
 import stoneridge
 
+
 class StoneRidgeMaster(stoneridge.QueueListener):
     def setup(self, config):
         self.queues = {
@@ -56,6 +57,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
                 continue
 
             queue.enqueue(operating_systems=operating_systems, srid=srid)
+
 
 @stoneridge.main
 def main():

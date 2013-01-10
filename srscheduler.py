@@ -8,6 +8,7 @@ import logging
 
 import stoneridge
 
+
 class StoneRidgeScheduler(stoneridge.QueueListener):
     def setup(self, rpc_queue, netconfig):
         self.rpc_queue = rpc_queue
@@ -38,12 +39,13 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
                 logging.error('Run of %s on %s failed: %s' % (srid, o,
                     res['msg']))
 
+
 @stoneridge.main
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--log', dest='log', required=True)
     parser.add_argument('--netconfig', dest='netconfig',
-            choices=stoneridge.netconfigs.keys(), required=True)
+            choices=stoneridge.NETCONFIGS.keys(), required=True)
     parser.add_argument('--host', dest='host', required=True)
     args = parser.parse_args()
 

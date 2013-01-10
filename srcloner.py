@@ -14,9 +14,11 @@ import time
 
 import stoneridge
 
+
 LINUX_SUBDIRS = ('try-linux', 'try-linux64')
 MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
 WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
+
 
 class cwd(object):
     """A context manager to change our working directory when we enter the
@@ -36,6 +38,7 @@ class cwd(object):
     def __exit__(self, *args):
         logging.debug('returning cwd to %s' % (self.oldcwd,))
         os.chdir(self.oldcwd)
+
 
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
@@ -294,6 +297,7 @@ class StoneRidgeCloner(object):
             self._clone_win()
 
         self._cleanup_old_directories()
+
 
 @stoneridge.main
 def main():

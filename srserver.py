@@ -12,6 +12,7 @@ import urllib
 
 import stoneridge
 
+
 class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
         """Handle getting uploaded results from the clients
@@ -67,21 +68,26 @@ class SRUploadHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         logging.debug('Translated path: %s' % (path,))
         return path
 
+
 def daemon():
     httpd = BaseHTTPServer.HTTPServer(('0.0.0.0', 8080), SRUploadHandler)
     httpd.serve_forever()
+
 
 def do_exit(parser, msg):
     parser.print_usage()
     parser.exit(2, msg % (parser.prog,))
 
+
 def do_mutex_exit(parser, arg):
     msg = '%%s: error: argument %s: not allowed with argument --nodaemon\n'
     do_exit(parser, msg % (arg,))
 
+
 def do_missing_exit(parser, arg):
     msg = '%%s: error: argument %s is required\n'
     do_exit(parser, msg % (arg,))
+
 
 @stoneridge.main
 def main():

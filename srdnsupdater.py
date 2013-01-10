@@ -3,6 +3,7 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import logging
 import struct
 import socket
 import sys
@@ -10,14 +11,21 @@ import time
 
 import stoneridge
 
-import logging
 
 class StoneRidgeDnsUpdater(object):
     def __init__(self, restore):
         self.restore = restore
         self.peer = ('127.0.0.1', 63250)
+        os_name = stoneridge.get_config('machine', 'os')
+        if os_name == 'windows':
+            self.is_windows = True
+        else:
+            self.is_windows = False
+        self.netconfig = stoneridge.get_config('run', 'netconfig')
         logging.debug('restore: %s' % (restore,))
         logging.debug('peer: %s' % (self.peer,))
+        logging.debug('is windows: %s' % (self.is_windows,))
+        logging.debug('netconfig: %s' % (self.netconfig,))
 
     def _converse(self, msgtype, msgdata=None):
         logging.debug('msgtype: %s' % (msgtype,))
@@ -63,7 +71,7 @@ class StoneRidgeDnsUpdater(object):
         # Windows DNS stuff), we have to wait for the interface to come back up
         # before we can try to do anything that would use the WAN interface
         # (such as uploading results).
-        if stoneridge.os_name == 'windows':
+        if self.is_windows:
             logging.debug('sleeping 15 seconds for the windows hack')
             time.sleep(15)
 
@@ -74,13 +82,14 @@ class StoneRidgeDnsUpdater(object):
             return
 
         logging.debug('Searching for dns server for netconfig %s' %
-                (stoneridge.current_netconfig,))
-        dns_server = stoneridge.get_config('dns', stoneridge.current_netconfig)
+                (self.netconfig,))
+        dns_server = stoneridge.get_config('dns', self.netconfig)
         if dns_server is None:
             logging.error('Error finding dns server')
             return
 
         self._set_dns(dns_server)
+
 
 @stoneridge.main
 def main():

@@ -4,5 +4,7 @@ workdir = /tmp/somedirectoryname
 downloaddir = <workdir>/downloads
 bindir = <workdir>/<fxapppath>
 outdir = <workdir>/out
+results = <outdir>/results.json
+metadata = <outdir>/metadata.zip
 xpcoutleaf = somedirectoryname
 srid = someuuid

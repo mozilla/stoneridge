@@ -12,6 +12,7 @@ import os
 
 import stoneridge
 
+
 class StoneRidgeReporter(stoneridge.QueueListener):
     def setup(self):
         self.rootdir = stoneridge.get_config('server', 'uploads')
@@ -70,6 +71,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
             logging.error('bad status for %s: %s' % (srid, result['status']))
 
         self.save_data(srid, results, metadata_b64)
+
 
 @stoneridge.main
 def main():

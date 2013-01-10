@@ -7,12 +7,12 @@ import collections
 import copy
 import glob
 import json
+import logging
 import os
 import shutil
 
 import stoneridge
 
-import logging
 
 class StoneRidgeCollator(object):
     """Takes the data we've collected from our tests and puts it into formats
@@ -21,11 +21,13 @@ class StoneRidgeCollator(object):
     """
     def run(self):
         logging.debug('collator running')
-        outfiles = glob.glob(os.path.join(stoneridge.xpcoutdir, '*.out'))
+        xpcoutdir = stoneridge.get_xpcshell_output_directory()
+        outdir = stoneridge.get_config('run', 'out')
+        outfiles = glob.glob(os.path.join(xpcoutdir, '*.out'))
         logging.debug('found outfiles %s' % (outfiles,))
         logging.debug('loading info from %s' %
-                (os.path.join(stoneridge.outdir, 'info.json'),))
-        with file(os.path.join(stoneridge.outdir, 'info.json'), 'rb') as f:
+                (os.path.join(outdir, 'info.json'),))
+        with file(os.path.join(outdir, 'info.json'), 'rb') as f:
             info = json.load(f)
             logging.debug('loaded info: %s' % (info,))
 
@@ -80,15 +82,16 @@ class StoneRidgeCollator(object):
 
             # Copy the raw data into our output directory
             logging.debug('copying raw data to archivable directory')
-            shutil.copyfile(ofile, os.path.join(stoneridge.outdir, fname))
+            shutil.copyfile(ofile, os.path.join(outdir, fname))
 
             # Write our json results for uploading
             upload_filename = 'upload_%s.json' % (suite,)
             logging.debug('upload filename: %s' % (upload_filename,))
-            upload_file = os.path.join(stoneridge.outdir, upload_filename)
+            upload_file = os.path.join(outdir, upload_filename)
             with file(upload_file, 'wb') as f:
                 logging.debug('jsonifying %s' % (results,))
                 json.dump(results, f)
+
 
 @stoneridge.main
 def main():

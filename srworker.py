@@ -46,11 +46,16 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.logger.addHandler(handler)
 
         # Create a working space for this run
-        self.srwork = tempfile.mkdtemp()
+        srwork = tempfile.mkdtemp()
+        srdownload = os.path.join(srwork, 'download')
+        os.mkdir(srdownload)
+        firefox_path = stoneridge.get_config('machine', 'firefox_path')
+        srbindir = os.path.join(srwork, firefox_path)
+        srout = os.path.join(srwork, 'out')
 
         # Make a name for output from xpcshell (can't make the actual directory
         # yet, because we don't know what directory it'll live in)
-        self.srxpcout = os.path.basename(tempfile.mktemp())
+        srxpcout = os.path.basename(tempfile.mktemp())
 
         self.srnetconfig = netconfig
         self.archive_on_failure = False
@@ -58,14 +63,24 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.procno = 1
         self.childlog = None
 
-        self.logger.debug('srwork: %s' % (self.srwork,))
-        self.logger.debug('srxpcout: %s' % (self.srxpcout,))
+        self.runconfig = os.path.join(srwork, 'run.ini')
+        with file(self.runconfig, 'w') as f:
+            f.write('[run]\n')
+            f.write('netconfig = %s\n' % (netconfig,))
+            f.write('work = %s\n' % (srwork,))
+            f.write('download = %s\n' % (srdownload,))
+            f.write('bin = %s\n' % (srbindir,))
+            f.write('out = %s\n' % (srout,))
+            f.write('xpcoutleaf = %s\n' % (srxpcout,))
+            f.write('srid = %s\n' % (srid,))
+
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
         self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
         self.logger.debug('cleaner called: %s' % (self.cleaner_called,))
         self.logger.debug('procno: %s' % (self.procno,))
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
+        self.logger.debug('runconfig: %s' % (self.runconfig,))
 
         try:
             self.run_test()
@@ -75,8 +90,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.reset()
 
     def reset(self):
-        self.srwork = None
-        self.srxpcout = None
         self.srnetconfig = None
         self.archive_on_failure = True
         self.cleaner_called = True
@@ -84,6 +97,9 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.childlog = None
         self.logdir = None
         self.logger = None
+        if self.runconfig and os.path.exists(self.runconfig):
+            os.unlink(self.runconfig)
+        self.runconfig = None
 
     def do_error(self, stage):
         """Print an error and raise an exception that will be handled by the
@@ -104,10 +120,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
         command = [script,
                    '--config', self.srconffile,
-                   '--netconfig', self.srnetconfig,
-                   '--root', self.srroot,
-                   '--workdir', self.srwork,
-                   '--xpcout', self.srxpcout,
+                   '--runconfig', self.runconfig,
                    '--log', logfile]
         command.extend(args)
         try:
@@ -137,14 +150,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
             self.do_error(stage)
 
     def run_test(self):
-        stoneridge.setup_dirnames(self.srroot, self.srwork, self.srxpcout)
-
-        for d in (stoneridge.outdir, stoneridge.downloaddir):
-            os.mkdir(d)
-
-        if not os.path.exists(stoneridge.archivedir):
-            os.mkdir(stoneridge.archivedir)
-
         self.run_process('downloader')
 
         self.run_process('unpacker')

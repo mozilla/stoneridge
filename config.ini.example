@@ -36,3 +36,4 @@ archives = /Users/hurley/src/stoneridge/testroot/ularchives
 os_name = <linux|mac|windows>
 download_platform = <linux64|linux32|mac|win64|win32>
 download_suffix = <tar.bz2|dmg|zip>
+firefox_path = <firefox|FirefoxNightly.app/Contents/MacOS>

@@ -9,6 +9,7 @@ import os
 
 import stoneridge
 
+
 class StoneRidgeUploader(object):
     """Takes the upload files created by the collator and uploads them to the
     graph server
@@ -19,16 +20,18 @@ class StoneRidgeUploader(object):
     def run(self):
         logging.debug('uploader running')
 
-        if not os.path.exists(stoneridge.results_file):
+        results_file = stoneridge.get_config('run', 'results')
+        if not os.path.exists(results_file):
             # Nothing to do, so forget it!
             logging.debug('no file to upload')
             return
 
-        with file(stoneridge.upload_file) as f:
+        with file(results_file) as f:
             results = f.read()
 
-        if os.path.exists(stoneridge.metadata_file):
-            with file(stoneridge.metadata_file) as f:
+        metadata_file = stoneridge.get_config('run', 'metadata')
+        if os.path.exists(metadata_file):
+            with file(metadata_file) as f:
                 contents = f.read()
             metadata = base64.b64encode(contents)
         else:
@@ -36,8 +39,9 @@ class StoneRidgeUploader(object):
             logging.warning('missing metadata, continuing anyway')
             metadata = base64.b64encode('')
 
-        self.queue.enqueue(srid=stoneridge.srid, results=results,
-                metadata=metadata)
+        srid = stoneridge.get_config('run', 'srid')
+        self.queue.enqueue(srid=srid, results=results, metadata=metadata)
+
 
 @stoneridge.main
 def main():

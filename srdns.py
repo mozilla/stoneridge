@@ -18,11 +18,11 @@ import tempfile
 
 import stoneridge
 
+
 dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
-
 rundir = tempfile.mkdtemp()
-
 nochange = False
+
 
 class BaseDnsModifier(SocketServer.BaseRequestHandler):
     """A class providing an interface for modifying DNS servers on a platform.
@@ -64,6 +64,7 @@ class BaseDnsModifier(SocketServer.BaseRequestHandler):
             status = 'no'
 
         self.request.sendall(status)
+
 
 class MacDnsModifier(BaseDnsModifier):
     def setup(self):
@@ -140,6 +141,7 @@ class MacDnsModifier(BaseDnsModifier):
         else:
             self._set_dns([dnsserver])
 
+
 class LinuxDnsModifier(BaseDnsModifier):
     def setup(self):
         logging.debug('Initializing linux handler')
@@ -191,6 +193,7 @@ class LinuxDnsModifier(BaseDnsModifier):
             logging.debug('Writing resolv.conf')
             f.write('\n'.join(newlines))
 
+
 def daemon():
     sysname = platform.system()
     if sysname == 'Linux':
@@ -213,17 +216,21 @@ def daemon():
 
     shutil.rmtree(rundir)
 
+
 def do_exit(parser, msg):
     parser.print_usage()
     parser.exit(2, msg % (parser.prog,))
+
 
 def do_mutex_exit(parser, arg):
     msg = '%%s: error: argument %s: not allowed with argument --nodaemon\n'
     do_exit(parser, msg % (arg,))
 
+
 def do_missing_exit(parser, arg):
     msg = '%%s: error: argument %s is required\n'
     do_exit(parser, msg % (arg,))
+
 
 @stoneridge.main
 def main():
