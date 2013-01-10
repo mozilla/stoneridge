@@ -9,7 +9,6 @@ import inspect
 import logging
 import os
 import platform
-import StringIO
 import subprocess
 import sys
 import traceback
@@ -126,45 +125,6 @@ def get_config(section, option, default=None):
         logging.debug('unable to find %s.%s, returning default %s' %
                 (section, option, default))
         return default
-
-def update(cfile=None):
-    """Update the stone ridge installation from the latest source
-    """
-    global _conffile
-    global _cp
-
-    oldcfile = None
-    oldcp = None
-
-    if cfile is not None:
-        oldcfile, _conffile = _conffile, cfile
-        oldcp, _cp = _cp, None
-
-    scheme = get_config('update', 'scheme')
-    if scheme is None:
-        return
-
-    url = get_config('update', 'url')
-
-    if cfile is not None:
-        _conffile = oldcfile
-        _cp = oldcp
-
-    if scheme == 'hg':
-        args = ['hg', 'pull', '-u']
-    elif scheme == 'git':
-        args = ['git', 'pull']
-    else:
-        return
-
-    if url:
-        args.append(url)
-
-    outbuf = StringIO.StringIO()
-    if subprocess.call(args, stdout=outbuf, stderr=subprocess.STDOUT):
-        sys.stderr.write('Error updating Stone Ridge\n')
-        sys.stderr.write(outbuf.getvalue())
-    outbuf.close()
 
 def run_xpcshell(args, stdout=subprocess.PIPE):
     """Run xpcshell with the appropriate args

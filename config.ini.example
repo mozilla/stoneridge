@@ -2,10 +2,6 @@
 root = /Users/hurley/src/stoneridge
 logs = /Users/hurley/src/stoneridge/testroot/logs
 
-[update]
-scheme = git
-url = http://github.com/todesschaf/stoneridge.git
-
 [download]
 server = localhost:8080
 root = latest
