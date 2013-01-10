@@ -9,9 +9,9 @@ import logging
 import stoneridge
 
 class StoneRidgeScheduler(stoneridge.QueueListener):
-    def setup(self):
-        self.rpc_queue = self.args['rpc_queue']
-        self.netconfig = self.args['netconfig']
+    def setup(self, rpc_queue, netconfig):
+        self.rpc_queue = rpc_queue
+        self.netconfig = netconfig
 
         self.runners = {
             'linux':stoneridge.RpcCaller(self.host, stoneridge.LINUX_QUEUE,

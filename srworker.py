@@ -18,11 +18,11 @@ class StoneRidgeTestRunner(object):
 
 
 class StoneRidgeWorker(stoneridge.RpcHandler):
-    def setup(self):
-        self.srconffile = self.args['config']
+    def setup(self, config, log):
+        self.srconffile = config
         self.srroot = stoneridge.get_config('stoneridge', 'root')
         self.srlogdir = stoneridge.get_config('stoneridge', 'logs')
-        self.logfile = self.args['log']
+        self.logfile = log
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('srroot: %s' % (self.srroot,))
         logging.debug('srlogdir: %s' % (self.srlogdir,))

@@ -11,7 +11,7 @@ import uuid
 import stoneridge
 
 class StoneRidgeMaster(stoneridge.QueueListener):
-    def setup(self):
+    def setup(self, config):
         self.queues = {
             'broadband':stoneridge.QueueWriter(self.host,
                 stoneridge.BROADBAND_QUEUE),
@@ -19,12 +19,13 @@ class StoneRidgeMaster(stoneridge.QueueListener):
             'gsm':stoneridge.QueueWriter(self.host, stoneridge.GSM_QUEUE)
         }
         self.logdir = stoneridge.get_config('stoneridge', 'logs')
+        self.config = config
 
     def handle(self, nightly, ldap, sha, netconfigs, operating_systems):
         srid = str(uuid.uuid4())
         logfile = 'cloner_%s.log' % (srid,)
         cloner_log = os.path.join(self.logdir, logfile)
-        args = ['srcloner.py', '--path', path, '--config', self.args['config'],
+        args = ['srcloner.py', '--path', path, '--config', self.config,
                 '--srid', srid, '--log', cloner_log]
         if nightly:
             path = 'nightly/latest-mozilla-central'

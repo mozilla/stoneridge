@@ -397,11 +397,11 @@ class ArgumentParser(argparse.ArgumentParser):
 
 class QueueListener(object):
     def __init__(self, host, queue, **kwargs):
-        self.host = host
-        self.queue = queue
-        self.params = pika.ConnectionParameters(host=host)
-        self.args = kwargs
-        self.setup()
+        self._host = host
+        self._queue = queue
+        self._params = pika.ConnectionParameters(host=host)
+        self._args = kwargs
+        self.setup(**kwargs)
 
     def setup(self):
         pass
@@ -415,65 +415,67 @@ class QueueListener(object):
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     def run(self):
-        if self.queue is None:
+        if self._queue is None:
             raise Exception('You must set queue for %s' % (type(self),))
 
-        connection = pika.BlockingConnection(self.params)
+        connection = pika.BlockingConnection(self._params)
         channel = connection.channel()
 
         channel.basic_qos(prefetch_count=1)
-        channel.basic_consume(self._handle, queue=self.queue)
+        channel.basic_consume(self._handle, queue=self._queue)
 
         channel.start_consuming()
 
 class QueueWriter(object):
     def __init__(self, host, queue):
-        self.host = host
-        self.params = pika.ConnectionParameters(host=host)
-        self.queue = queue
+        self._host = host
+        self._params = pika.ConnectionParameters(host=host)
+        self._queue = queue
 
     def enqueue(self, **msg):
-        connection = pika.BlockingConnection(self.params)
+        connection = pika.BlockingConnection(self._params)
         channel = connection.channel()
 
         body = json.dumps(msg)
-        channel.basic_publish(exchange='', routing_key=self.queue, body=body,
+        channel.basic_publish(exchange='', routing_key=self._queue, body=body,
                 properties=pika.BasicProperties(delivery_mode=2)) # Durable
         connection.close() # Ensures the message is sent
 
 class RpcCaller(object):
     def __init__(self, host, outgoing_queue, incoming_queue):
-        self.outgoing_queue = outgoing_queue
-        self.incoming_queue = incoming_queue
+        self._host = host
+        self._outgoing_queue = outgoing_queue
+        self._incoming_queue = incoming_queue
 
         params = pika.ConnectionParameters(host=host)
-        self.connection = pika.BlockingConnection(params)
-        self.channel = self.connection.channel
-        self.channel.basic_consume(self._on_rpc_done, no_ack=True,
-                queue=self.incoming_queue)
+        self._connection = pika.BlockingConnection(params)
+        self._channel = self._connection.channel
+        self._channel.basic_consume(self._on_rpc_done, no_ack=True,
+                queue=self._incoming_queue)
 
     def _on_rpc_done(self, channel, method, properties, body):
-        if self.srid == properties.correlation_id:
-            self.response = body
+        if self._srid == properties.correlation_id:
+            self._response = body
 
     def __call__(self, **msg):
         if 'srid' not in msg:
             logging.error('Attempted to make an RPC call without an srid!')
             return None
 
-        self.response = None
-        self.srid = msg['srid']
+        self._response = None
+        self._srid = msg['srid']
 
-        properties = pika.BasicProperties(reply_to=self.incoming_queue,
-                correlation_id=self.srid)
+        properties = pika.BasicProperties(reply_to=self._incoming_queue,
+                correlation_id=self._srid)
         body = json.dumps(msg)
-        self.channel.basic_publish(exchange='', routing_key=self.outgoing_queue,
-                body=body, properties=properties)
+        self._channel.basic_publish(exchange='',
+                routing_key=self._outgoing_queue, body=body,
+                properties=properties)
 
-        while self.response is None:
-            self.connection.process_data_events()
+        while self._response is None:
+            self._connection.process_data_events()
 
-        return json.loads(self.response)
+        return json.loads(self._response)
 
 class RpcHandler(QueueListener):
     def _handle(self, channel, method, properties, body):
