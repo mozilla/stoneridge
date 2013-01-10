@@ -39,7 +39,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
         logfile = os.path.join(logdir, '00_worker.log')
         handler = logging.FileHandler(logfile)
-        formatter = logging.Formatter(fmt=stoneridge.log_fmt)
+        formatter = logging.Formatter(fmt=stoneridge.LOG_FMT)
         handler.setFormatter(formatter)
         self.logger = logging.getLogger(logdir)
         self.logger.setLevel(logging.DEBUG)

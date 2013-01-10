@@ -65,7 +65,7 @@ CLIENT_QUEUES = {
 }
 
 # Logging configuration
-log_fmt = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
+LOG_FMT = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
 _parser = argparse.ArgumentParser()
 _parser.add_argument('--log')
 _args, _ = _parser.parse_known_args()
@@ -73,7 +73,7 @@ if _args.log:
     _logger = logging.getLogger()
     _logger.setLevel(logging.DEBUG)
     _handler = logging.FileHandler(_args.log)
-    _formatter = logging.Formatter(fmt=log_fmt)
+    _formatter = logging.Formatter(fmt=LOG_FMT)
     _handler.setFormatter(_formatter)
     _logger.addHandler(_handler)
 
