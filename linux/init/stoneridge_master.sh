@@ -20,16 +20,12 @@
 SRHOME=/home/hurley/srhome
 ### END CONFIGURATION SECTION
 
-PIDFILE=$SRHOME/stoneridge_server.pid
-LOGFILE=$SRHOME/stoneridge_server.log
 CONFFILE=$SRHOME/stoneridge.ini
 
 start() {
-    python $SRHOME/stoneridge/srrun.py $SRHOME/stoneridge/stoneridge_server.py --pidfile $PIDFILE --log $LOGFILE --config $CONFFILE
 }
 
 stop() {
-    kill $(cat $PIDFILE)
 }
 
 case "$1" in
