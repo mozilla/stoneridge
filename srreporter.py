@@ -46,29 +46,37 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         logging.debug('uploading results for %s' % (srid,))
 
         try:
-            dataset = json.loads(results)
-            logging.debug('read data: %s' % (dataset,))
+            result_dict = json.loads(results)
         except:
-            # This one is crap, ignore it
-            logging.error('bad json: %s' % (results,))
+            # This is crap, ignore it
+            logging.error('bad results dict: %s' % (results,))
             self.save_data(srid, results, metadata_b64)
             return
 
-        logging.debug('uploading data')
-        request = dzclient.DatazillaRequest('https', self.host,
-                self.project, self.key, self.secret)
-        response = request.send(dataset)
-        logging.debug('got status code %s' % (response.status,))
-        if response.status != 200:
-            logging.error('bad http status %s for %s' % (response.status, srid))
+        for name, contents in result_dict.iteritems():
+            try:
+                dataset = json.loads(contents)
+                logging.debug('read data: %s' % (dataset,))
+            except:
+                # This one is crap, ignore it
+                logging.error('bad json: %s' % (contents,))
+                continue
 
-        try:
-            result = json.load(response)
-        except:
-            result = ''
-        logging.debug('got result %s' % (result,))
-        if result['status'] != 'well-formed JSON stored':
-            logging.error('bad status for %s: %s' % (srid, result['status']))
+            logging.debug('uploading data')
+            request = dzclient.DatazillaRequest('https', self.host,
+                    self.project, self.key, self.secret)
+            response = request.send(dataset)
+            logging.debug('got status code %s' % (response.status,))
+            if response.status != 200:
+                logging.error('bad http status %s for %s' % (response.status, srid))
+
+            try:
+                result = json.load(response)
+            except:
+                result = ''
+            logging.debug('got result %s' % (result,))
+            if result['status'] != 'well-formed JSON stored':
+                logging.error('bad status for %s: %s' % (srid, result['status']))
 
         self.save_data(srid, results, metadata_b64)
 

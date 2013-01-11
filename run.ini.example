@@ -1,10 +1,10 @@
 [run]
 netconfig = somenetconfigname
-workdir = /tmp/somedirectoryname
-downloaddir = <workdir>/downloads
-bindir = <workdir>/<fxapppath>
-outdir = <workdir>/out
-results = <outdir>/results.json
-metadata = <outdir>/metadata.zip
+work = /tmp/somedirectoryname
+download = <work>/download
+bin = <work>/<fxapppath>
+out = <work>/out
+metadata = <out>/metadata.zip
+info = <out>/info.json
 xpcoutleaf = somedirectoryname
 srid = someuuid

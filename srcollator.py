@@ -24,10 +24,10 @@ class StoneRidgeCollator(object):
         xpcoutdir = stoneridge.get_xpcshell_output_directory()
         outdir = stoneridge.get_config('run', 'out')
         outfiles = glob.glob(os.path.join(xpcoutdir, '*.out'))
+        infofile = stoneridge.get_config('run', 'info')
         logging.debug('found outfiles %s' % (outfiles,))
-        logging.debug('loading info from %s' %
-                (os.path.join(outdir, 'info.json'),))
-        with file(os.path.join(outdir, 'info.json'), 'rb') as f:
+        logging.debug('loading info from %s' % (infofile,))
+        with file(infofile, 'rb') as f:
             info = json.load(f)
             logging.debug('loaded info: %s' % (info,))
 

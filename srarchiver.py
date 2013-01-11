@@ -20,7 +20,10 @@ class StoneRidgeArchiver(object):
         outdir = stoneridge.get_config('run', 'out')
         archivedir = stoneridge.get_config('stoneridge', 'archives')
         srid = stoneridge.get_config('run', 'srid')
-        with file(os.path.join(outdir, 'info.json'), 'rb') as f:
+        infofile = stoneridge.get_config('run', 'info')
+        metadata = stoneridge.get_config('run', 'metadata')
+
+        with file(infofile, 'rb') as f:
             info = json.load(f)
             logging.debug('loaded info %s' % (info,))
 
@@ -59,6 +62,9 @@ class StoneRidgeArchiver(object):
 
         logging.debug('closing zip file')
         zfile.close()
+
+        # Make a copy where the uploader will find it
+        shutil.copyfile(filename, metadata)
 
 
 @stoneridge.main

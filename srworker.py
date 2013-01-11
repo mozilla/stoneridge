@@ -52,6 +52,8 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         firefox_path = stoneridge.get_config('machine', 'firefox_path')
         srbindir = os.path.join(srwork, firefox_path)
         srout = os.path.join(srwork, 'out')
+        metadata = os.path.join(srout, 'metadata.zip')
+        info = os.path.join(srout, 'info.json')
 
         # Make a name for output from xpcshell (can't make the actual directory
         # yet, because we don't know what directory it'll live in)
@@ -71,6 +73,8 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
             f.write('download = %s\n' % (srdownload,))
             f.write('bin = %s\n' % (srbindir,))
             f.write('out = %s\n' % (srout,))
+            f.write('metadata = %s\n' % (metadata,))
+            f.write('info = %s\n' % (info,))
             f.write('xpcoutleaf = %s\n' % (srxpcout,))
             f.write('srid = %s\n' % (srid,))
 

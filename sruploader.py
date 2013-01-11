@@ -4,6 +4,7 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import base64
+import glob
 import logging
 import os
 
@@ -20,14 +21,21 @@ class StoneRidgeUploader(object):
     def run(self):
         logging.debug('uploader running')
 
-        results_file = stoneridge.get_config('run', 'results')
-        if not os.path.exists(results_file):
+        outdir = stoneridge.get_config('run', 'out')
+        pattern = os.path.join(outdir, 'upload_*.json')
+        files = glob.glob(pattern)
+        if not files:
             # Nothing to do, so forget it!
             logging.debug('no file to upload')
             return
 
-        with file(results_file) as f:
-            results = f.read()
+        results = {}
+        for filename in files:
+            fname = os.path.basename(filename)
+            with file(filename) as f:
+                results[fname] = json.load(f)
+
+        results = json.dumps(results)
 
         metadata_file = stoneridge.get_config('run', 'metadata')
         if os.path.exists(metadata_file):
