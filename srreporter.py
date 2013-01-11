@@ -19,7 +19,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         self.project = stoneridge.get_config('report', 'project')
         self.key = stoneridge.get_config('report', 'key')
         self.secret = stoneridge.get_config('report', 'secret')
-        self.archives = stoneridge.get_config('report', 'archives')
+        self.archives = stoneridge.get_config('stoneridge', 'archives')
 
         logging.debug('report host: %s' % (self.host,))
         logging.debug('project: %s' % (self.project,))

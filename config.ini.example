@@ -18,16 +18,17 @@ gsm = 9.10.11.12
 host = ftp.mozilla.org
 root = /pub/mozilla.org/firefox
 output = /Users/hurley/src/stoneridge/testroot/srv/dl
+keep = 50
 
 [report]
 host = datazilla.mozilla.com
 project = stoneridge
 key = PUT_OAUTH_KEY_HERE
 secret = PUT_OAUTH_SECRET_HERE
-archives = /Users/hurley/src/stoneridge/testroot/ularchives
 
 [machine]
-os_name = <linux|mac|windows>
+os = <linux|mac|windows>
 download_platform = <linux64|linux32|mac|win64|win32>
 download_suffix = <tar.bz2|dmg|zip>
 firefox_path = <firefox|FirefoxNightly.app/Contents/MacOS>
+xpcshell = <xpcshell|xpcshell.exe>
