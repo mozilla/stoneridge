@@ -15,8 +15,8 @@ class StoneRidgeUploader(object):
     """Takes the upload files created by the collator and uploads them to the
     graph server
     """
-    def __init__(self, host):
-        self.queue = stoneridge.QueueWriter(host, stoneridge.OUTGOING_QUEUE)
+    def __init__(self):
+        self.queue = stoneridge.QueueWriter(stoneridge.OUTGOING_QUEUE)
 
     def run(self):
         logging.debug('uploader running')
@@ -53,9 +53,8 @@ class StoneRidgeUploader(object):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
-    parser.add_argument('--host', dest='host', required=True)
+    parser = stoneridge.TestRunArgumentParser()
     args = parser.parse_args()
 
-    uploader = StoneRidgeUploader(args.host)
+    uploader = StoneRidgeUploader()
     uploader.run()

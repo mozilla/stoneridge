@@ -69,8 +69,7 @@ class StoneRidgeArchiver(object):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
-
+    parser = stoneridge.TestRunArgumentParser()
     parser.parse_args()
 
     archiver = StoneRidgeArchiver()

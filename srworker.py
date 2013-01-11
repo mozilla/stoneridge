@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import argparse
 import logging
 import os
 import subprocess
@@ -18,15 +17,13 @@ class StoneRidgeTestRunner(object):
 
 
 class StoneRidgeWorker(stoneridge.RpcHandler):
-    def setup(self, config, log):
+    def setup(self, config):
         self.srconffile = config
         self.srroot = stoneridge.get_config('stoneridge', 'root')
         self.srlogdir = stoneridge.get_config('stoneridge', 'logs')
-        self.logfile = log
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('srroot: %s' % (self.srroot,))
         logging.debug('srlogdir: %s' % (self.srlogdir,))
-        logging.debug('logfile: %s' % (self.logfile,))
 
         self.reset()
 
@@ -182,15 +179,11 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--log', dest='log', required=True)
-    parser.add_argument('--os', dest='os', required=True,
-            choices=stoneridge.CLIENT_QUEUES.keys())
-    parser.add_argument('--host', dest='host', required=True)
-    parser.add_argument('--config', dest='config', required=True)
+    parser = stoneridge.ArgumentParser()
     args = parser.parse_args()
 
-    queue = stoneridge.CLIENT_QUEUES[args['os']]
+    osname = stoneridge.get_config('machine', 'os')
+    queue = stoneridge.CLIENT_QUEUES[osname]
 
-    worker = StoneRidgeWorker(host, queue, config=args.config, log=args.log)
+    worker = StoneRidgeWorker(queue, config=args._sr_config_)
     worker.run()

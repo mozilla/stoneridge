@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import argparse
 import logging
 import subprocess
 import uuid
@@ -14,10 +13,9 @@ import stoneridge
 class StoneRidgeMaster(stoneridge.QueueListener):
     def setup(self, config):
         self.queues = {
-            'broadband':stoneridge.QueueWriter(self.host,
-                stoneridge.BROADBAND_QUEUE),
-            'umts':stoneridge.QueueWriter(self.host, stoneridge.UMTS_QUEUE),
-            'gsm':stoneridge.QueueWriter(self.host, stoneridge.GSM_QUEUE)
+            'broadband': stoneridge.QueueWriter(stoneridge.BROADBAND_QUEUE),
+            'umts': stoneridge.QueueWriter(stoneridge.UMTS_QUEUE),
+            'gsm': stoneridge.QueueWriter(stoneridge.GSM_QUEUE)
         }
         self.logdir = stoneridge.get_config('stoneridge', 'logs')
         self.config = config
@@ -61,14 +59,9 @@ class StoneRidgeMaster(stoneridge.QueueListener):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', dest='config', required=True)
-    parser.add_argument('--host', dest='host', required=True)
-    parser.add_argument('--log', dest='log', required=True)
+    parser = stoneridge.ArgumentParser()
     args = parser.parse_args()
 
-    stoneridge._conffile = args.config
-
-    master = StoneRidgeMaster(args.host, stoneridge.INCOMING_QUEUE,
-            config=args.config)
+    master = StoneRidgeMaster(stoneridge.INCOMING_QUEUE,
+            config=args._sr_config_)
     master.run()

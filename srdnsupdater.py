@@ -93,7 +93,7 @@ class StoneRidgeDnsUpdater(object):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
 
     parser.add_argument('--restore', dest='restore', action='store_true',
             default=False, help='Restore DNS server to default settings')

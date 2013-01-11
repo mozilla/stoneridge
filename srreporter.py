@@ -83,13 +83,8 @@ class StoneRidgeReporter(stoneridge.QueueListener):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', dest='config', required=True)
-    parser.add_argument('--log', dest='log', required=True)
-    parser.add_argument('--host', dest='host', required=True)
+    parser = stoneridge.ArgumentParser()
     args = parser.parse_args()
 
-    stoneridge._conffile = args.config
-
-    reporter = StoneRidgeReporter(args.host, stoneridge.OUTGOING_QUEUE)
+    reporter = StoneRidgeReporter(stoneridge.OUTGOING_QUEUE)
     reporter.run()

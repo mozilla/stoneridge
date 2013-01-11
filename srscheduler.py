@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import argparse
 import logging
 
 import stoneridge
@@ -15,11 +14,11 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
         self.netconfig = netconfig
 
         self.runners = {
-            'linux':stoneridge.RpcCaller(self.host, stoneridge.LINUX_QUEUE,
+            'linux': stoneridge.RpcCaller(stoneridge.LINUX_QUEUE,
                 self.rpc_queue),
-            'mac':stoneridge.RpcCaller(self.host, stoneridge.MAC_QUEUE,
+            'mac': stoneridge.RpcCaller(stoneridge.MAC_QUEUE,
                 self.rpc_queue),
-            'windows':stoneridge.RpcCaller(self.host, stoneridge.WINDOWS_QUEUE,
+            'windows': stoneridge.RpcCaller(stoneridge.WINDOWS_QUEUE,
                 self.rpc_queue)
         }
 
@@ -42,15 +41,13 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--log', dest='log', required=True)
+    parser = stoneridge.ArgumentParser()
     parser.add_argument('--netconfig', dest='netconfig',
             choices=stoneridge.NETCONFIGS.keys(), required=True)
-    parser.add_argument('--host', dest='host', required=True)
     args = parser.parse_args()
 
     queues = stoneridge.NETCONFIG_QUEUES[args.netconfig]
 
-    scheduler = StoneRidgeScheduler(host, queues['incoming'],
-            rpc_queue=queues['rpc'], netconfig=args.netconfig)
+    scheduler = StoneRidgeScheduler(queues['incoming'], rpc_queue=queues['rpc'],
+            netconfig=args.netconfig)
     scheduler.run()

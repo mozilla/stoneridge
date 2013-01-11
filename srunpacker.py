@@ -139,7 +139,7 @@ class MacUnpacker(StoneRidgeUnpacker):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
 
     args = parser.parse_args()
 

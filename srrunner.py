@@ -5,6 +5,7 @@
 
 import glob
 import json
+import logging
 import os
 import platform
 import subprocess
@@ -13,7 +14,6 @@ import time
 
 import stoneridge
 
-import logging
 
 class StoneRidgeRunner(object):
     """Does the actual work of running the stone ridge xpcshell tests
@@ -115,11 +115,12 @@ class StoneRidgeRunner(object):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
-    parser.add_argument('--head', dest='heads', action='append', metavar='HEADFILE',
-                        help='Extra head.js file to append (can be used more than once)')
+    parser = stoneridge.TestRunArgumentParser()
+    parser.add_argument('--head', dest='heads', action='append',
+            metavar='HEADFILE',
+            help='Extra head.js file to append (can be used more than once)')
     parser.add_argument('tests', nargs='*', metavar='TEST',
-                        help='Name of single test file to run')
+            help='Name of single test file to run')
 
     args = parser.parse_args()
 

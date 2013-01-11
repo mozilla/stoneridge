@@ -15,6 +15,9 @@ def main():
     """A simple cleanup program for stone ridge that blows away the working
     directory
     """
+    parser = stoneridge.TestRunArgumentParser()
+    parser.parse_args()
+
     logging.debug('cleaner running')
     parser = stoneridge.ArgumentParser()
     parser.parse_args()

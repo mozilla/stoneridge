@@ -91,26 +91,18 @@ def do_missing_exit(parser, arg):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', dest='config', required=True)
+    parser = stoneridge.ArgumentParser()
     parser.add_argument('--nodaemon', dest='nodaemon', action='store_true')
     parser.add_argument('--pidfile', dest='pidfile')
-    parser.add_argument('--log', dest='log')
     args = parser.parse_args()
-
-    stoneridge._conffile = args.config
 
     if args.nodaemon:
         if args.pidfile:
             do_mutex_exit(parser, '--pidfile')
-        if args.log:
-            do_mutex_exit(parser, '--log')
         daemon()
         sys.exit(0)
 
     if not args.pidfile:
         do_missing_exit(parser, '--pidfile')
-    if not args.log:
-        do_missing_exit(parser, '--log')
 
-    daemonize.start(daemon, args.pidfile, args.log, debug=True)
+    daemonize.start(daemon, args.pidfile, args._sr_log_, debug=True)

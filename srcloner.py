@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import argparse
 import ftplib
 import logging
 import os
@@ -301,8 +300,7 @@ class StoneRidgeCloner(object):
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', dest='config', required=True)
+    parser = stoneridge.ArgumentParser()
     parser.add_argument('--path', dest='path', required=True)
     parser.add_argument('--nightly', dest='nightly', action='store_true',
             default=False)
@@ -313,10 +311,7 @@ def main():
             default=False)
     parser.add_argument('--windows', dest='windows', action='store_true',
             default=False)
-    parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
-
-    stoneridge._conffile = args.config
 
     cloner = StoneRidgeCloner(args.path, args.nightly, args.srid, args.linux,
             args.mac, args.windows)

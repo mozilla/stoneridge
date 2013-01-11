@@ -95,7 +95,7 @@ class StoneRidgeCollator(object):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
     parser.parse_args()
 
     collator = StoneRidgeCollator()

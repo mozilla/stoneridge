@@ -55,7 +55,7 @@ class StoneRidgeDownloader(object):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
     args = parser.parse_args()
 
     downloader = StoneRidgeDownloader()

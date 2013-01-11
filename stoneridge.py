@@ -122,9 +122,11 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
     """Run xpcshell with the appropriate args.
     """
     global _xpcshell_environ
+
     bindir = get_config('run', 'bin')
     if bindir is None:
         return (None, None)
+
     if _xpcshell_environ is None:
         _xpcshell_environ = copy.copy(os.environ)
         ldlibpath = _xpcshell_environ.get('LD_LIBRARY_PATH')
@@ -151,6 +153,10 @@ def get_xpcshell_output_directory():
     global _xpcoutdir
 
     if _xpcoutdir is None:
+        xpcoutleaf = get_config('run', 'xpcoutleaf')
+        if xpcoutleaf is None:
+            return None
+
         xpcshell_tmp_dir = None
         _, stdout = run_xpcshell(['-e',
             'dump("SR-TMP-DIR:" + '
@@ -168,7 +174,6 @@ def get_xpcshell_output_directory():
             # TODO - maybe raise exception?
             return None
 
-        xpcoutleaf = get_config('run', 'xpcoutleaf')
         _xpcoutdir = os.path.join(xpctmp, xpcoutleaf)
 
     return _xpcoutdir
@@ -218,9 +223,12 @@ def get_buildid_suffix():
     """
     global _buildid_suffix
 
-    os_name = get_config('machine', 'os')
-    current_netconfig = get_config('run', 'netconfig')
     if _buildid_suffix is None:
+        os_name = get_config('machine', 'os')
+        current_netconfig = get_config('run', 'netconfig')
+        if os_name is None or current_netconfig is None:
+            return ''
+
         _buildid_suffix = _os_ids[os_name] + _netconfig_ids[current_netconfig]
 
     return _buildid_suffix
@@ -263,6 +271,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         _srconf = args._sr_config_
         logging.debug('_srconf: %s' % (_srconf,))
+        logging.debug('_srlog: %s' % (args._sr_log_,))
 
         return args
 
@@ -292,10 +301,10 @@ class QueueListener(object):
     """A class to be used as the base for stone ridge daemons that need to
     respond to entries on a queue.
     """
-    def __init__(self, host, queue, **kwargs):
-        self._host = host
+    def __init__(self, queue, **kwargs):
+        self._host = get_config('stoneridge', 'mqhost')
         self._queue = queue
-        self._params = pika.ConnectionParameters(host=host)
+        self._params = pika.ConnectionParameters(host=self._host)
         self._args = kwargs
         self.setup(**kwargs)
 
@@ -338,9 +347,9 @@ class QueueListener(object):
 class QueueWriter(object):
     """Used when someone needs to write to a stone ridge queue.
     """
-    def __init__(self, host, queue):
-        self._host = host
-        self._params = pika.ConnectionParameters(host=host)
+    def __init__(self, queue):
+        self._host = get_config('stoneridge', 'mqhost')
+        self._params = pika.ConnectionParameters(host=self._host)
         self._queue = queue
 
     def enqueue(self, **msg):
@@ -359,12 +368,12 @@ class QueueWriter(object):
 class RpcCaller(object):
     """Used to call remote functions via the stone ridge mq of choice.
     """
-    def __init__(self, host, outgoing_queue, incoming_queue):
-        self._host = host
+    def __init__(self, outgoing_queue, incoming_queue):
+        self._host = get_config('stoneridge', 'mqhost')
         self._outgoing_queue = outgoing_queue
         self._incoming_queue = incoming_queue
 
-        params = pika.ConnectionParameters(host=host)
+        params = pika.ConnectionParameters(host=self._host)
         self._connection = pika.BlockingConnection(params)
         self._channel = self._connection.channel
         self._channel.basic_consume(self._on_rpc_done, no_ack=True,
