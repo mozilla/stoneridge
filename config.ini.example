@@ -9,9 +9,6 @@ mqhost = localhost
 server = localhost:8080
 root = latest
 
-[upload]
-url = http://localhost:8080/upload
-
 [dns]
 broadband = 1.2.3.4
 umts = 5.6.7.8
@@ -20,10 +17,7 @@ gsm = 9.10.11.12
 [cloner]
 host = ftp.mozilla.org
 root = /pub/mozilla.org/firefox
-
-[server]
-uploads = /Users/hurley/src/stoneridge/testroot/srv/ul
-downloads = /Users/hurley/src/stoneridge/testroot/srv/dl
+output = /Users/hurley/src/stoneridge/testroot/srv/dl
 
 [report]
 host = datazilla.mozilla.com

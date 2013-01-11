@@ -15,14 +15,12 @@ import stoneridge
 
 class StoneRidgeReporter(stoneridge.QueueListener):
     def setup(self):
-        self.rootdir = stoneridge.get_config('server', 'uploads')
         self.host = stoneridge.get_config('report', 'host')
         self.project = stoneridge.get_config('report', 'project')
         self.key = stoneridge.get_config('report', 'key')
         self.secret = stoneridge.get_config('report', 'secret')
         self.archives = stoneridge.get_config('report', 'archives')
 
-        logging.debug('root directory: %s' % (self.rootdir,))
         logging.debug('report host: %s' % (self.host,))
         logging.debug('project: %s' % (self.project,))
         logging.debug('oauth key: %s' % (self.key,))

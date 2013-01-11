@@ -50,7 +50,7 @@ class StoneRidgeCloner(object):
         root = stoneridge.get_config('cloner', 'root')
         self.path = '/'.join([root, path])
         self.nightly = nightly
-        self.outroot = stoneridge.get_config('server', 'downloads')
+        self.outroot = stoneridge.get_config('cloner', 'output')
         self.outdir = os.path.join(self.outroot, srid)
         self.keep = stoneridge.get_config('server', 'keep', default=50)
         self.linux = linux
