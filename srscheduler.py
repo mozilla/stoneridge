@@ -39,15 +39,19 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
                     res['msg']))
 
 
+def daemon(netconfig):
+    queues = stoneridge.NETCONFIG_QUEUES[netconfig]
+
+    scheduler = StoneRidgeScheduler(queues['incoming'], rpc_queue=queues['rpc'],
+            netconfig=netconfig)
+    scheduler.run()
+
+
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.DaemonArgumentParser()
     parser.add_argument('--netconfig', dest='netconfig',
             choices=stoneridge.NETCONFIGS.keys(), required=True)
     args = parser.parse_args()
 
-    queues = stoneridge.NETCONFIG_QUEUES[args.netconfig]
-
-    scheduler = StoneRidgeScheduler(queues['incoming'], rpc_queue=queues['rpc'],
-            netconfig=args.netconfig)
-    scheduler.run()
+    parser.start_daemon(daemon, netconfig=args.netconfig)

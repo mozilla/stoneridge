@@ -177,13 +177,17 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.run_process('cleaner')
 
 
-@stoneridge.main
-def main():
-    parser = stoneridge.ArgumentParser()
-    args = parser.parse_args()
-
+def daemon(config):
     osname = stoneridge.get_config('machine', 'os')
     queue = stoneridge.CLIENT_QUEUES[osname]
 
-    worker = StoneRidgeWorker(queue, config=args._sr_config_)
+    worker = StoneRidgeWorker(queue, config=config)
     worker.run()
+
+
+@stoneridge.main
+def main():
+    parser = stoneridge.DaemonArgumentParser()
+    args = parser.parse_args()
+
+    parser.start_daemon(daemon, config=args._sr_config_)

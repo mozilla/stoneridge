@@ -57,11 +57,15 @@ class StoneRidgeMaster(stoneridge.QueueListener):
             queue.enqueue(operating_systems=operating_systems, srid=srid)
 
 
+def daemon(config):
+    master = StoneRidgeMaster(stoneridge.INCOMING_QUEUE,
+            config=config)
+    master.run()
+
+
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.DaemonArgumentParser()
     args = parser.parse_args()
 
-    master = StoneRidgeMaster(stoneridge.INCOMING_QUEUE,
-            config=args._sr_config_)
-    master.run()
+    parser.start_daemon(daemon, config=args._sr_config_)

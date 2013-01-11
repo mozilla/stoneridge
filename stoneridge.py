@@ -5,6 +5,7 @@
 import argparse
 import ConfigParser
 import copy
+import daemonize
 import inspect
 import logging
 import os
@@ -274,6 +275,53 @@ class ArgumentParser(argparse.ArgumentParser):
         logging.debug('_srlog: %s' % (args._sr_log_,))
 
         return args
+
+
+class DaemonArgumentParser(ArgumentParser):
+    """An argument parser for stone ridge programs that run as daemons.
+    """
+    def __init__(self, **kwargs):
+        ArgumentParser.__init__(self, **kwargs)
+
+        self.add_argument('--nodaemon', dest='nodaemon', action='store_true')
+        self.add_argument('--pidfile', dest='pidfile')
+
+    def do_exit(self, msg):
+        self.print_usage()
+        self.exit(2, msg % (self.prog,))
+
+    def do_mutex_exit(self, arg):
+        msg = '%%s: error: argument %s: not allowed with argument --nodaemon\n'
+        self.do_exit(msg % (arg,))
+
+    def do_missing_exit(self, arg):
+        msg = '%%s: error: argument %s is required\n'
+        self.do_exit(msg % (arg,))
+
+    def parse_args(self, **kwargs):
+        self.args = ArgumentParser.parse_args(self, **kwargs)
+
+        if self.args.nodaemon:
+            if self.args.pidfile:
+                self.do_mutex_exit('--pidfile')
+        elif not self.args.pidfile:
+            self.do_missing_exit('--pidfile')
+
+        return self.args
+
+    def daemon(self):
+        self.daemon_func(**self.daemon_kwargs)
+
+    def start_daemon(self, daemon_func, **kwargs):
+        if self.args.nodaemon:
+            daemon_func(**kwargs)
+            sys.exit(0)
+
+        self.daemon_func = daemon_func
+        self.daemon_kwargs = kwargs
+
+        daemonize.start(self.daemon, self.args.pidfile, self.args._sr_log_,
+                debug=True)
 
 
 class TestRunArgumentParser(ArgumentParser):

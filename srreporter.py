@@ -81,10 +81,14 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         self.save_data(srid, results, metadata_b64)
 
 
-@stoneridge.main
-def main():
-    parser = stoneridge.ArgumentParser()
-    args = parser.parse_args()
-
+def daemon():
     reporter = StoneRidgeReporter(stoneridge.OUTGOING_QUEUE)
     reporter.run()
+
+
+@stoneridge.main
+def main():
+    parser = stoneridge.DaemonArgumentParser()
+    args = parser.parse_args()
+
+    parser.start_daemon(daemon)
