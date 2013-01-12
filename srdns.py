@@ -257,4 +257,4 @@ def main():
     if not args.log:
         do_missing_exit(parser, '--log')
 
-    daemonize.start(daemon, args.pidfile, args.log)
+    daemonize.start(daemon, args.pidfile, args.log, debug=True)
