@@ -45,7 +45,8 @@ class StoneRidgeCloner(object):
     web server. Those clients use stoneridge_downloader.py to get the files they
     need from the central server.
     """
-    def __init__(self, path, nightly, srid, linux, mac, windows):
+    def __init__(self, path, nightly, srid, linux, mac, windows, netconfigs,
+            ldap, sha, attempt):
         self.host = stoneridge.get_config('cloner', 'host')
         root = stoneridge.get_config('cloner', 'root')
         self.path = '/'.join([root, path])
@@ -53,9 +54,15 @@ class StoneRidgeCloner(object):
         self.outroot = stoneridge.get_config('cloner', 'output')
         self.outdir = os.path.join(self.outroot, srid)
         self.keep = stoneridge.get_config('cloner', 'keep', default=50)
+        self.max_attempts = stoneridge.get_config('cloner', 'attempts')
+        self.retry_interval = stoneridge.get_config('cloner', 'interval')
         self.linux = linux
         self.mac = mac
         self.windows = windows
+        self.netconfigs = netconfigs
+        self.ldap = ldap
+        self.sha = sha
+        self.attempt = attempt
 
         if not os.path.exists(self.outroot):
             os.mkdir(self.outroot)
@@ -66,9 +73,15 @@ class StoneRidgeCloner(object):
         logging.debug('output root: %s' % (self.outroot,))
         logging.debug('output directory: %s' % (self.outdir,))
         logging.debug('keep history: %s' % (self.keep,))
+        logging.debug('max attempts: %s' % (self.max_attempts,))
+        logging.debug('retry interval: %s' % (self.retry_interval,))
         logging.debug('linux: %s' % (self.linux,))
         logging.debug('mac: %s' % (self.mac,))
         logging.debug('windows: %s' % (self.windows,))
+        logging.debug('netconfigs: %s' % (self.netconfigs,))
+        logging.debug('ldap: %s' % (self.ldap,))
+        logging.debug('sha: %s' % (self.sha,))
+        logging.debug('attempt: %s' % (self.attempt,))
 
         self.prefix = ''
 
@@ -243,6 +256,9 @@ class StoneRidgeCloner(object):
                 logging.debug('removing %s' % (d,))
                 shutil.rmtree(d)
 
+    def defer(self):
+        # TODO - spawn process that sleeps then re-inserts run for a try
+        pass
 
     def run(self):
         files = self._gather_filelist(self.path)
@@ -264,9 +280,14 @@ class StoneRidgeCloner(object):
             # is ready for us to download.
             for d in subdirs:
                 if d not in files:
-                    # TODO: spawn task to re-queue after configured wait time
-                    #       or kill run if we've exceeded our retry limit
-                    logging.debug('Run %s not available: retry later' % (d,))
+                    next_attempt = self.attempt + 1
+                    if next_attempt > self.max_attempts:
+                        logging.error('Unable to get build results for %s. '
+                                'Cancelling run.' % (self.srid,))
+                    else:
+                        self.defer()
+                        logging.debug('Run %s not available: retry later' %
+                                (d,))
                     sys.exit(1)
 
             dist_path = '/'.join([self.path, subdirs[0]])
@@ -311,8 +332,13 @@ def main():
             default=False)
     parser.add_argument('--windows', dest='windows', action='store_true',
             default=False)
+    parser.add_argument('--netconfig', dest='netconfigs', action='append')
+    parser.add_argument('--attempt', dest='attempt', required=True)
+    parser.add_argument('--ldap', dest='ldap', default='')
+    parser.add_argument('--sha', dest='sha', default='')
     args = parser.parse_args()
 
     cloner = StoneRidgeCloner(args.path, args.nightly, args.srid, args.linux,
-            args.mac, args.windows)
+            args.mac, args.windows, args.netconfigs, args.ldap, args.sha,
+            args.attempt)
     cloner.run()

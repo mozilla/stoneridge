@@ -20,12 +20,13 @@ class StoneRidgeMaster(stoneridge.QueueListener):
         self.logdir = stoneridge.get_config('stoneridge', 'logs')
         self.config = config
 
-    def handle(self, nightly, ldap, sha, netconfigs, operating_systems):
+    def handle(self, nightly, ldap, sha, netconfigs, operating_systems,
+            attempt=1):
         srid = str(uuid.uuid4())
         logfile = 'cloner_%s.log' % (srid,)
         cloner_log = os.path.join(self.logdir, logfile)
-        args = ['srcloner.py', '--path', path, '--config', self.config,
-                '--srid', srid, '--log', cloner_log]
+        args = ['srcloner.py', '--config', self.config, '--srid', srid,
+                '--log', cloner_log, '--attempt', attempt]
         if nightly:
             path = 'nightly/latest-mozilla-central'
             args.append('--nightly')
@@ -33,12 +34,21 @@ class StoneRidgeMaster(stoneridge.QueueListener):
             path = 'try-builds/%s-%s' % (ldap, sha)
         logging.debug('Path to builds: %s' % (path,))
 
+        args.extend(['--path', path])
+
         if 'linux' in operating_systems:
             args.append('--linux')
         if 'mac' in operating_systems:
             args.append('--mac')
         if 'windows' in operating_systems:
             args.append('--windows')
+
+        if ldap:
+            args.extend(['--ldap', ldap])
+        if sha:
+            args.extend(['--sha', sha])
+        for nc in netconfigs:
+            args.extend(['--netconfig', nc])
 
         try:
             stoneridge.run_process(*args)

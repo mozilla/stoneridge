@@ -19,6 +19,8 @@ host = ftp.mozilla.org
 root = /pub/mozilla.org/firefox
 output = /Users/hurley/src/stoneridge/testroot/srv/dl
 keep = 50
+attempts = 6
+interval = 600
 
 [report]
 host = datazilla.mozilla.com
