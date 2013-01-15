@@ -413,6 +413,38 @@ class QueueWriter(object):
         connection.close() # Ensures the message is sent
 
 
+def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
+        operating_systems=None):
+    """Convenience function to kick off a test run. If called with no arguments,
+    this will kick off a run for all operating systems with all netconfigs
+    against the latest nightly build.
+    """
+    if netconfigs is None:
+        netconfigs = _netconfig_ids.keys()
+    else:
+        for nc in netconfigs:
+            if nc not in _netconfig_ids:
+                raise ValueError('Invalid net config %s' % (nc,))
+
+    if operating_systems is None:
+        operating_systems = _os_ids.keys()
+    else:
+        for ops in operating_systems:
+            if ops not in _os_ids:
+                raise ValueError('Invalid operating system %s' % (nc,))
+
+    if nightly:
+        if ldap or sha:
+            raise ValueError('ldap and sha are not compatible with nightly')
+    else:
+        if not ldap or not sha:
+            raise ValueError('both ldap and sha must be set')
+
+    writer = QueueWriter(INCOMING_QUEUE)
+    writer.enqueue(nightly=nightly, ldap=ldap, sha=sha, netconfigs=netconfigs,
+            operating_systems=operating_systems)
+
+
 class RpcCaller(object):
     """Used to call remote functions via the stone ridge mq of choice.
     """

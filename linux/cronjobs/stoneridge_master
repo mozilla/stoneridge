@@ -1,3 +1,5 @@
 MAILTO=hurley@mozilla.com
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 HOME=/home/hurley
+# Run the nightly test every day at 5am
+0 5 * * * hurley python $HOME/srhome/stoneridge/srrun.py -c "import stoneridge; stoneridge.enqueue()"
