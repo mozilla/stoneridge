@@ -9,6 +9,7 @@ import os
 import requests
 import shutil
 import sys
+import tempfile
 import time
 
 import stoneridge
@@ -53,9 +54,8 @@ class StoneRidgeCloner(object):
         self.nightly = nightly
         self.outroot = stoneridge.get_config('cloner', 'output')
         self.outdir = os.path.join(self.outroot, srid)
-        self.keep = stoneridge.get_config('cloner', 'keep', default=50)
-        self.max_attempts = stoneridge.get_config('cloner', 'attempts')
-        self.retry_interval = stoneridge.get_config('cloner', 'interval')
+        self.keep = stoneridge.get_config_int('cloner', 'keep', default=50)
+        self.max_attempts = stoneridge.get_config_int('cloner', 'attempts')
         self.operating_systems = operating_systems
         self.netconfigs = netconfigs
         self.ldap = ldap
@@ -72,7 +72,6 @@ class StoneRidgeCloner(object):
         logging.debug('output directory: %s' % (self.outdir,))
         logging.debug('keep history: %s' % (self.keep,))
         logging.debug('max attempts: %s' % (self.max_attempts,))
-        logging.debug('retry interval: %s' % (self.retry_interval,))
         logging.debug('operating systems: %s' % (self.operating_systems,))
         logging.debug('netconfigs: %s' % (self.netconfigs,))
         logging.debug('ldap: %s' % (self.ldap,))
@@ -253,8 +252,25 @@ class StoneRidgeCloner(object):
                 shutil.rmtree(d)
 
     def defer(self):
-        # TODO - spawn process that sleeps then re-inserts run for a try
-        pass
+        args = ['srdeferrer.py',
+                '--config', None, # TODO
+                '--log', '/dev/null',
+                '--pidfile', tempfile.mktemp(),
+                '--attempt', self.attempt + 1]
+
+        if self.nightly:
+            args.append('--nightly')
+        else:
+            args.extend(['--ldap', self.ldap])
+            args.extend(['--sha', self.sha])
+            for ops in self.operating_systems:
+                args.append('--%s' % (ops,))
+            for nc in self.netconfigs:
+                args.append('--%s' % (nc,))
+
+        stoneridge.run_process(args)
+
+        sys.exit(0)
 
     def run(self):
         files = self._gather_filelist(self.path)
@@ -328,7 +344,7 @@ def main():
     for nc in stoneridge.NETCONFIGS:
         parser.add_argument('--%s' % (nc,), dest='netconfigs',
                 action='append_const', const=nc)
-    parser.add_argument('--attempt', dest='attempt', required=True)
+    parser.add_argument('--attempt', dest='attempt', required=True, type=int)
     parser.add_argument('--ldap', dest='ldap', default='')
     parser.add_argument('--sha', dest='sha', default='')
     args = parser.parse_args()

@@ -112,6 +112,18 @@ def get_config(section, option, default=None):
         return default
 
 
+def get_config_int(section, option, default=0):
+    """Get an integer config variable from the stoneridge ini files
+    """
+    value = get_config(section, option, default=default)
+    try:
+        return int(value)
+    except ValueError:
+        logging.debug('invalid int value %s, returning default %s' %
+                (value, default))
+        return default
+
+
 _xpcshell_environ = None
 
 

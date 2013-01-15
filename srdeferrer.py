@@ -3,6 +3,7 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
+import sys
 import time
 
 import stoneridge
@@ -10,14 +11,14 @@ import stoneridge
 
 class StoneRidgeDeferrer(object):
     def __init__(self, nightly, ldap, sha, netconfigs, operating_systems,
-            attempt, interval):
+            attempt):
         self.nightly = nightly
         self.ldap = ldap
         self.sha = sha
         self.netconfigs = netconfigs
         self.operating_systems = operating_systems
         self.attempt = attempt
-        self.interval = interval
+        self.interval = stoneridge.get_config_int('cloner', 'interval')
 
     def run(self):
         start = int(time.time())
@@ -35,11 +36,16 @@ class StoneRidgeDeferrer(object):
                 attempt=self.attempt)
 
 
+def daemon(deferrer, args):
+    deferrer.run()
+    os.unlink(args.pidfile)
+    sys.exit(0)
+
+
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.DaemonArgumentParser()
 
-    parser.add_argument('--interval', dest='interval', type=int)
     parser.add_argument('--attempt', dest='attempt', type=int)
     parser.add_argument('--nightly', dest='nightly', action='store_true',
             default=False)
@@ -57,4 +63,5 @@ def main():
     deferrer = StoneRidgeDeferrer(args.nightly, args.ldap, args.sha,
             args.netconfigs, args.operating_systems, args.attempt,
             args.interval)
-    deferrer.run()
+
+    parser.start_daemon(daemon, deferrer=deferrer, args=args)
