@@ -17,13 +17,9 @@ import traceback
 import pika
 
 
-# Network configurations we have available. Map internal/parameter name
-# to descriptive name
-NETCONFIGS = {
-    'broadband':'Modern Wired Broadband (Cable/ADSL)',
-    'umts':'Modern Cellular (UMTS)',
-    'gsm':'Legacy Cellular (GSM/EDGE)',
-}
+# Names of netconfigs and operating systems
+NETCONFIGS = ('broadband', 'umts', 'gsm')
+OPERATING_SYSTEMS = ('linux', 'mac', 'windows')
 
 
 # RabbitMQ queue names

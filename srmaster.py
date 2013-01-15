@@ -36,19 +36,14 @@ class StoneRidgeMaster(stoneridge.QueueListener):
 
         args.extend(['--path', path])
 
-        if 'linux' in operating_systems:
-            args.append('--linux')
-        if 'mac' in operating_systems:
-            args.append('--mac')
-        if 'windows' in operating_systems:
-            args.append('--windows')
-
         if ldap:
             args.extend(['--ldap', ldap])
         if sha:
             args.extend(['--sha', sha])
+        for ops in operating_systems:
+            args.append('--%s' % (ops,))
         for nc in netconfigs:
-            args.extend(['--netconfig', nc])
+            args.append('--%s' % (nc,))
 
         try:
             stoneridge.run_process(*args)

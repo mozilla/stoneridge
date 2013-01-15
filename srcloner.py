@@ -45,7 +45,7 @@ class StoneRidgeCloner(object):
     web server. Those clients use stoneridge_downloader.py to get the files they
     need from the central server.
     """
-    def __init__(self, path, nightly, srid, linux, mac, windows, netconfigs,
+    def __init__(self, path, nightly, srid, operating_systems, netconfigs,
             ldap, sha, attempt):
         self.host = stoneridge.get_config('cloner', 'host')
         root = stoneridge.get_config('cloner', 'root')
@@ -56,9 +56,7 @@ class StoneRidgeCloner(object):
         self.keep = stoneridge.get_config('cloner', 'keep', default=50)
         self.max_attempts = stoneridge.get_config('cloner', 'attempts')
         self.retry_interval = stoneridge.get_config('cloner', 'interval')
-        self.linux = linux
-        self.mac = mac
-        self.windows = windows
+        self.operating_systems = operating_systems
         self.netconfigs = netconfigs
         self.ldap = ldap
         self.sha = sha
@@ -75,9 +73,7 @@ class StoneRidgeCloner(object):
         logging.debug('keep history: %s' % (self.keep,))
         logging.debug('max attempts: %s' % (self.max_attempts,))
         logging.debug('retry interval: %s' % (self.retry_interval,))
-        logging.debug('linux: %s' % (self.linux,))
-        logging.debug('mac: %s' % (self.mac,))
-        logging.debug('windows: %s' % (self.windows,))
+        logging.debug('operating systems: %s' % (self.operating_systems,))
         logging.debug('netconfigs: %s' % (self.netconfigs,))
         logging.debug('ldap: %s' % (self.ldap,))
         logging.debug('sha: %s' % (self.sha,))
@@ -269,11 +265,11 @@ class StoneRidgeCloner(object):
             # they are separated out by platform for try builds. Le sigh.
             subdirs = []
             dist_files = None
-            if self.linux:
+            if 'linux' in self.operating_systems:
                 subdirs.extend(LINUX_SUBDIRS)
-            if self.mac:
+            if 'mac' in self.operating_systems:
                 subdirs.extend(MAC_SUBDIRS)
-            if self.windows:
+            if 'windows' in self.operating_systems:
                 subdirs.extend(WINDOWS_SUBDIRS)
 
             # Be reasonably sure the try run is complete, such that everything
@@ -309,11 +305,11 @@ class StoneRidgeCloner(object):
             os.mkdir(self.outdir)
 
         # Now download all the builds and test zipfiles
-        if self.nightly or self.mac:
+        if self.nightly or 'mac' in self.operating_systems:
             self._clone_mac()
-        if self.nightly or self.linux:
+        if self.nightly or 'linux' in self.operating_systems:
             self._clone_linux()
-        if self.nightly or self.windows:
+        if self.nightly or 'windows' in self.operating_systems:
             self._clone_win()
 
         self._cleanup_old_directories()
@@ -326,19 +322,18 @@ def main():
     parser.add_argument('--nightly', dest='nightly', action='store_true',
             default=False)
     parser.add_argument('--srid', dest='srid', required=True)
-    parser.add_argument('--linux', dest='linux', action='store_true',
-            default=False)
-    parser.add_argument('--mac', dest='mac', action='store_true',
-            default=False)
-    parser.add_argument('--windows', dest='windows', action='store_true',
-            default=False)
-    parser.add_argument('--netconfig', dest='netconfigs', action='append')
+    for ops in stoneridge.OPERATING_SYSTEMS:
+        parser.add_argument('--%s' % (ops,), dest='operating_systems',
+                action='append_const', const=ops)
+    for nc in stoneridge.NETCONFIGS:
+        parser.add_argument('--%s' % (nc,), dest='netconfigs',
+                action='append_const', const=nc)
     parser.add_argument('--attempt', dest='attempt', required=True)
     parser.add_argument('--ldap', dest='ldap', default='')
     parser.add_argument('--sha', dest='sha', default='')
     args = parser.parse_args()
 
-    cloner = StoneRidgeCloner(args.path, args.nightly, args.srid, args.linux,
-            args.mac, args.windows, args.netconfigs, args.ldap, args.sha,
+    cloner = StoneRidgeCloner(args.path, args.nightly, args.srid,
+            args.operating_systems, args.netconfigs, args.ldap, args.sha,
             args.attempt)
     cloner.run()

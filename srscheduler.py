@@ -51,7 +51,7 @@ def daemon(netconfig):
 def main():
     parser = stoneridge.DaemonArgumentParser()
     parser.add_argument('--netconfig', dest='netconfig',
-            choices=stoneridge.NETCONFIGS.keys(), required=True)
+            choices=stoneridge.NETCONFIGS, required=True)
     args = parser.parse_args()
 
     parser.start_daemon(daemon, netconfig=args.netconfig)
