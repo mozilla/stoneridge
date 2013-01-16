@@ -57,6 +57,15 @@ class StoneRidgeDnsUpdater(object):
             logging.error('Could not %sset dns server' %
                     ('re' if msgtype == 'r' else ''))
 
+        # XXX - WARNING! UGLY HACK BELOW!
+        # Since, on Windows, we have to actually disable the WAN interface to
+        # make our DNS switch properly (at least with my current knowledge of
+        # Windows DNS stuff), we have to wait for the interface to be fully
+        # enabled or disabled before we try to do anything else.
+        if self.is_windows:
+            logging.debug('sleeping 15 seconds for the windows hack')
+            time.sleep(15)
+
     def _set_dns(self, dnsserver):
         logging.debug('setting dns server to %s' % (dnsserver,))
         self._converse('s', dnsserver)
@@ -64,16 +73,6 @@ class StoneRidgeDnsUpdater(object):
     def _reset_dns(self):
         logging.debug('resetting dns server')
         self._converse('r')
-
-        # XXX - WARNING! UGLY HACK BELOW!
-        # Since, on Windows, we have to actually disable the WAN interface to
-        # make our DNS switch properly (at least with my current knowledge of
-        # Windows DNS stuff), we have to wait for the interface to come back up
-        # before we can try to do anything that would use the WAN interface
-        # (such as uploading results).
-        if self.is_windows:
-            logging.debug('sleeping 15 seconds for the windows hack')
-            time.sleep(15)
 
     def run(self):
         logging.debug('dns updater running')
