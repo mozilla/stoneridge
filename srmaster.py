@@ -21,8 +21,9 @@ class StoneRidgeMaster(stoneridge.QueueListener):
         self.config = config
 
     def handle(self, nightly, ldap, sha, netconfigs, operating_systems,
-            attempt=1):
-        srid = str(uuid.uuid4())
+            srid=None, attempt=1):
+        if srid is None:
+            srid = str(uuid.uuid4())
         logfile = 'cloner_%s.log' % (srid,)
         cloner_log = os.path.join(self.logdir, logfile)
         args = ['srcloner.py', '--config', self.config, '--srid', srid,

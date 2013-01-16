@@ -10,8 +10,9 @@ import stoneridge
 
 
 class StoneRidgeDeferrer(object):
-    def __init__(self, nightly, ldap, sha, netconfigs, operating_systems,
+    def __init__(self, srid, nightly, ldap, sha, netconfigs, operating_systems,
             attempt):
+        self.srid = srid
         self.nightly = nightly
         self.ldap = ldap
         self.sha = sha
@@ -30,8 +31,8 @@ class StoneRidgeDeferrer(object):
             time.sleep(30)
             now = int(time.time())
 
-        stoneridge.enqueue(nightly=self.nightly, ldap=self.ldap, sha=self.sha,
-                netconfigs=self.netconfigs,
+        stoneridge.enqueue(srid=self.srid, nightly=self.nightly, ldap=self.ldap,
+                sha=self.sha, netconfigs=self.netconfigs,
                 operating_systems=self.operating_systems,
                 attempt=self.attempt)
 
@@ -46,7 +47,8 @@ def daemon(deferrer, args):
 def main():
     parser = stoneridge.DaemonArgumentParser()
 
-    parser.add_argument('--attempt', dest='attempt', type=int)
+    parser.add_argument('--srid', dest='srid', required=True)
+    parser.add_argument('--attempt', dest='attempt', type=int, required=True)
     parser.add_argument('--nightly', dest='nightly', action='store_true',
             default=False)
     parser.add_argument('--ldap', dest='ldap', default='')
@@ -60,7 +62,7 @@ def main():
 
     args = parser.parse_args()
 
-    deferrer = StoneRidgeDeferrer(args.nightly, args.ldap, args.sha,
+    deferrer = StoneRidgeDeferrer(args.srid, args.nightly, args.ldap, args.sha,
             args.netconfigs, args.operating_systems, args.attempt,
             args.interval)
 

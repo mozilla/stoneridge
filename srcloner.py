@@ -53,6 +53,7 @@ class StoneRidgeCloner(object):
         self.path = '/'.join([root, path])
         self.nightly = nightly
         self.outroot = stoneridge.get_config('cloner', 'output')
+        self.srid = srid
         self.outdir = os.path.join(self.outroot, srid)
         self.keep = stoneridge.get_config_int('cloner', 'keep', default=50)
         self.max_attempts = stoneridge.get_config_int('cloner', 'attempts')
@@ -68,6 +69,7 @@ class StoneRidgeCloner(object):
         logging.debug('host: %s' % (self.host,))
         logging.debug('path: %s' % (self.path,))
         logging.debug('nightly: %s' % (self.nightly,))
+        logging.debug('srid: %s' % (self.srid,))
         logging.debug('output root: %s' % (self.outroot,))
         logging.debug('output directory: %s' % (self.outdir,))
         logging.debug('keep history: %s' % (self.keep,))
@@ -253,6 +255,7 @@ class StoneRidgeCloner(object):
 
     def defer(self):
         args = ['srdeferrer.py',
+                '--srid', self.srid,
                 '--config', None, # TODO
                 '--log', '/dev/null',
                 '--pidfile', tempfile.mktemp(),
