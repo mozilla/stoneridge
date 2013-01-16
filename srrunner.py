@@ -105,7 +105,19 @@ class StoneRidgeRunner(object):
                 '-e', 'do_stoneridge(); quit(0);'
             ]
             logging.debug('xpcshell args: %s' % (args,))
+            tcpdump_output = os.path.join(stoneridge.outdir, 'traffic.pcap')
+            tcpdump_exe = stoneridge.get_config('tcpdump', 'exe')
+            tcpdump_if = stoneridge.get_config('tcpdump', 'interface')
+            tcpdump = None
+            if tcpdump_exe and tcpdump_if:
+                tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-w',
+                                            tcpdump_output, '-i', tcpdump_if],
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT)
             res, xpcshell_out = stoneridge.run_xpcshell(args)
+            if tcpdump:
+                tcpdump.terminate()
+                logging.debug('tcpdump output\n%s' % (tcpdump.stdout.read(),))
             logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
             if res:
                 logging.error('TEST FAILED: %s' % (test,))
