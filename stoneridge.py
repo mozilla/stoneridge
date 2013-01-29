@@ -106,7 +106,7 @@ def get_config(section, option, default=None):
         val = _cp.get(section, option)
         logging.debug('found %s.%s, returning %s' % (section, option, val))
         return val
-    except ConfigParser.NoSectionError, ConfigParser.NoOptionError as e:
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError) as e:
         logging.debug('unable to find %s.%s, returning default %s' %
                 (section, option, default))
         return default
@@ -243,9 +243,10 @@ def get_buildid_suffix():
     return _buildid_suffix
 
 
-def run_process(*args, logger=logging):
+def run_process(*args, **kwargs):
     """Run a python process under the stoneridge environment.
     """
+    logger = kwargs.get('logger', logging)
     procname = args[0]
     command = [sys.executable] + args
     logger.debug('Running %s' % (procname,))
