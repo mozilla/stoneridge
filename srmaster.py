@@ -25,6 +25,16 @@ class StoneRidgeMaster(stoneridge.QueueListener):
             srid=None, attempt=1):
         if srid is None:
             srid = str(uuid.uuid4())
+
+        logging.debug('Got request')
+        logging.debug('Nightly: %s' % (nightly,))
+        logging.debug('LDAP: %s' % (ldap,))
+        logging.debug('SHA: %s' % (sha,))
+        logging.debug('Netconfigs: %s' % (' '.join(netconfigs),))
+        logging.debug('Operating systems: %s' % (' '.join(operating_systems),))
+        logging.debug('Attempt: %s' % (attempt,))
+        logging.debug('SRID: %s' % (srid,))
+
         logfile = 'cloner_%s.log' % (srid,)
         cloner_log = os.path.join(self.logdir, logfile)
         args = ['srcloner.py', '--config', self.config, '--srid', srid,
