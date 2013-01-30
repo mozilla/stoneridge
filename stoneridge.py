@@ -246,12 +246,19 @@ def get_buildid_suffix():
     return _buildid_suffix
 
 
-def run_process(*args, **kwargs):
+_root = None
+
+
+def run_process(procname, *args, **kwargs):
     """Run a python process under the stoneridge environment.
     """
+    global _root
+
+    if _root is None:
+        _root = get_config('stoneridge', 'root')
+
     logger = kwargs.get('logger', logging)
-    procname = args[0]
-    command = [sys.executable] + args
+    command = [sys.executable, os.path.join(_root, procname)] + map(str, args)
     logger.debug('Running %s' % (procname,))
     logger.debug(' '.join(command))
     try:
