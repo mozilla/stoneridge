@@ -42,20 +42,25 @@ class StoneRidgeMaster(stoneridge.QueueListener):
         if nightly:
             path = 'nightly/latest-mozilla-central'
             args.append('--nightly')
+
+            # Make sure the list of netconfigs and operating systems is right
+            netconfigs = stoneridge.NETCONFIGS
+            operating_systems = stoneridge.OPERATING_SYSTEMS
         else:
+            if not ldap or not sha:
+                logging.error('Missing ldap/sha for non-nightly build')
+                return
+
             path = 'try-builds/%s-%s' % (ldap, sha)
-        logging.debug('Path to builds: %s' % (path,))
-
-        args.extend(['--path', path])
-
-        if ldap:
             args.extend(['--ldap', ldap])
-        if sha:
             args.extend(['--sha', sha])
-        for ops in operating_systems:
-            args.append('--%s' % (ops,))
-        for nc in netconfigs:
-            args.append('--%s' % (nc,))
+            for ops in operating_systems:
+                args.append('--%s' % (ops,))
+            for nc in netconfigs:
+                args.append('--%s' % (nc,))
+
+        logging.debug('Path to builds: %s' % (path,))
+        args.extend(['--path', path])
 
         try:
             stoneridge.run_process(*args)
