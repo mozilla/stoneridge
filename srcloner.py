@@ -343,10 +343,10 @@ def main():
     parser.add_argument('--srid', dest='srid', required=True)
     for ops in stoneridge.OPERATING_SYSTEMS:
         parser.add_argument('--%s' % (ops,), dest='operating_systems',
-                action='append_const', const=ops)
+                action='append_const', const=ops, default=[])
     for nc in stoneridge.NETCONFIGS:
         parser.add_argument('--%s' % (nc,), dest='netconfigs',
-                action='append_const', const=nc)
+                action='append_const', const=nc, default=[])
     parser.add_argument('--attempt', dest='attempt', required=True, type=int)
     parser.add_argument('--ldap', dest='ldap', default='')
     parser.add_argument('--sha', dest='sha', default='')

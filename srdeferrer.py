@@ -55,10 +55,10 @@ def main():
     parser.add_argument('--sha', dest='sha', default='')
     for nc in stoneridge.NETCONFIGS:
         parser.add_argument('--%s' % (nc,), dest='netconfigs',
-                action='append_const', const=nc)
+                action='append_const', const=nc, default=[])
     for ops in stoneridge.OPERATING_SYSTEMS:
         parser.add_argument('--%s' % (nc,), dest='operating_systems',
-                action='append_const', const=ops)
+                action='append_const', const=ops, default=[])
 
     args = parser.parse_args()
 
