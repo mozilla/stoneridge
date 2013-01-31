@@ -14,11 +14,11 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
         self.netconfig = netconfig
 
         self.runners = {
-            'linux': stoneridge.RpcCaller(stoneridge.LINUX_QUEUE,
+            'linux': stoneridge.RpcCaller(stoneridge.CLIENT_QUEUES['linux'],
                 self.rpc_queue),
-            'mac': stoneridge.RpcCaller(stoneridge.MAC_QUEUE,
+            'mac': stoneridge.RpcCaller(stoneridge.CLIENT_QUEUES['mac'],
                 self.rpc_queue),
-            'windows': stoneridge.RpcCaller(stoneridge.WINDOWS_QUEUE,
+            'windows': stoneridge.RpcCaller(stoneridge.CLIENT_QUEUES['windows'],
                 self.rpc_queue)
         }
 
