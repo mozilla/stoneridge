@@ -275,7 +275,7 @@ class StoneRidgeCloner(object):
             for nc in self.netconfigs:
                 args.append('--%s' % (nc,))
 
-        stoneridge.run_process(args)
+        stoneridge.run_process(*args)
 
         sys.exit(0)
 
