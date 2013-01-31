@@ -282,8 +282,9 @@ class StoneRidgeCloner(object):
     def exit_and_maybe_defer(self, deferred_message):
         next_attempt = self.attempt + 1
         if next_attempt > self.max_attempts:
-            logging.error('Unable to get build results for %s. '
-                    'Cancelling run.' % (self.srid,))
+            logging.error('Unable to get build results for %s after %s '
+                    'attempts. Cancelling run.' %
+                    (self.srid, self.max_attempts))
         else:
             self.defer()
             logging.debug(deferred_message)
