@@ -275,6 +275,16 @@ class StoneRidgeCloner(object):
 
         sys.exit(0)
 
+    def exit_and_maybe_defer(self, deferred_message):
+        next_attempt = self.attempt + 1
+        if next_attempt > self.max_attempts:
+            logging.error('Unable to get build results for %s. '
+                    'Cancelling run.' % (self.srid,))
+        else:
+            self.defer()
+            logging.debug(deferred_message)
+        sys.exit(1)
+
     def run(self):
         files = self._gather_filelist(self.path)
         if not self.nightly:
@@ -295,15 +305,8 @@ class StoneRidgeCloner(object):
             # is ready for us to download.
             for d in subdirs:
                 if d not in files:
-                    next_attempt = self.attempt + 1
-                    if next_attempt > self.max_attempts:
-                        logging.error('Unable to get build results for %s. '
-                                'Cancelling run.' % (self.srid,))
-                    else:
-                        self.defer()
-                        logging.debug('Run %s not available: retry later' %
-                                (d,))
-                    sys.exit(1)
+                    self.exit_and_maybe_defer(
+                            'Run %s not available: retry later' % (d,))
 
             dist_path = '/'.join([self.path, subdirs[0]])
             dist_files = self._gather_filelist(dist_path)
@@ -315,6 +318,10 @@ class StoneRidgeCloner(object):
                 sys.exit(1)
 
             files = dist_files
+
+        if not files:
+            self.exit_and_maybe_defer(
+                    'No files found for %s: retry later' % (self.srid,))
 
         self.prefix = self._get_prefix(files)
 
