@@ -17,8 +17,8 @@ class StoneRidgeTestRunner(object):
 
 
 class StoneRidgeWorker(stoneridge.RpcHandler):
-    def setup(self, config):
-        self.srconffile = config
+    def setup(self):
+        self.srconffile = stoneridge.get_config_file()
         self.srroot = stoneridge.get_config('stoneridge', 'root')
         self.srlogdir = stoneridge.get_config('stoneridge', 'logs')
         logging.debug('srconffile: %s' % (self.srconffile,))
@@ -177,11 +177,11 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.run_process('cleaner')
 
 
-def daemon(config):
+def daemon():
     osname = stoneridge.get_config('machine', 'os')
     queue = stoneridge.CLIENT_QUEUES[osname]
 
-    worker = StoneRidgeWorker(queue, config=config)
+    worker = StoneRidgeWorker(queue)
     worker.run()
 
 
@@ -190,4 +190,4 @@ def main():
     parser = stoneridge.DaemonArgumentParser()
     args = parser.parse_args()
 
-    parser.start_daemon(daemon, config=args._sr_config_)
+    parser.start_daemon(daemon)

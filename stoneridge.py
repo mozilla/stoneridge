@@ -87,6 +87,10 @@ _srconf = None
 _runconf = None
 
 
+def get_config_file():
+    return _srconf
+
+
 def get_config(section, option, default=None):
     """Read a config entry from the stoneridge ini files.
     """

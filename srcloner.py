@@ -260,7 +260,7 @@ class StoneRidgeCloner(object):
     def defer(self):
         args = ['srdeferrer.py',
                 '--srid', self.srid,
-                '--config', None, # TODO
+                '--config', stoneridge.get_config_file(),
                 '--log', '/dev/null',
                 '--pidfile', tempfile.mktemp(),
                 '--attempt', self.attempt + 1]

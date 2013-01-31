@@ -12,14 +12,14 @@ import stoneridge
 
 
 class StoneRidgeMaster(stoneridge.QueueListener):
-    def setup(self, config):
+    def setup(self):
         self.queues = {
             'broadband': stoneridge.QueueWriter(stoneridge.NETCONFIG_QUEUES['broadband']),
             'umts': stoneridge.QueueWriter(stoneridge.NETCONFIG_QUEUES['umts']),
             'gsm': stoneridge.QueueWriter(stoneridge.NETCONFIG_QUEUES['gsm'])
         }
         self.logdir = stoneridge.get_config('stoneridge', 'logs')
-        self.config = config
+        self.config = stoneridge.get_config_file()
 
     def handle(self, nightly, ldap, sha, netconfigs, operating_systems,
             srid=None, attempt=1):
@@ -74,9 +74,8 @@ class StoneRidgeMaster(stoneridge.QueueListener):
             queue.enqueue(operating_systems=operating_systems, srid=srid)
 
 
-def daemon(config):
-    master = StoneRidgeMaster(stoneridge.INCOMING_QUEUE,
-            config=config)
+def daemon():
+    master = StoneRidgeMaster(stoneridge.INCOMING_QUEUE)
     master.run()
 
 
@@ -85,4 +84,4 @@ def main():
     parser = stoneridge.DaemonArgumentParser()
     args = parser.parse_args()
 
-    parser.start_daemon(daemon, config=args._sr_config_)
+    parser.start_daemon(daemon)
