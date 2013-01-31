@@ -564,7 +564,7 @@ class RpcCaller(object):
 
         params = pika.ConnectionParameters(host=self._host)
         self._connection = pika.BlockingConnection(params)
-        self._channel = self._connection.channel
+        self._channel = self._connection.channel()
         self._channel.basic_consume(self._on_rpc_done, no_ack=True,
                 queue=self._incoming_queue)
 
