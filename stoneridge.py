@@ -572,8 +572,14 @@ class RpcCaller(object):
         """The callback that is called when the remote function call
         is complete.
         """
+        logging.debug('RpcCaller got callback')
+        logging.debug('Body: %s' % (body,))
+        logging.debug('Correlation id: %s' % (properties.correlation_id,))
         if self._srid == properties.correlation_id:
+            logging.debug('Correlation ID matches.')
             self._response = body
+        else:
+            logging.debug('No match for correlation ID. Ignoring.')
 
     def __call__(self, **msg):
         if 'srid' not in msg:
@@ -582,6 +588,10 @@ class RpcCaller(object):
 
         self._response = None
         self._srid = msg['srid']
+
+        logging.debug('Making RPC call with correlation id %s' % (self._srid,))
+        logging.debug('Sending to: %s' % (self._outgoing_queue,))
+        logging.debug('Reply to: %s' % (self._incoming_queue,))
 
         properties = pika.BasicProperties(reply_to=self._incoming_queue,
                 correlation_id=self._srid)
@@ -592,6 +602,8 @@ class RpcCaller(object):
 
         while self._response is None:
             self._connection.process_data_events()
+
+        self._srid = None
 
         return json.loads(self._response)
 
@@ -611,9 +623,12 @@ class RpcHandler(QueueListener):
         to the caller.
         """
         msg = json.loads(body)
+        logging.debug('RPC Handler got message %s' % (msg,))
         res = self.handle(**msg)
 
         body = json.dumps(res)
+        logging.debug('Returning RPC result %s' % (res,))
+        logging.debug('Returning to %s' % (properties.correlation_id,))
         res_properties = pika.BasicProperties(
                 correlation_id=properties.correlation_id)
         channel.basic_publish(exchange='', routing_key=properties.reply_to,
