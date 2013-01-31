@@ -523,19 +523,19 @@ class QueueWriter(object):
 
 
 def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
-        operating_systems=None):
+        operating_systems=None, srid=None, attempt=1):
     """Convenience function to kick off a test run. If called with no arguments,
     this will kick off a run for all operating systems with all netconfigs
     against the latest nightly build.
     """
-    if netconfigs is None:
+    if not netconfigs:
         netconfigs = _netconfig_ids.keys()
     else:
         for nc in netconfigs:
             if nc not in _netconfig_ids:
                 raise ValueError('Invalid net config %s' % (nc,))
 
-    if operating_systems is None:
+    if not operating_systems:
         operating_systems = _os_ids.keys()
     else:
         for ops in operating_systems:
@@ -551,7 +551,7 @@ def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
 
     writer = QueueWriter(INCOMING_QUEUE)
     writer.enqueue(nightly=nightly, ldap=ldap, sha=sha, netconfigs=netconfigs,
-            operating_systems=operating_systems)
+            operating_systems=operating_systems, srid=srid, attempt=attempt)
 
 
 class RpcCaller(object):
