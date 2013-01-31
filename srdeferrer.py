@@ -57,13 +57,12 @@ def main():
         parser.add_argument('--%s' % (nc,), dest='netconfigs',
                 action='append_const', const=nc, default=[])
     for ops in stoneridge.OPERATING_SYSTEMS:
-        parser.add_argument('--%s' % (nc,), dest='operating_systems',
+        parser.add_argument('--%s' % (ops,), dest='operating_systems',
                 action='append_const', const=ops, default=[])
 
     args = parser.parse_args()
 
     deferrer = StoneRidgeDeferrer(args.srid, args.nightly, args.ldap, args.sha,
-            args.netconfigs, args.operating_systems, args.attempt,
-            args.interval)
+            args.netconfigs, args.operating_systems, args.attempt)
 
     parser.start_daemon(daemon, deferrer=deferrer, args=args)
