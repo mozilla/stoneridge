@@ -46,11 +46,9 @@ class StoneRidgeCloner(object):
     web server. Those clients use stoneridge_downloader.py to get the files they
     need from the central server.
     """
-    def __init__(self, path, nightly, srid, operating_systems, netconfigs,
+    def __init__(self, nightly, srid, operating_systems, netconfigs,
             ldap, sha, attempt):
         self.host = stoneridge.get_config('cloner', 'host')
-        root = stoneridge.get_config('cloner', 'root')
-        self.path = '/'.join([root, path])
         self.nightly = nightly
         self.outroot = stoneridge.get_config('cloner', 'output')
         self.srid = srid
@@ -65,6 +63,12 @@ class StoneRidgeCloner(object):
 
         if not os.path.exists(self.outroot):
             os.mkdir(self.outroot)
+
+        root = stoneridge.get_config('cloner', 'root')
+        if nightly:
+            self.path = '/'.join([root, 'nightly', 'latest-mozilla-central'])
+        else:
+            self.path = '/'.join([root, 'try-builds', '%s-%s' % (ldap, sha)])
 
         logging.debug('host: %s' % (self.host,))
         logging.debug('path: %s' % (self.path,))
@@ -344,7 +348,6 @@ class StoneRidgeCloner(object):
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.add_argument('--path', dest='path', required=True)
     parser.add_argument('--nightly', dest='nightly', action='store_true',
             default=False)
     parser.add_argument('--srid', dest='srid', required=True)
@@ -359,7 +362,6 @@ def main():
     parser.add_argument('--sha', dest='sha', default='')
     args = parser.parse_args()
 
-    cloner = StoneRidgeCloner(args.path, args.nightly, args.srid,
-            args.operating_systems, args.netconfigs, args.ldap, args.sha,
-            args.attempt)
+    cloner = StoneRidgeCloner(args.nightly, args.srid, args.operating_systems,
+            args.netconfigs, args.ldap, args.sha, args.attempt)
     cloner.run()
