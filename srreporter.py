@@ -47,7 +47,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         with file(metadata_file, 'wb') as f:
             f.write(metadata)
 
-    def handle(self, srid, results, metadata_b64):
+    def handle(self, srid, results, metadata):
         logging.debug('uploading results for %s' % (srid,))
 
         for name in results:
@@ -78,7 +78,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                 if result['status'] != 'well-formed JSON stored':
                     logging.error('bad status for %s: %s' % (srid, result['status']))
 
-        self.save_data(srid, results, metadata_b64)
+        self.save_data(srid, results, metadata)
 
 
 def daemon():
