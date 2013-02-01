@@ -33,7 +33,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
 
         results_file = os.path.join(archivedir, 'results.json')
         with file(results_file, 'w') as f:
-            f.write(results)
+            json.dump(results, f)
 
         metadata = base64.b64decode(metadata_b64)
         metadata_file = os.path.join(archivedir, 'metadata.zip')
@@ -43,19 +43,9 @@ class StoneRidgeReporter(stoneridge.QueueListener):
     def handle(self, srid, results, metadata_b64)):
         logging.debug('uploading results for %s' % (srid,))
 
-        try:
-            result_dict = json.loads(results)
-        except:
-            # This is crap, ignore it
-            logging.error('bad results dict: %s' % (results,))
-            self.save_data(srid, results, metadata_b64)
-            return
-
-        for name, contents in result_dict.iteritems():
-            try:
-                dataset = json.loads(contents)
-                logging.debug('read data: %s' % (dataset,))
-            except:
+        for name in results:
+            dataset = results[name]
+            if not isinstance(dataset, dict):
                 # This one is crap, ignore it
                 logging.error('bad json: %s' % (contents,))
                 continue

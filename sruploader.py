@@ -36,8 +36,6 @@ class StoneRidgeUploader(object):
             with file(filename) as f:
                 results[fname] = json.load(f)
 
-        results = json.dumps(results)
-
         metadata_file = stoneridge.get_config('run', 'metadata')
         if os.path.exists(metadata_file):
             with file(metadata_file) as f:
