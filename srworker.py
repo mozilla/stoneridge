@@ -19,11 +19,9 @@ class StoneRidgeTestRunner(object):
 class StoneRidgeWorker(stoneridge.RpcHandler):
     def setup(self):
         self.srconffile = stoneridge.get_config_file()
-        self.srroot = stoneridge.get_config('stoneridge', 'root')
         self.srlogdir = stoneridge.get_config('stoneridge', 'logs')
         self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
         logging.debug('srconffile: %s' % (self.srconffile,))
-        logging.debug('srroot: %s' % (self.srroot,))
         logging.debug('srlogdir: %s' % (self.srlogdir,))
         logging.debug('unittest: %s' % (self.unittest,))
 
@@ -122,7 +120,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         """Run a particular subprocess with the default arguments, as well as
         any arguments requested by the caller
         """
-        script = os.path.join(self.srroot, 'sr%s.py' % (stage,))
+        script = 'sr%s.py' % (stage,)
         logfile = os.path.join(self.logdir, '%02d_%s_%s.log' %
                 (self.procno, stage, self.srnetconfig))
         self.procno += 1
