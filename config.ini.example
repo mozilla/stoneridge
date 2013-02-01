@@ -1,41 +1,97 @@
 [stoneridge]
+# The directory where stone ridge is installed
 root = /Users/hurley/src/stoneridge
+
+# Where processes should store their logs
 logs = /Users/hurley/src/stoneridge/testroot/logs
+
+# Where the tests live
 testroot = /Users/hurley/src/stoneridge/tests
+
+# Where we keep archives of the output
 archives = /Users/hurley/src/stoneridge/testroot/archives
+
+# The host running RabbitMQ for us
 mqhost = localhost
+
+# True if we're running in unit test mode, missing or false otherwise
 unittest = true
 
 [download]
+# The server that serves builds to the test client machines
 server = localhost:8080
+
+# The root directory of builds on the download server
 root = latest
 
 [dns]
-broadband = 1.2.3.4
-umts = 5.6.7.8
-gsm = 9.10.11.12
+# The IP of the machine that handles DNS for broadband tests
+broadband = 127.0.0.1
+
+# The IP of the machine that handles DNS for UMTS tests
+umts = 127.0.0.1
+
+# The IP of the machine that handles DNS for GSM tests
+gsm = 127.0.0.1
 
 [cloner]
+# The server where build results live. Must support FTP and HTTP, just like
+# ftp.m.o
 host = ftp.mozilla.org
+
+# The root path on the server where build results live
 root = /pub/mozilla.org/firefox
+
+# Where to place the downloaded build results
 output = /Users/hurley/src/stoneridge/testroot/srv/dl
+
+# The maximum number of builds to keep around for re-testing purposes
 keep = 50
+
+# The maximum number of times to try to clone the build output before
+# cancelling the job altogether
 attempts = 6
+
+# How long to wait between attempts at cloning (in seconds)
 interval = 600
 
 [report]
+# Hostname of the datazilla server to report json files to
 host = datazilla.mozilla.com
+
+# Project name on the datazilla server
 project = stoneridge
+
+# An OAuth key for authentication
 key = PUT_OAUTH_KEY_HERE
+
+# An OAuth secret for authentication
 secret = PUT_OAUTH_SECRET_HERE
 
 [machine]
-os = <linux|mac|windows>
-download_platform = <linux64|linux32|mac|win64|win32>
-download_suffix = <tar.bz2|dmg|zip>
-firefox_path = <firefox|FirefoxNightly.app/Contents/MacOS>
-xpcshell = <xpcshell|xpcshell.exe>
+# The type of os this is running on, may be mac, linux, or windows
+os = mac
+
+# The platform to download builds for, as named by the firefox build
+# process. May be linux64, linux32, mac, win64, or win32
+download_platform = mac
+
+# The file extension used by the firefox build process for the firefox
+# package. May be tar.bz2 (linux), dmg (mac), or zip (win)
+download_suffix = dmg
+
+# The path in the exploded firefox package of the firefox binary. This is
+# firefox for win and linux, and FirefoxNightly.app/Contents/MacOS for mac
+firefox_path = FirefoxNightly.app/Contents/MacOS
+
+# The name of the xpcshell binary, xpcshell for mac and linux, xpcshell.exe
+# for windows
+xpcshell = xpcshell
 
 [tcpdump]
-exe = /path/to/tcpdump
-interface = tcpdump_interface_name
+# The full path to the tcpdump executable
+exe = /usr/sbin/tcpdump
+
+# The network inteface to tcpdump on (this is the network interface that is
+# connected to the test network)
+interface = lo0

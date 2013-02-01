@@ -1,10 +1,28 @@
 [run]
-netconfig = somenetconfigname
-work = /tmp/somedirectoryname
-download = <work>/download
-bin = <work>/<fxapppath>
-out = <work>/out
-metadata = <out>/metadata.zip
-info = <out>/info.json
+# The netconfig that this run is testing against. May be any of the values
+# listed as keys under [dns] in the stoneridge main config
+netconfig = broadband
+
+# The working directory for this run of the test
+work = /Users/hurley/src/stoneridge/testroot/work
+
+# The directory to put downloads in for this test run
+download = /Users/hurley/src/stoneridge/testroot/work/download
+
+# The directory where the firefox binary will appear for this test run
+bin = /Users/hurley/src/stoneridge/testroot/work/FirefoxNightly.app/Contents/MacOS
+
+# The directory to place our output for this test run
+out = /Users/hurley/src/stoneridge/testroot/work/out
+
+# The zipfile to save metadata about this test run in
+metadata = /Users/hurley/src/stoneridge/testroot/work/out/metadata.zip
+
+# The json file to save info about the build for this test run in
+info = /Users/hurley/src/stoneridge/testroot/work/out/info.json
+
+# A subdirectory of your local tmp for xpcshell to save its output in
 xpcoutleaf = somedirectoryname
-srid = someuuid
+
+# The stone ridge ID (srid) of this test run
+srid = somesrid
