@@ -21,9 +21,11 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.srconffile = stoneridge.get_config_file()
         self.srroot = stoneridge.get_config('stoneridge', 'root')
         self.srlogdir = stoneridge.get_config('stoneridge', 'logs')
+        self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('srroot: %s' % (self.srroot,))
         logging.debug('srlogdir: %s' % (self.srlogdir,))
+        logging.debug('unittest: %s' % (self.unittest,))
 
         self.reset()
 
@@ -130,6 +132,12 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
                    '--runconfig', self.runconfig,
                    '--log', logfile]
         command.extend(args)
+
+        if self.unittest:
+            # This code path is used for unit testing the worker
+            logging.debug('Would run %s' % (command,))
+            return
+
         try:
             stoneridge.run_process(*command, logger=self.logger)
         except subprocess.CalledProcessError as e:

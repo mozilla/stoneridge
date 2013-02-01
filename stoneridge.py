@@ -131,6 +131,23 @@ def get_config_int(section, option, default=0):
         return default
 
 
+def get_config_bool(section, option):
+    """Get a boolean config variable from the stoneridge ini files
+    """
+    value = get_config(section, option)
+
+    if value is None:
+        value = False
+    else:
+        truthy_values = ('y', 'yes', 't', 'true', 'ok', '1')
+        if value.lower() in truthy_values:
+            value = True
+        else:
+            value = False
+
+    return value
+
+
 _xpcshell_environ = None
 
 

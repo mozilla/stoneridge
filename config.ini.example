@@ -4,6 +4,7 @@ logs = /Users/hurley/src/stoneridge/testroot/logs
 testroot = /Users/hurley/src/stoneridge/tests
 archives = /Users/hurley/src/stoneridge/testroot/archives
 mqhost = localhost
+unittest = true
 
 [download]
 server = localhost:8080
