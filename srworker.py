@@ -31,7 +31,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
     def handle(self, srid, netconfig):
         # Have a logger just for this run
-        logdir = 'stoneridge_%s_%s' % (srid, netconfig))
+        logdir = 'stoneridge_%s_%s' % (srid, netconfig)
         self.logdir = os.path.join(self.srlogdir, logdir)
         os.makedirs(self.logdir)
         logging.debug('Running test with logs in %s' % (self.logdir,))
