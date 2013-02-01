@@ -22,16 +22,22 @@ class StoneRidgeDnsUpdater(object):
         else:
             self.is_windows = False
         self.netconfig = stoneridge.get_config('run', 'netconfig')
+        self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
         logging.debug('restore: %s' % (restore,))
         logging.debug('peer: %s' % (self.peer,))
         logging.debug('is windows: %s' % (self.is_windows,))
         logging.debug('netconfig: %s' % (self.netconfig,))
+        logging.debug('unittest: %s' % (self.unittest,))
 
     def _converse(self, msgtype, msgdata=None):
         logging.debug('msgtype: %s' % (msgtype,))
         logging.debug('msgdata: %s' % (msgdata,))
         if msgdata is None:
             msgdata = ''
+
+        if self.unittest:
+            logging.debug('Not sending message: in unit test mode')
+            return
 
         # Set up our connection
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
