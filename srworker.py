@@ -55,6 +55,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         firefox_path = stoneridge.get_config('machine', 'firefox_path')
         srbindir = os.path.join(srwork, firefox_path)
         srout = os.path.join(srwork, 'out')
+        os.mkdir(srout)
         metadata = os.path.join(srout, 'metadata.zip')
         info = os.path.join(srout, 'info.json')
 
@@ -68,7 +69,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.procno = 1
         self.childlog = None
 
-        self.runconfig = os.path.join(srwork, 'run.ini')
+        self.runconfig = os.path.join(srout, 'run.ini')
         with file(self.runconfig, 'w') as f:
             f.write('[run]\n')
             f.write('netconfig = %s\n' % (netconfig,))
