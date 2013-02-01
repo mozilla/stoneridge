@@ -148,12 +148,14 @@ def get_config_bool(section, option):
     return value
 
 
+_xpcshell = None
 _xpcshell_environ = None
 
 
 def run_xpcshell(args, stdout=subprocess.PIPE):
     """Run xpcshell with the appropriate args.
     """
+    global _xpcshell
     global _xpcshell_environ
 
     bindir = get_config('run', 'bin')
@@ -169,7 +171,12 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
             ldlibpath = bindir
         _xpcshell_environ['LD_LIBRARY_PATH'] = ldlibpath
 
-    xpcargs = [xpcshell] + args
+    if _xpcshell is None:
+        xpcshell_bin = get_config('machine', 'xpcshell')
+        _xpcshell = os.path.join(bindir, xpcshell_bin)
+
+    xpcargs = [_xpcshell] + args
+    logging.debug('Running xpcshell: %s' % (xpcargs,))
     proc = subprocess.Popen(xpcargs, stdout=stdout,
             stderr=subprocess.STDOUT, cwd=bindir,
             env=_xpcshell_environ)
