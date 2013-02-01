@@ -28,7 +28,7 @@ class StoneRidgeRunner(object):
         logging.debug('requested tests: %s' % (tests,))
         logging.debug('heads: %s' % (heads,))
 
-        self.testroot = stoneridge.get_config('stoneridge', 'tests')
+        self.testroot = stoneridge.get_config('stoneridge', 'testroot')
 
     def _build_testlist(self):
         """Return a list of test file names, all relative to the test root.
