@@ -82,6 +82,7 @@ class StoneRidgeRunner(object):
 
         # Ensure our output directory exists
         xpcoutdir = stoneridge.get_xpcshell_output_directory()
+        outdir = stoneridge.get_config('run', 'out')
         logging.debug('ensuring %s exists' % (xpcoutdir,))
         try:
             os.makedirs(xpcoutdir)
@@ -105,7 +106,7 @@ class StoneRidgeRunner(object):
                 '-e', 'do_stoneridge(); quit(0);'
             ]
             logging.debug('xpcshell args: %s' % (args,))
-            tcpdump_output = os.path.join(stoneridge.outdir, 'traffic.pcap')
+            tcpdump_output = os.path.join(outdir, 'traffic.pcap')
             tcpdump_exe = stoneridge.get_config('tcpdump', 'exe')
             tcpdump_if = stoneridge.get_config('tcpdump', 'interface')
             tcpdump = None
