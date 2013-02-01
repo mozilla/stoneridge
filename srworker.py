@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 import stoneridge
 
@@ -25,16 +26,21 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         logging.debug('srlogdir: %s' % (self.srlogdir,))
         logging.debug('unittest: %s' % (self.unittest,))
 
+        self.runconfig = None # Needs to be here so reset doesn't barf
         self.reset()
 
     def handle(self, srid, netconfig):
         # Have a logger just for this run
         logdir = 'stoneridge_%s_%s' % (srid, netconfig)
         self.logdir = os.path.join(self.srlogdir, logdir)
+        if os.path.exists(self.logdir):
+            # Don't blow away the old logs, just make a new directory for this
+            # run of the srid
+            self.logdir = '%s_%s' % (self.logdir, int(time.time()))
         os.makedirs(self.logdir)
         logging.debug('Running test with logs in %s' % (self.logdir,))
 
-        logfile = os.path.join(logdir, '00_worker.log')
+        logfile = os.path.join(self.logdir, '00_worker.log')
         handler = logging.FileHandler(logfile)
         formatter = logging.Formatter(fmt=stoneridge.LOG_FMT)
         handler.setFormatter(formatter)
@@ -133,7 +139,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
         if self.unittest:
             # This code path is used for unit testing the worker
-            logging.debug('Would run %s' % (command,))
+            self.logger.debug('Would run %s' % (command,))
             return
 
         try:
