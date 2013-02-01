@@ -9,6 +9,7 @@ import dzclient
 import json
 import logging
 import os
+import time
 
 import stoneridge
 
@@ -29,6 +30,10 @@ class StoneRidgeReporter(stoneridge.QueueListener):
 
     def save_data(self, srid, results, metadata_b64):
         archivedir = os.path.join(self.archives, srid)
+        if os.path.exists(archivedir):
+            # Don't overwrite previous archives, just make yet another
+            # directory for the new run of this srid
+            archivedir = '%s_%s' % (archivedir, int(time.time()))
         os.makedirs(archivedir)
 
         results_file = os.path.join(archivedir, 'results.json')
