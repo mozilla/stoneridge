@@ -72,7 +72,7 @@ def main(_main):
         log('%s' % (' '.join(sys.argv),))
         try:
             _main()
-        except Exception, e:
+        except Exception as e:
             log_exc('EXCEPTION')
             traceback.print_exception(type(e), e, sys.exc_info()[2], None,
                     sys.stderr)
@@ -287,7 +287,7 @@ def run_process(procname, *args, **kwargs):
                 stderr=subprocess.STDOUT)
         logger.debug(proc_stdout)
         logger.debug('SUCCEEDED: %s' % (procname,))
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         logger.error('FAILED: %s (%s)' % (procname, e.returncode))
         logger.error(e.output)
         raise # Do this in case caller has any special handling

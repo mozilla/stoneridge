@@ -76,7 +76,7 @@ def daemon():
                 time.sleep(1)
     except KeyboardInterrupt:
         logging.info('Shutting down.')
-    except DnsProxyException, e:
+    except DnsProxyException as e:
         logging.critical(e)
         sys.exit(1)
     except:

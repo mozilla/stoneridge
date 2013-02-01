@@ -155,14 +155,14 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
                 self.archive_on_failure = False
                 try:
                     self.run_process('archiver')
-                except StoneRidgeException, e:
+                except StoneRidgeException as e:
                     pass
             if not self.cleaner_called:
                 # Let's be nice and clean up after ourselves
                 self.cleaner_called = True
                 try:
                     self.run_process('cleaner')
-                except StoneRidgeException, e:
+                except StoneRidgeException as e:
                     pass
 
             # Finally, bubble the error up to the top level

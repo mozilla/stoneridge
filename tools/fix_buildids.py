@@ -18,16 +18,16 @@ for fname in sys.argv[1:]:
     try:
         with file(fname) as f:
             info = json.load(f)
-    except OSError, e:
+    except OSError as e:
         print 'Error opening %s: %s' % (fname, e)
         continue
-    except Exception, e:
+    except Exception as e:
         print 'Error reading %s: %s' % (fname, e)
         continue
 
     try:
         os.rename(fname, '%s.orig' % (fname,))
-    except Exception, e:
+    except Exception as e:
         print 'Error renaming %s: %s' % (fname, e)
         continue
 
@@ -45,7 +45,7 @@ for fname in sys.argv[1:]:
     try:
         with file(fname, 'w') as f:
             json.dump(info, f)
-    except OSError, e:
+    except OSError as e:
         print 'Error opening %s for writing: %s' % (fname, e)
-    except Exception, e:
+    except Exception as e:
         print 'Error writing %s: %s' %  (fname, e)
