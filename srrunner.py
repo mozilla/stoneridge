@@ -29,6 +29,10 @@ class StoneRidgeRunner(object):
         logging.debug('heads: %s' % (heads,))
 
         self.testroot = stoneridge.get_config('stoneridge', 'testroot')
+        self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
+
+        logging.debug('testroot: %s' % (self.testroot,))
+        logging.debug('unittest: %s' % (self.unittest,))
 
     def _build_testlist(self):
         """Return a list of test file names, all relative to the test root.
@@ -81,8 +85,11 @@ class StoneRidgeRunner(object):
         logging.debug('args to prepend: %s' % (preargs,))
 
         # Ensure our output directory exists
-        xpcoutdir = stoneridge.get_xpcshell_output_directory()
         outdir = stoneridge.get_config('run', 'out')
+        if self.unittest:
+            xpcoutdir = os.path.join(outdir, 'xpcoutdir')
+        else:
+            xpcoutdir = stoneridge.get_xpcshell_output_directory()
         logging.debug('ensuring %s exists' % (xpcoutdir,))
         try:
             os.makedirs(xpcoutdir)
@@ -107,23 +114,29 @@ class StoneRidgeRunner(object):
             ]
             logging.debug('xpcshell args: %s' % (args,))
             tcpdump_output = os.path.join(outdir, 'traffic.pcap')
+            logging.debug('tcpdump capture at %s' % (tcpdump_output,))
             tcpdump_exe = stoneridge.get_config('tcpdump', 'exe')
+            logging.debug('tcpdump exe %s' % (tcpdump_exe,))
             tcpdump_if = stoneridge.get_config('tcpdump', 'interface')
+            logging.debug('tcpdump interface %s' % (tcpdump_if,))
             tcpdump = None
-            if tcpdump_exe and tcpdump_if:
-                tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-w',
-                                            tcpdump_output, '-i', tcpdump_if],
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT)
-            res, xpcshell_out = stoneridge.run_xpcshell(args)
-            if tcpdump:
-                tcpdump.terminate()
-                logging.debug('tcpdump output\n%s' % (tcpdump.stdout.read(),))
-            logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
-            if res:
-                logging.error('TEST FAILED: %s' % (test,))
+            if self.unittest:
+                logging.debug('Not running processes: in unit test mode')
             else:
-                logging.debug('test succeeded')
+                if tcpdump_exe and tcpdump_if:
+                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-w',
+                                                tcpdump_output, '-i', tcpdump_if],
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.STDOUT)
+                res, xpcshell_out = stoneridge.run_xpcshell(args)
+                if tcpdump:
+                    tcpdump.terminate()
+                    logging.debug('tcpdump output\n%s' % (tcpdump.stdout.read(),))
+                logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
+                if res:
+                    logging.error('TEST FAILED: %s' % (test,))
+                else:
+                    logging.debug('test succeeded')
 
 
 @stoneridge.main
