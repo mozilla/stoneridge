@@ -47,7 +47,10 @@ class StoneRidgeUploader(object):
             metadata = base64.b64encode('')
 
         srid = stoneridge.get_config('run', 'srid')
-        self.queue.enqueue(srid=srid, results=results, metadata=metadata)
+        netconfig = stoneridge.get_config('run', 'netconfig')
+        operating_system = stoneridge.get_config('machine', 'os')
+        self.queue.enqueue(srid=srid, results=results, metadata=metadata,
+                netconfig=netconfig, operating_system=operating_system)
 
 
 @stoneridge.main

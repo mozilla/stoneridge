@@ -30,8 +30,10 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         logging.debug('archives: %s' % (self.archives,))
         logging.debug('unittest: %s' % (self.unittest,))
 
-    def save_data(self, srid, results, metadata_b64):
-        archivedir = os.path.join(self.archives, srid)
+    def save_data(self, srid, netconfig, operating_system, results,
+            metadata_b64):
+        dirname = '%s_%s_%s' % (srid, netconfig, operating_system)
+        archivedir = os.path.join(self.archives, dirname)
         if os.path.exists(archivedir):
             # Don't overwrite previous archives, just make yet another
             # directory for the new run of this srid
@@ -47,7 +49,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         with file(metadata_file, 'wb') as f:
             f.write(metadata)
 
-    def handle(self, srid, results, metadata):
+    def handle(self, srid, netconfig, operating_system, results, metadata):
         logging.debug('uploading results for %s' % (srid,))
 
         for name in results:
@@ -78,7 +80,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                 if result['status'] != 'well-formed JSON stored':
                     logging.error('bad status for %s: %s' % (srid, result['status']))
 
-        self.save_data(srid, results, metadata)
+        self.save_data(srid, netconfig, operating_system, results, metadata)
 
 
 def daemon():
