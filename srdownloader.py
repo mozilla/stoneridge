@@ -21,16 +21,18 @@ class StoneRidgeDownloader(object):
                 'download_platform')
         self.download_suffix = stoneridge.get_config('machine',
                 'download_suffix')
+        self.srid = stoneridge.get_config('run', 'srid')
         self.downloaddir = stoneridge.get_config('run', 'download')
         logging.debug('server = %s' % (self.server,))
         logging.debug('download root = %s' % (self.downloadroot,))
         logging.debug('platform = %s' % (self.download_platform,))
         logging.debug('suffix = %s' % (self.download_suffix,))
+        logging.debug('srid = %s' % (self.srid,))
         logging.debug('downloaddir = %s' % (self.downloaddir,))
 
     def _download_file(self, filename):
-        url = 'http://%s/%s/%s/%s' % (self.server, self.downloadroot,
-                self.download_platform, filename)
+        url = 'http://%s/%s/%s/%s/%s' % (self.server, self.downloadroot,
+                self.srid, self.download_platform, filename)
         logging.debug('downloading %s from %s' % (filename, url))
         r = requests.get(url)
         if r.status_code != 200:
