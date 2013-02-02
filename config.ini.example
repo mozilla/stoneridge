@@ -22,7 +22,7 @@ unittest = true
 server = localhost:8080
 
 # The root directory of builds on the download server
-root = latest
+root = srbuilds
 
 [dns]
 # The IP of the machine that handles DNS for broadband tests
