@@ -19,8 +19,6 @@ def main():
     parser.parse_args()
 
     logging.debug('cleaner running')
-    parser = stoneridge.ArgumentParser()
-    parser.parse_args()
     workdir = stoneridge.get_config('run', 'work')
     xpcoutdir = stoneridge.get_xpcshell_output_directory()
     if workdir and os.path.exists(workdir):
