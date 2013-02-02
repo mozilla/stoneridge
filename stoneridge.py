@@ -42,7 +42,7 @@ CLIENT_QUEUES = {
 
 # Logging configuration
 LOG_FMT = '%(asctime)s %(pathname)s:%(lineno)d %(levelname)s: %(message)s'
-_parser = argparse.ArgumentParser()
+_parser = argparse.ArgumentParser(add_help=False)
 _parser.add_argument('--log')
 _args, _ = _parser.parse_known_args()
 if _args.log:
