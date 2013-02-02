@@ -86,17 +86,15 @@ class StoneRidgeRunner(object):
 
         # Ensure our output directory exists
         outdir = stoneridge.get_config('run', 'out')
-        if self.unittest:
-            xpcoutdir = os.path.join(outdir, 'xpcoutdir')
-        else:
-            xpcoutdir = stoneridge.get_xpcshell_output_directory()
-        logging.debug('ensuring %s exists' % (xpcoutdir,))
-        try:
-            os.makedirs(xpcoutdir)
-            logging.debug('%s created' % (xpcoutdir,))
-        except OSError:
-            logging.debug('%s already exists' % (xpcoutdir,))
-            pass
+        xpcoutdir = stoneridge.get_xpcshell_output_directory()
+        if not self.unittest:
+            logging.debug('ensuring %s exists' % (xpcoutdir,))
+            try:
+                os.makedirs(xpcoutdir)
+                logging.debug('%s created' % (xpcoutdir,))
+            except OSError:
+                logging.debug('%s already exists' % (xpcoutdir,))
+                pass
 
         installroot = stoneridge.get_config('stoneridge', 'root')
         xpcoutleaf = stoneridge.get_config('run', 'xpcoutleaf')

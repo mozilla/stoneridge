@@ -160,7 +160,10 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
 
     bindir = get_config('run', 'bin')
     if bindir is None:
-        return (None, None)
+        return (None, [])
+
+    if not os.path.exists(bindir):
+        return (None, [])
 
     if _xpcshell_environ is None:
         _xpcshell_environ = copy.copy(os.environ)
