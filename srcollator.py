@@ -21,7 +21,10 @@ class StoneRidgeCollator(object):
     """
     def run(self):
         logging.debug('collator running')
-        xpcoutdir = stoneridge.get_xpcshell_output_directory()
+        if stoneridge.get_config_bool('stoneridge', 'unittest'):
+            xpcoutdir = stoneridge.get_config('run', 'work')
+        else:
+            xpcoutdir = stoneridge.get_xpcshell_output_directory()
         outdir = stoneridge.get_config('run', 'out')
         outfiles = glob.glob(os.path.join(xpcoutdir, '*.out'))
         infofile = stoneridge.get_config('run', 'info')
