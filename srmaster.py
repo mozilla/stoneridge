@@ -6,6 +6,7 @@
 import logging
 import os
 import subprocess
+import time
 import uuid
 
 import stoneridge
@@ -65,13 +66,25 @@ class StoneRidgeMaster(stoneridge.QueueListener):
             # recovery we can do.
             return
 
+        # In order to have the points for each OS/netconfig match up with each
+        # other for a particular test run (good for graphing), we set the
+        # timestamp once we know we're going to actually run the test (which is
+        # right now, after we've cloned the builds).
+        # We also sleep for one second, so we don't accidentally have 2
+        # different runs show up at the same time as each other on the graphs.
+        # Sure, it's unlikely, but sleeping for a second won't kill us, and
+        # better safe than sorry!
+        tstamp = int(time.time())
+        time.sleep(1)
+
         for nc in netconfigs:
             queue = self.queues.get(nc, None)
             if queue is None:
                 logging.warning('Got request for invalid netconfig %s' % (nc,))
                 continue
 
-            queue.enqueue(operating_systems=operating_systems, srid=srid)
+            queue.enqueue(operating_systems=operating_systems, srid=srid,
+                    tstamp=tstamp)
 
 
 def daemon():

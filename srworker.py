@@ -8,7 +8,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 
 import stoneridge
 
@@ -29,14 +28,14 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.runconfig = None # Needs to be here so reset doesn't barf
         self.reset()
 
-    def handle(self, srid, netconfig):
+    def handle(self, srid, netconfig, tstamp):
         # Have a logger just for this run
         logdir = 'stoneridge_%s_%s' % (srid, netconfig)
         self.logdir = os.path.join(self.srlogdir, logdir)
         if os.path.exists(self.logdir):
             # Don't blow away the old logs, just make a new directory for this
             # run of the srid
-            self.logdir = '%s_%s' % (self.logdir, int(time.time()))
+            self.logdir = '%s_%s' % (self.logdir, tstamp)
         os.makedirs(self.logdir)
         logging.debug('Running test with logs in %s' % (self.logdir,))
 
@@ -80,6 +79,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
             f.write('metadata = %s\n' % (metadata,))
             f.write('info = %s\n' % (info,))
             f.write('xpcoutleaf = %s\n' % (srxpcout,))
+            f.write('tstamp = %s\n' % (tstamp,))
             f.write('srid = %s\n' % (srid,))
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))

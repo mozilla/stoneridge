@@ -22,7 +22,7 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
                 self.rpc_queue)
         }
 
-    def handle(self, srid, operating_systems):
+    def handle(self, srid, operating_systems, tstamp):
         for o in operating_systems:
             runner = self.runners.get(o, None)
             if runner is None:
@@ -30,7 +30,7 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
                 continue
 
             logging.debug('Calling to run %s on %s' % (srid, o))
-            res = runner(srid=srid, netconfig=self.netconfig)
+            res = runner(srid=srid, netconfig=self.netconfig, tstamp=tstamp)
 
             if res['ok']:
                 logging.debug('Run of %s on %s succeeded' % (srid, o))

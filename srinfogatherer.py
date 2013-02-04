@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import platform
-import time
 
 import stoneridge
 
@@ -52,7 +51,7 @@ class StoneRidgeInfoGatherer(object):
         info = {'test_machine':machine_info,
                 'test_build':build_info,
                 'testrun':{},
-                'date':int(time.time())}
+                'date':stoneridge.get_config_int('run', 'tstamp')}
         logging.debug('gathered info: %s' % (info,))
 
         outdir = stoneridge.get_config('run', 'out')
