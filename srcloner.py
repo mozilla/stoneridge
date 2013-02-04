@@ -10,7 +10,6 @@ import requests
 import shutil
 import sys
 import tempfile
-import time
 
 import stoneridge
 
