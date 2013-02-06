@@ -105,8 +105,8 @@ def srpush(sha, host, ldap, password, netconfigs, operating_systems):
     post = {'srid': srid,
             'sha': sha,
             'ldap': ldap,
-            'netconfigs': netconfigs,
-            'operating_systems': operating_systems}
+            'netconfig': netconfigs,
+            'operating_system': operating_systems}
 
     req = urllib2.Request(url, data=urllib.urlencode(post, doseq=True))
     handler = urllib2.urlopen(req)
