@@ -100,7 +100,9 @@ def srpush(sha, host, ldap, password, netconfigs, operating_systems):
 
     urllib2.install_opener(opener)
 
-    post = {'srid': '%s-%s' % (ldap, sha),
+    srid = '%s-%s' % (ldap, sha)
+
+    post = {'srid': srid,
             'sha': sha,
             'ldap': ldap,
             'netconfigs': netconfigs,
@@ -127,18 +129,17 @@ if __name__ == '__main__':
     parser.add_argument('--config', dest='config', default=default_config,
             help='Path to configuration file')
     parser.add_argument('--netconfig', dest='netconfigs',
-            choices=('broadband', 'umts', 'gsm'), required=True,
+            choices=('broadband', 'umts', 'gsm', 'all'), required=True,
             help='Netconfigs to run tests against', action='append')
     parser.add_argument('--os', dest='operating_systems',
-            choices=('windows', 'mac', 'linux'), required=True,
+            choices=('windows', 'mac', 'linux', 'all'), required=True,
             help='Operating systems to run tests on', action='append')
-    parser.add_argument('sha', dest='sha', default=None, required=True,
-            help='SHA of try run to push')
+    parser.add_argument('sha', default=None,  help='SHA of try run to push')
     args = parser.parse_args()
 
     cp = configparser.SafeConfigParser()
-    if parser.config:
-        cp.read(parser.config)
+    if args.config:
+        cp.read(args.config)
 
     # Try to get the config info out of the config file
     ldap = read_config_element(cp, 'ldap')
@@ -161,16 +162,26 @@ if __name__ == '__main__':
     if missing_options:
         options = {'ldap': ldap, 'password': password, 'host': host}
         options.update(get_config_from_user(cp, missing_options))
-        if parser.config:
+        if args.config:
             # Go ahead and save the values off for the user
-            with file(parser.config, 'w') as f:
+            with file(args.config, 'w') as f:
                 cp.write(f)
         ldap = options['ldap']
         password = options['password']
         host = options['host']
 
-    srid = srpush(args.sha, host, ldap, password, args.netconfigs,
-            args.operating_systems)
+    if 'all' in args.netconfigs:
+        netconfigs = ['broadband', 'umts', 'gsm']
+    else:
+        netconfigs = args.netconfigs
+
+    if 'all' in args.operating_systems:
+        operating_systems = ['windows', 'mac', 'linux']
+    else:
+        operating_systems = args.operating_systems
+
+    srid = srpush(args.sha, host, ldap, password, netconfigs,
+            operating_systems)
 
     sys.stdout.write('Push succeeded. Run ID is %s\n' % (srid,))
 
