@@ -217,7 +217,7 @@ def get_xpcshell_output_directory():
             # TODO - maybe raise exception?
             return None
 
-        _xpcoutdir = os.path.join(xpctmp, xpcoutleaf)
+        _xpcoutdir = os.path.join(xpcshell_tmp_dir, xpcoutleaf)
 
     return _xpcoutdir
 
