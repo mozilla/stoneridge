@@ -18,14 +18,24 @@
 
 ### BEGIN CONFIGURATION SECTION
 SRHOME=/home/hurley/srhome
+CONFFILE=$SRHOME/stoneridge.ini
 ### END CONFIGURATION SECTION
 
-CONFFILE=$SRHOME/stoneridge.ini
+SRROOT=$SRHOME/stoneridge
+SRRUN=$SRROOT/srrun.py
+MASTERPID=$SRHOME/srmaster.pid
+MASTERLOG=$SRHOME/srmaster.log
+REPORTERPID=$SRHOME/srreporter.pid
+REPORTERLOG=$SRHOME/srreporter.log
 
 start() {
+    python $SRRUN $SRROOT/srmaster.py --config $CONFFILE --pidfile $MASTERPID --log $MASTERLOG
+    python $SRRUN $SRROOT/srreporter.py --config $CONFFILE --pidfile $REPORTERPID --log $REPORTERLOG
 }
 
 stop() {
+    kill $(cat $REPORTERPID)
+    kill $(cat $MASTERPID)
 }
 
 case "$1" in

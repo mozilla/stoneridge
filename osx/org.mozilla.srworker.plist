@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>org.mozilla.srworker</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/python</string>
+        <string>/Users/hurley/srhome/stoneridge/srworker.py</string>
+        <string>--config</string>
+        <string>/Users/hurley/srhome/stoneridge.ini</string>
+        <string>--nodaemon</string>
+        <string>--log</string>
+        <string>/Users/hurley/srhome/srworker.log</string>
+    </array>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>/Users/hurley/srhome/stoneridge</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/share/python:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin</string>
+    </dict>
+</dict>
+</plist>

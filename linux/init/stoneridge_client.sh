@@ -17,19 +17,26 @@
 
 ### BEGIN CONFIGURATION SECTION
 SRHOME=/home/hurley/srhome
+CONFFILE=$SRHOME/stoneridge.ini
 MYIP=172.16.1.1
 ### END CONFIGURATION SECTION
 
-PIDFILE=$SRHOME/srdns.pid
-LOGFILE=$SRHOME/srdns.log
+SRROOT=$SRHOME/stoneridge
+SRRUN=$SRROOT/srrun.py
+DNSPID=$SRHOME/srdns.pid
+DNSLOG=$SRHOME/srdns.log
+WORKERPID=$SRHOME/srworker.pid
+WORKERLOG=$SRHOME/srworker.log
 
 start() {
     ip addr add $MYIP/12 dev eth1
-    python $SRHOME/stoneridge/srrun.py $SRHOME/stoneridge/srdns.py --pidfile $PIDFILE --log $LOGFILE
+    python $SRRUN $SRROOT/srdns.py --pidfile $DNSPID --log $DNSLOG
+    python $SRRUN $SRROOT/srworker.py --config $CONFFILE --pidfile $WORKERPID --log $WORKERLOG
 }
 
 stop() {
-    kill $(cat $PIDFILE)
+    kill $(cat $WORKERPID)
+    kill $(cat $DNSPID)
     ip addr del $MYIP/12 dev eth1
 }
 

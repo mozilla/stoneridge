@@ -21,6 +21,7 @@
 
 ### BEGIN CONFIGURATION SECTION
 SRHOME=/home/hurley/srhome
+CONFFILE=$SRHOME/stoneridge.ini
 MAINIP=172.17.0.1
 RATE=10mbit
 MAXBURST=10240
@@ -30,8 +31,12 @@ JITTER=
 CORRELATION=
 ### END CONFIGURATION SECTION
 
-PIDFILE=$SRHOME/srnamed.pid
-LOGFILE=$SRHOME/srnamed.log
+SRROOT=$SRHOME/stoneridge
+SRRUN=$SRROOT/srrun.py
+NAMEDPID=$SRHOME/srnamed.pid
+NAMEDLOG=$SRHOME/srnamed.log
+SCHEDULERPID=$SRHOME/srscheduler.pid
+SCHEDULRELOG=$SRHOME/srscheduler.log
 
 start() {
     # Setup eth1 to have an address
@@ -40,7 +45,9 @@ start() {
     tc qdisc add dev eth1 root handle 1:0 tbf rate $RATE maxburst $MAXBURST limit $LIMIT
     tc qdisc add dev eth1 parent 1:1 handle 10:0 netem latency $LATENCY $JITTER $CORRELATION
     # Start srnamed
-    python $SRHOME/stoneridge/srrun.py $SRHOME/stoneridge/srnamed.py --listen $MAINIP --pidfile $PIDFILE --log $LOGFILE
+    python $SRRUN $SRROOT/srnamed.py --listen $MAINIP --pidfile $NAMEDPID --log $NAMEDLOG
+    # Start srscheduler
+    python $SRRUN $SRROOT/srscheduler.py --config $CONFFILE --pidfile $SCHEDULERPID --log $SCHEDULERLOG
     # Start apache
     $SRHOME/bin/apachectl start
 }
@@ -48,8 +55,10 @@ start() {
 stop() {
     # Stop apache
     $SRHOME/bin/apachectl stop
+    # Stop srscheduler
+    kill $(cat $SCHEDULERPID)
     # Stop srnamed
-    kill $(cat $PIDFILE)
+    kill $(cat $NAMEDPID)
     # Remove network conditions
     tc qdisc del dev eth1 root
     # Remove ip addresses from eth1
