@@ -12,7 +12,7 @@ import tempfile
 import stoneridge
 
 
-class StoneRidgeTestRunner(object):
+class StoneRidgeException(Exception):
     pass
 
 
