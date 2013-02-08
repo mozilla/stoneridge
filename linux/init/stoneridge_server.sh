@@ -29,6 +29,7 @@ LIMIT=30720
 LATENCY=90ms
 JITTER=
 CORRELATION=
+NETCONFIG=broadband
 ### END CONFIGURATION SECTION
 
 SRROOT=$SRHOME/stoneridge
@@ -36,7 +37,7 @@ SRRUN=$SRROOT/srrun.py
 NAMEDPID=$SRHOME/srnamed.pid
 NAMEDLOG=$SRHOME/srnamed.log
 SCHEDULERPID=$SRHOME/srscheduler.pid
-SCHEDULRELOG=$SRHOME/srscheduler.log
+SCHEDULERLOG=$SRHOME/srscheduler.log
 
 start() {
     # Setup eth1 to have an address
@@ -47,7 +48,7 @@ start() {
     # Start srnamed
     python $SRRUN $SRROOT/srnamed.py --listen $MAINIP --pidfile $NAMEDPID --log $NAMEDLOG
     # Start srscheduler
-    python $SRRUN $SRROOT/srscheduler.py --config $CONFFILE --pidfile $SCHEDULERPID --log $SCHEDULERLOG
+    python $SRRUN $SRROOT/srscheduler.py --config $CONFFILE --pidfile $SCHEDULERPID --log $SCHEDULERLOG --netconfig $NETCONFIG
     # Start apache
     $SRHOME/bin/apachectl start
 }
