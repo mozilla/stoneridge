@@ -57,7 +57,7 @@ interval = 600
 
 [report]
 # Hostname of the datazilla server to report json files to
-host = datazilla.mozilla.com
+host = datazilla.mozilla.org
 
 # Project name on the datazilla server
 project = stoneridge
