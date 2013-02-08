@@ -389,8 +389,8 @@ def daemonize(pidfile, function, **kwargs):
     os.dup(0)
 
     # Set a sane umask
-    logging.debug('setting umask 027')
-    os.umask(027)
+    logging.debug('setting umask 022')
+    os.umask(022)
 
     # Change to the usual daemon directory
     logging.debug('chdir -> /')
