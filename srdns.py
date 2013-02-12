@@ -21,6 +21,7 @@ import stoneridge
 dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
 rundir = tempfile.mkdtemp()
 nochange = False
+winreg = None
 
 
 class BaseDnsModifier(SocketServer.BaseRequestHandler):
@@ -212,7 +213,7 @@ class WindowsDnsModifier(BaseDnsModifier):
         netsh.wait()
 
         logging.debug('About to reset search suffix')
-        winreg.SetValue(self.key, 'mozilla.com')
+        winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, 'mozilla.com')
 
     def set_dns(self, dnsserver):
         logging.debug('About to kill WAN interface')
@@ -222,7 +223,7 @@ class WindowsDnsModifier(BaseDnsModifier):
         netsh.wait()
 
         logging.debug('About to clear search suffix')
-        winreg.SetValue(self.key, '')
+        winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, '')
 
         logging.debug('About to set DNS on StoneRidge interface')
         netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
@@ -242,7 +243,9 @@ def daemon():
     elif sysname == 'Windows':
         logging.debug('Running on Windows, using WindowsDnsModifier')
         DnsModifier = WindowsDnsModifier
-        import _winreg as winreg
+        global winreg
+        import _winreg
+        winreg = _winreg
     else:
         msg = 'Invalid system: %s' % (sysname,)
         logging.critical(msg)
