@@ -18,6 +18,11 @@ import traceback
 import pika
 
 
+# Quiet logging from pika so it doesn't mess with our local logs
+pika_logger = logging.getLogger('pika')
+pika_logger.setLevel(logging.ERROR)
+
+
 # Names of netconfigs and operating systems
 NETCONFIGS = ('broadband', 'umts', 'gsm')
 OPERATING_SYSTEMS = ('linux', 'mac', 'windows')
