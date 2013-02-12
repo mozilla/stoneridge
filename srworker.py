@@ -19,19 +19,22 @@ class StoneRidgeException(Exception):
 class StoneRidgeWorker(stoneridge.RpcHandler):
     def setup(self):
         self.srconffile = stoneridge.get_config_file()
-        self.srlogdir = stoneridge.get_config('stoneridge', 'logs')
         self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
         logging.debug('srconffile: %s' % (self.srconffile,))
-        logging.debug('srlogdir: %s' % (self.srlogdir,))
         logging.debug('unittest: %s' % (self.unittest,))
 
         self.runconfig = None # Needs to be here so reset doesn't barf
         self.reset()
 
     def handle(self, srid, netconfig, tstamp):
+        # Create the directory where data we want to save from this run will go
+        srwork = tempfile.mkdtemp()
+        srout = os.path.join(srwork, 'out')
+        os.mkdir(srout)
+
         # Have a logger just for this run
         logdir = 'stoneridge_%s_%s' % (srid, netconfig)
-        self.logdir = os.path.join(self.srlogdir, logdir)
+        self.logdir = os.path.join(srout, logdir)
         if os.path.exists(self.logdir):
             # Don't blow away the old logs, just make a new directory for this
             # run of the srid
@@ -47,14 +50,11 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(handler)
 
-        # Create a working space for this run
-        srwork = tempfile.mkdtemp()
+        # Create the rest of the working space for this run
         srdownload = os.path.join(srwork, 'download')
         os.mkdir(srdownload)
         firefox_path = stoneridge.get_config('machine', 'firefox_path')
         srbindir = os.path.join(srwork, firefox_path)
-        srout = os.path.join(srwork, 'out')
-        os.mkdir(srout)
         metadata = os.path.join(srout, 'metadata.zip')
         info = os.path.join(srout, 'info.json')
 
@@ -63,7 +63,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         srxpcout = os.path.basename(tempfile.mktemp())
 
         self.srnetconfig = netconfig
-        self.archive_on_failure = False
+        self.archive_on_failure = True
         self.cleaner_called = False
         self.procno = 1
         self.childlog = None
@@ -175,8 +175,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.run_process('unpacker')
 
         self.run_process('infogatherer')
-
-        self.archive_on_failure = True
 
         self.run_process('dnsupdater')
 
