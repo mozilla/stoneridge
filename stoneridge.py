@@ -5,13 +5,11 @@
 import argparse
 import ConfigParser
 import copy
-import fcntl
 import inspect
 import json
 import logging
 import os
 import platform
-import resource
 import signal
 import subprocess
 import sys
@@ -343,6 +341,9 @@ def daemonize(pidfile, function, **kwargs):
     function - Function object to call as the daemon
     kwargs - Arguments to pass to <function>
     """
+    import fcntl
+    import resource
+
     logging.debug('forking for daemonization')
     pid = os.fork()
 
