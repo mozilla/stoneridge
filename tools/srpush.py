@@ -100,7 +100,8 @@ def srpush(sha, host, ldap, password, netconfigs, operating_systems):
 
     urllib2.install_opener(opener)
 
-    srid = '%s-%s' % (ldap, sha)
+    srid_ldap = ldap.replace('@', '_').replace('.', '_')
+    srid = '%s_%s' % (srid_ldap, sha)
 
     post = {'srid': srid,
             'sha': sha,
