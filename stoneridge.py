@@ -661,7 +661,8 @@ class RpcHandler(QueueListener):
 
         body = json.dumps(res)
         logging.debug('Returning RPC result %s' % (res,))
-        logging.debug('Returning to %s' % (properties.correlation_id,))
+        logging.debug('Returning to %s' % (properties.reply_to,))
+        logging.debug('Returning for %s' % (properties.correlation_id,))
         res_properties = pika.BasicProperties(
                 correlation_id=properties.correlation_id)
         channel.basic_publish(exchange='', routing_key=properties.reply_to,
