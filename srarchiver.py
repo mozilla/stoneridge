@@ -21,6 +21,7 @@ class StoneRidgeArchiver(object):
         outdir = stoneridge.get_config('run', 'out')
         archivedir = stoneridge.get_config('stoneridge', 'archives')
         srid = stoneridge.get_config('run', 'srid')
+        netconfig = stoneridge.get_config('run', 'netconfig')
         infofile = stoneridge.get_config('run', 'info')
         metadata = stoneridge.get_config('run', 'metadata')
 
@@ -28,10 +29,11 @@ class StoneRidgeArchiver(object):
             info = json.load(f)
             logging.debug('loaded info %s' % (info,))
 
-        arcname = 'stoneridge_%s_%s_%s_%s' % (info['date'],
-                                              info['test_machine']['name'],
-                                              info['test_build']['revision'],
-                                              srid)
+        arcname = 'stoneridge_%s_%s_%s_%s_%s' % (info['date'],
+                                                 info['test_machine']['name'],
+                                                 info['test_build']['revision'],
+                                                 srid,
+                                                 netconfig)
         logging.debug('archive name %s.zip' % (arcname,))
 
 
