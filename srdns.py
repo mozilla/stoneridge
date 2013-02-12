@@ -4,7 +4,6 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
-import daemonize
 import logging
 import os
 import platform
