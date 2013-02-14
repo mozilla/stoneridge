@@ -5,13 +5,12 @@
 
 import ConfigParser
 import json
+import logging
 import os
 import platform
-import time
 
 import stoneridge
 
-import logging
 
 class StoneRidgeInfoGatherer(object):
     """Gathers information about the platform stone ridge is running on as well
@@ -19,7 +18,8 @@ class StoneRidgeInfoGatherer(object):
     """
     def run(self):
         logging.debug('info gatherer running')
-        info_file = os.path.join(stoneridge.bindir, 'application.ini')
+        bindir = stoneridge.get_config('run', 'bin')
+        info_file = os.path.join(bindir, 'application.ini')
         logging.debug('parsing ini file at %s' % (info_file,))
         cp = ConfigParser.SafeConfigParser()
         cp.read([info_file])
@@ -28,7 +28,7 @@ class StoneRidgeInfoGatherer(object):
         build_info['name'] = cp.get('App', 'Name')
         build_info['version'] = cp.get('App', 'Version')
         build_info['revision'] = cp.get('App', 'SourceStamp')
-        build_info['branch'] = stoneridge.current_netconfig
+        build_info['branch'] = stoneridge.get_config('run', 'netconfig')
 
         # Due to the way the graph server works, we need to create a unique
         # build id for each build/os/netconfig combination. We also want to keep
@@ -40,31 +40,33 @@ class StoneRidgeInfoGatherer(object):
         # characters before adding our suffix. It should already be only 14
         # characters, but we do this Just In Case.
         buildid_base = build_info['original_buildid'][:14]
-        build_info['id'] = buildid_base + stoneridge.buildid_suffix
+        build_info['id'] = buildid_base + stoneridge.get_buildid_suffix()
 
         machine_info = {}
         machine_info['name'] = platform.node()
-        machine_info['os'] = stoneridge.os_name
-        machine_info['osversion'] = stoneridge.os_version
+        machine_info['os'] = stoneridge.get_config('machine', 'os')
+        machine_info['osversion'] = stoneridge.get_os_version()
         machine_info['platform'] = platform.machine()
 
         info = {'test_machine':machine_info,
                 'test_build':build_info,
                 'testrun':{},
-                'date':int(time.time())}
+                'date':stoneridge.get_config_int('run', 'tstamp')}
         logging.debug('gathered info: %s' % (info,))
 
-        if not os.path.exists(stoneridge.outdir):
-            logging.debug('making outdir %s' % (stoneridge.outdir,))
-            os.mkdir(stoneridge.outdir)
+        outdir = stoneridge.get_config('run', 'out')
+        if not os.path.exists(outdir):
+            logging.debug('making outdir %s' % (outdir,))
+            os.mkdir(outdir)
 
-        with file(os.path.join(stoneridge.outdir, 'info.json'), 'wb') as f:
+        with file(os.path.join(outdir, 'info.json'), 'wb') as f:
             logging.debug('dumping json to file')
             json.dump(info, f)
 
+
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
     args = parser.parse_args()
 
     info_gatherer = StoneRidgeInfoGatherer()

@@ -4,12 +4,13 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
+import logging
 import os
+import shutil
 import zipfile
 
 import stoneridge
 
-import logging
 
 class StoneRidgeArchiver(object):
     """A class to zip up all the results and logging from a stone ridge
@@ -17,21 +18,29 @@ class StoneRidgeArchiver(object):
     """
     def run(self):
         logging.debug('archiver running')
-        with file(os.path.join(stoneridge.outdir, 'info.json'), 'rb') as f:
+        outdir = stoneridge.get_config('run', 'out')
+        archivedir = stoneridge.get_config('stoneridge', 'archives')
+        srid = stoneridge.get_config('run', 'srid')
+        netconfig = stoneridge.get_config('run', 'netconfig')
+        infofile = stoneridge.get_config('run', 'info')
+        metadata = stoneridge.get_config('run', 'metadata')
+
+        with file(infofile, 'rb') as f:
             info = json.load(f)
             logging.debug('loaded info %s' % (info,))
 
-        arcname = 'stoneridge_%s_%s_%s' % (info['date'],
-                                           info['test_machine']['name'],
-                                           info['test_build']['revision'])
+        arcname = 'stoneridge_%s_%s_%s_%s_%s' % (info['date'],
+                                                 info['test_machine']['name'],
+                                                 info['test_build']['revision'],
+                                                 srid,
+                                                 netconfig)
         logging.debug('archive name %s.zip' % (arcname,))
 
 
-        filename = os.path.join(stoneridge.archivedir, '%s.zip' % (arcname,))
-        if not os.path.exists(stoneridge.archivedir):
-            logging.debug('making archive directory %s' %
-                    (stoneridge.archivedir,))
-            os.mkdir(stoneridge.archivedir)
+        filename = os.path.join(archivedir, '%s.zip' % (arcname,))
+        if not os.path.exists(archivedir):
+            logging.debug('making archive directory %s' % (archivedir,))
+            os.mkdir(archivedir)
 
         logging.debug('opening zip file for writing')
         zfile = zipfile.ZipFile(filename, mode='w')
@@ -40,8 +49,8 @@ class StoneRidgeArchiver(object):
         # file itself, for easy separation when unzipping multiple archives
         # in the same place
         logging.debug('adding files to zip')
-        for dirpath, dirs, files in os.walk(stoneridge.outdir):
-            dirname = dirpath.replace(stoneridge.outdir, arcname, 1)
+        for dirpath, dirs, files in os.walk(outdir):
+            dirname = dirpath.replace(outdir, arcname, 1)
             logging.debug('directory %s -> %s' % (dirpath, dirname))
             # Add the directories to the zip
             for d in dirs:
@@ -57,10 +66,13 @@ class StoneRidgeArchiver(object):
         logging.debug('closing zip file')
         zfile.close()
 
+        # Make a copy where the uploader will find it
+        shutil.copyfile(filename, metadata)
+
+
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
-
+    parser = stoneridge.TestRunArgumentParser()
     parser.parse_args()
 
     archiver = StoneRidgeArchiver()

@@ -5,15 +5,14 @@
 
 import glob
 import json
+import logging
 import os
 import platform
 import subprocess
 import sys
-import time
 
 import stoneridge
 
-import logging
 
 class StoneRidgeRunner(object):
     """Does the actual work of running the stone ridge xpcshell tests
@@ -28,18 +27,24 @@ class StoneRidgeRunner(object):
         logging.debug('requested tests: %s' % (tests,))
         logging.debug('heads: %s' % (heads,))
 
+        self.testroot = stoneridge.get_config('stoneridge', 'testroot')
+        self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
+
+        logging.debug('testroot: %s' % (self.testroot,))
+        logging.debug('unittest: %s' % (self.unittest,))
+
     def _build_testlist(self):
         """Return a list of test file names, all relative to the test root.
         This weeds out any tests that may be missing from the directory.
         """
         if not self.tests:
             logging.debug('searching for all tests in %s' %
-                    (stoneridge.testroot,))
+                    (self.testroot,))
             if stoneridge.get_config('test', 'enabled'):
                 tests = ['fake.js']
             else:
                 tests = [os.path.basename(f) for f in
-                         glob.glob(os.path.join(stoneridge.testroot, '*.js'))]
+                         glob.glob(os.path.join(self.testroot, '*.js'))]
                 tests.remove('fake.js')
             logging.debug('tests found %s' % (tests,))
             return tests
@@ -49,7 +54,7 @@ class StoneRidgeRunner(object):
             logging.debug('candidate test %s' % (candidate,))
             if not candidate.endswith('.js'):
                 logging.error('invalid test filename %s' % (candidate,))
-            elif not os.path.exists(os.path.join(stoneridge.testroot, candidate)):
+            elif not os.path.exists(os.path.join(self.testroot, candidate)):
                 logging.error('missing test %s' % (candidate,))
             else:
                 logging.debug('valid test file %s' % (candidate,))
@@ -79,53 +84,66 @@ class StoneRidgeRunner(object):
         logging.debug('args to prepend: %s' % (preargs,))
 
         # Ensure our output directory exists
-        logging.debug('ensuring %s exists' % (stoneridge.xpcoutdir,))
-        try:
-            os.makedirs(stoneridge.xpcoutdir)
-            logging.debug('%s created' % (stoneridge.xpcoutdir,))
-        except OSError:
-            logging.debug('%s already exists' % (stoneridge.xpcoutdir,))
-            pass
+        outdir = stoneridge.get_config('run', 'out')
+        xpcoutdir = stoneridge.get_xpcshell_output_directory()
+        if not self.unittest:
+            logging.debug('ensuring %s exists' % (xpcoutdir,))
+            try:
+                os.makedirs(xpcoutdir)
+                logging.debug('%s created' % (xpcoutdir,))
+            except OSError:
+                logging.debug('%s already exists' % (xpcoutdir,))
+                pass
+
+        installroot = stoneridge.get_config('stoneridge', 'root')
+        xpcoutleaf = stoneridge.get_config('run', 'xpcoutleaf')
 
         for test in tests:
             logging.debug('test: %s' % (test,))
             outfile = '%s.out' % (test,)
             logging.debug('outfile: %s' % (outfile,))
             args = preargs + [
-                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (stoneridge.xpcoutleaf,),
+                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (xpcoutleaf,),
                 '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
-                '-f', os.path.join(stoneridge.installroot, 'head.js'),
-                '-f', os.path.join(stoneridge.testroot, test),
+                '-f', os.path.join(installroot, 'head.js'),
+                '-f', os.path.join(self.testroot, test),
                 '-e', 'do_stoneridge(); quit(0);'
             ]
             logging.debug('xpcshell args: %s' % (args,))
-            tcpdump_output = os.path.join(stoneridge.outdir, 'traffic.pcap')
+            tcpdump_output = os.path.join(outdir, 'traffic.pcap')
+            logging.debug('tcpdump capture at %s' % (tcpdump_output,))
             tcpdump_exe = stoneridge.get_config('tcpdump', 'exe')
+            logging.debug('tcpdump exe %s' % (tcpdump_exe,))
             tcpdump_if = stoneridge.get_config('tcpdump', 'interface')
+            logging.debug('tcpdump interface %s' % (tcpdump_if,))
             tcpdump = None
-            if tcpdump_exe and tcpdump_if:
-                tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-w',
-                                            tcpdump_output, '-i', tcpdump_if],
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT)
-            res, xpcshell_out = stoneridge.run_xpcshell(args)
-            if tcpdump:
-                tcpdump.terminate()
-                logging.debug('tcpdump output\n%s' % (tcpdump.stdout.read(),))
-            logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
-            if res:
-                logging.error('TEST FAILED: %s' % (test,))
+            if self.unittest:
+                logging.debug('Not running processes: in unit test mode')
             else:
-                logging.debug('test succeeded')
+                if tcpdump_exe and tcpdump_if:
+                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-w',
+                                                tcpdump_output, '-i', tcpdump_if],
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.STDOUT)
+                res, xpcshell_out = stoneridge.run_xpcshell(args)
+                if tcpdump:
+                    tcpdump.terminate()
+                    logging.debug('tcpdump output\n%s' % (tcpdump.stdout.read(),))
+                logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
+                if res:
+                    logging.error('TEST FAILED: %s' % (test,))
+                else:
+                    logging.debug('test succeeded')
 
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
-    parser.add_argument('--head', dest='heads', action='append', metavar='HEADFILE',
-                        help='Extra head.js file to append (can be used more than once)')
+    parser = stoneridge.TestRunArgumentParser()
+    parser.add_argument('--head', dest='heads', action='append',
+            metavar='HEADFILE',
+            help='Extra head.js file to append (can be used more than once)')
     parser.add_argument('tests', nargs='*', metavar='TEST',
-                        help='Name of single test file to run')
+            help='Name of single test file to run')
 
     args = parser.parse_args()
 

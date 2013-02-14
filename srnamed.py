@@ -11,7 +11,9 @@ from replay import configure_logging
 
 import stoneridge
 
+
 listen_ip = None
+
 
 class NeckoDnsProxyServer(DnsProxyServer):
     def necko_get_ip(self, client):
@@ -74,13 +76,14 @@ def daemon():
                 time.sleep(1)
     except KeyboardInterrupt:
         logging.info('Shutting down.')
-    except DnsProxyException, e:
+    except DnsProxyException as e:
         logging.critical(e)
         sys.exit(1)
     except:
         print traceback.format_exc()
         sys.exit(2)
     sys.exit(0)
+
 
 @stoneridge.main
 def main():

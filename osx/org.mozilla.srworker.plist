@@ -3,25 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>org.mozilla.stoneridge_cronjob</string>
+    <string>org.mozilla.srworker</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python</string>
-        <string>/Users/hurley/srhome/stoneridge/stoneridge_cronjob.py</string>
+        <string>/Users/hurley/srhome/stoneridge/srworker.py</string>
         <string>--config</string>
         <string>/Users/hurley/srhome/stoneridge.ini</string>
+        <string>--nodaemon</string>
+        <string>--log</string>
+        <string>/Users/hurley/srhome/srworker.log</string>
     </array>
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>12</integer>
-        <key>Minute</key>
-        <integer>0</integer>
-    </dict>
     <key>KeepAlive</key>
-    <false/>
-    <key>RunAtLoad</key>
-    <false/>
+    <true/>
     <key>WorkingDirectory</key>
     <string>/Users/hurley/srhome/stoneridge</string>
     <key>EnvironmentVariables</key>

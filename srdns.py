@@ -4,7 +4,6 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
-import daemonize
 import logging
 import os
 import platform
@@ -18,11 +17,12 @@ import tempfile
 
 import stoneridge
 
+
 dnspat = re.compile('^[0-9]+ : ([0-9.]+)$')
-
 rundir = tempfile.mkdtemp()
-
 nochange = False
+winreg = None
+
 
 class BaseDnsModifier(SocketServer.BaseRequestHandler):
     """A class providing an interface for modifying DNS servers on a platform.
@@ -64,6 +64,7 @@ class BaseDnsModifier(SocketServer.BaseRequestHandler):
             status = 'no'
 
         self.request.sendall(status)
+
 
 class MacDnsModifier(BaseDnsModifier):
     def setup(self):
@@ -140,6 +141,7 @@ class MacDnsModifier(BaseDnsModifier):
         else:
             self._set_dns([dnsserver])
 
+
 class LinuxDnsModifier(BaseDnsModifier):
     def setup(self):
         logging.debug('Initializing linux handler')
@@ -191,6 +193,45 @@ class LinuxDnsModifier(BaseDnsModifier):
             logging.debug('Writing resolv.conf')
             f.write('\n'.join(newlines))
 
+
+class WindowsDnsModifier(BaseDnsModifier):
+    def setup(self):
+        self.key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                'System\\CurrentControLSet\\Services\\TCPIP\\Parameters')
+
+    def reset_dns(self):
+        logging.debug('About to kill DNS on StoneRidge interface')
+        netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
+            'StoneRidge', 'static', 'none', 'validate=no'],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        netsh.wait()
+
+        logging.debug('About to resurrect WAN interface')
+        netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
+            'name=WAN', 'admin=ENABLED'], stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+        netsh.wait()
+
+        logging.debug('About to reset search suffix')
+        winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, 'mozilla.com')
+
+    def set_dns(self, dnsserver):
+        logging.debug('About to kill WAN interface')
+        netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
+            'name=WAN', 'admin=DISABLED'], stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+        netsh.wait()
+
+        logging.debug('About to clear search suffix')
+        winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, '')
+
+        logging.debug('About to set DNS on StoneRidge interface')
+        netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
+            'StoneRidge', 'static', dnsserver, 'validate=no'],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        netsh.wait()
+
+
 def daemon():
     sysname = platform.system()
     if sysname == 'Linux':
@@ -199,6 +240,12 @@ def daemon():
     elif sysname == 'Darwin':
         logging.debug('Running on OS X, using MacDnsModifier')
         DnsModifier = MacDnsModifier
+    elif sysname == 'Windows':
+        logging.debug('Running on Windows, using WindowsDnsModifier')
+        DnsModifier = WindowsDnsModifier
+        global winreg
+        import _winreg
+        winreg = _winreg
     else:
         msg = 'Invalid system: %s' % (sysname,)
         logging.critical(msg)
@@ -213,41 +260,14 @@ def daemon():
 
     shutil.rmtree(rundir)
 
-def do_exit(parser, msg):
-    parser.print_usage()
-    parser.exit(2, msg % (parser.prog,))
-
-def do_mutex_exit(parser, arg):
-    msg = '%%s: error: argument %s: not allowed with argument --nodaemon\n'
-    do_exit(parser, msg % (arg,))
-
-def do_missing_exit(parser, arg):
-    msg = '%%s: error: argument %s is required\n'
-    do_exit(parser, msg % (arg,))
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pidfile', dest='pidfile')
-    parser.add_argument('--log', dest='log')
-    parser.add_argument('--nodaemon', dest='nodaemon', action='store_true')
+    parser = stoneridge.DaemonArgumentParser()
     parser.add_argument('--nochange', dest='nochange', action='store_true')
     args = parser.parse_args()
 
     global nochange
     nochange = args.nochange
 
-    if args.nodaemon:
-        if args.pidfile:
-            do_mutex_exit(parser, '--pidfile')
-        if args.log:
-            do_mutex_exit(parser, '--log')
-        daemon()
-        sys.exit(0)
-
-    if not args.pidfile:
-        do_missing_exit(parser, '--pidfile')
-    if not args.log:
-        do_missing_exit(parser, '--log')
-
-    daemonize.start(daemon, args.pidfile, args.log)
+    parser.start_daemon(daemon)
