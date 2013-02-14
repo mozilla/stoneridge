@@ -30,7 +30,7 @@ WORKERLOG=$SRHOME/srworker.log
 
 start() {
     ip addr add $MYIP/12 dev eth1
-    python $SRRUN $SRROOT/srdns.py --pidfile $DNSPID --log $DNSLOG
+    python $SRRUN $SRROOT/srdns.py --config $CONFFILE --pidfile $DNSPID --log $DNSLOG
     python $SRRUN $SRROOT/srworker.py --config $CONFFILE --pidfile $WORKERPID --log $WORKERLOG
 }
 

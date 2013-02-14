@@ -9,6 +9,10 @@
         <string>/usr/local/bin/python</string>
         <string>/Users/hurley/srhome/stoneridge/srdns.py</string>
         <string>--nodaemon</string>
+        <string>--config</string>
+        <string>/Users/hurley/srhome/stoneridge.ini</string>
+        <string>--log</string>
+        <string>/Users/hurley/srhome/srdns.log</string>
     </array>
     <key>KeepAlive</key>
     <true/>
