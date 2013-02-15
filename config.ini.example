@@ -2,6 +2,9 @@
 # The directory where stone ridge is installed
 root = /Users/hurley/src/stoneridge
 
+# Where processes should store their logs
+logs = /Users/hurley/src/stoneridge/testroot/logs
+
 # Where the tests live
 testroot = /Users/hurley/src/stoneridge/tests
 
