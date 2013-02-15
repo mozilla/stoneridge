@@ -595,12 +595,6 @@ class RpcCaller(object):
         self._outgoing_queue = outgoing_queue
         self._incoming_queue = incoming_queue
 
-        params = pika.ConnectionParameters(host=self._host)
-        self._connection = pika.BlockingConnection(params)
-        self._channel = self._connection.channel()
-        self._channel.basic_consume(self._on_rpc_done, no_ack=True,
-                queue=self._incoming_queue)
-
     def _on_rpc_done(self, channel, method, properties, body):
         """The callback that is called when the remote function call
         is complete.
@@ -626,15 +620,28 @@ class RpcCaller(object):
         logging.debug('Sending to: %s' % (self._outgoing_queue,))
         logging.debug('Reply to: %s' % (self._incoming_queue,))
 
+        params = pika.ConnectionParameters(host=self._host)
+        connection = pika.BlockingConnection(params)
+        channel = connection.channel()
+
+        # Send out our RPC request.
         properties = pika.BasicProperties(reply_to=self._incoming_queue,
                 correlation_id=self._srid)
         body = json.dumps(msg)
-        self._channel.basic_publish(exchange='',
+        channel.basic_publish(exchange='',
                 routing_key=self._outgoing_queue, body=body,
                 properties=properties)
 
+        # Now start waiting on an answer from the RPC handler.
+        channel.basic_consume(self._on_rpc_done, no_ack=True,
+                queue=self._incoming_queue)
+
         while self._response is None:
-            self._connection.process_data_events()
+            connection.process_data_events()
+
+        # Got our response. We no longer need this connection, so get rid
+        # of it (save the file descriptors!).
+        connection.close()
 
         self._srid = None
 
