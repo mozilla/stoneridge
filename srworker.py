@@ -58,10 +58,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         metadata = os.path.join(srout, 'metadata.zip')
         info = os.path.join(srout, 'info.json')
 
-        # Make a name for output from xpcshell (can't make the actual directory
-        # yet, because we don't know what directory it'll live in)
-        srxpcout = os.path.basename(tempfile.mktemp())
-
         self.srnetconfig = netconfig
         self.archive_on_failure = True
         self.cleaner_called = False
@@ -78,7 +74,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
             f.write('out = %s\n' % (srout,))
             f.write('metadata = %s\n' % (metadata,))
             f.write('info = %s\n' % (info,))
-            f.write('xpcoutleaf = %s\n' % (srxpcout,))
             f.write('tstamp = %s\n' % (tstamp,))
             f.write('srid = %s\n' % (srid,))
 

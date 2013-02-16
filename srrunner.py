@@ -85,25 +85,15 @@ class StoneRidgeRunner(object):
 
         # Ensure our output directory exists
         outdir = stoneridge.get_config('run', 'out')
-        xpcoutdir = stoneridge.get_xpcshell_output_directory()
-        if not self.unittest:
-            logging.debug('ensuring %s exists' % (xpcoutdir,))
-            try:
-                os.makedirs(xpcoutdir)
-                logging.debug('%s created' % (xpcoutdir,))
-            except OSError:
-                logging.debug('%s already exists' % (xpcoutdir,))
-                pass
-
         installroot = stoneridge.get_config('stoneridge', 'root')
-        xpcoutleaf = stoneridge.get_config('run', 'xpcoutleaf')
+        escaped_outdir = outdir.replace('\\', '\\\\')
 
         for test in tests:
             logging.debug('test: %s' % (test,))
             outfile = '%s.out' % (test,)
             logging.debug('outfile: %s' % (outfile,))
             args = preargs + [
-                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (xpcoutleaf,),
+                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (escaped_outdir,),
                 '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
                 '-f', os.path.join(installroot, 'head.js'),
                 '-f', os.path.join(self.testroot, test),

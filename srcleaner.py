@@ -20,11 +20,6 @@ def main():
 
     logging.debug('cleaner running')
     workdir = stoneridge.get_config('run', 'work')
-    xpcoutdir = stoneridge.get_xpcshell_output_directory()
     if workdir and os.path.exists(workdir):
         logging.debug('removing workdir %s' % (workdir,))
         shutil.rmtree(workdir)
-    if xpcoutdir and os.path.exists(xpcoutdir):
-        logging.debug('removing xpcshell output directory %s' %
-                (xpcoutdir,))
-        shutil.rmtree(xpcoutdir)

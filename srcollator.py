@@ -21,12 +21,8 @@ class StoneRidgeCollator(object):
     """
     def run(self):
         logging.debug('collator running')
-        if stoneridge.get_config_bool('stoneridge', 'unittest'):
-            xpcoutdir = stoneridge.get_config('run', 'work')
-        else:
-            xpcoutdir = stoneridge.get_xpcshell_output_directory()
         outdir = stoneridge.get_config('run', 'out')
-        outfiles = glob.glob(os.path.join(xpcoutdir, '*.out'))
+        outfiles = glob.glob(os.path.join(outdir, '*.out'))
         infofile = stoneridge.get_config('run', 'info')
         logging.debug('found outfiles %s' % (outfiles,))
         logging.debug('loading info from %s' % (infofile,))
@@ -39,7 +35,7 @@ class StoneRidgeCollator(object):
             # Make a new copy of the base info
             results = copy.deepcopy(info)
             del results['date']
-            results['testrun'] = {'date':info['date'], 'suite':None, 'options':{}}
+            results['testrun'] = {'date': info['date'], 'suite': None, 'options': {}}
             results['results'] = collections.defaultdict(list)
             results['results_aux'] = collections.defaultdict(list)
             logging.debug('initial testrun: %s' % (results['testrun'],))
@@ -82,10 +78,6 @@ class StoneRidgeCollator(object):
             results['results_aux'] = dict(results['results_aux'])
             logging.debug('results: %s' % (results['results'],))
             logging.debug('aux results: %s' % (results['results_aux'],))
-
-            # Copy the raw data into our output directory
-            logging.debug('copying raw data to archivable directory')
-            shutil.copyfile(ofile, os.path.join(outdir, fname))
 
             # Write our json results for uploading
             upload_filename = 'upload_%s.json' % (suite,)
