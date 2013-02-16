@@ -5,6 +5,9 @@ root = /Users/hurley/src/stoneridge
 # Where processes should store their logs
 logs = /Users/hurley/src/stoneridge/testroot/logs
 
+# Where the working directories live
+work = /Users/hurley/src/stoneridge/testroot/work
+
 # Where the tests live
 testroot = /Users/hurley/src/stoneridge/tests
 

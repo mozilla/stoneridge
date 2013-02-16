@@ -20,6 +20,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
     def setup(self):
         self.srconffile = stoneridge.get_config_file()
         self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
+        self.workroot = stoneridge.get_config('stoneridge', 'work')
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('unittest: %s' % (self.unittest,))
 
@@ -28,17 +29,15 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
     def handle(self, srid, netconfig, tstamp):
         # Create the directory where data we want to save from this run will go
-        srwork = tempfile.mkdtemp()
+        srwork = os.path.join(self.workroot, srid, netconfig)
+        if os.path.exists(srwork):
+            srwork = '%s_%s' % (srwork, tstamp)
+        os.makedirs(srwork)
         srout = os.path.join(srwork, 'out')
         os.mkdir(srout)
 
         # Have a logger just for this run
-        logdir = 'stoneridge_%s_%s' % (srid, netconfig)
-        self.logdir = os.path.join(srout, logdir)
-        if os.path.exists(self.logdir):
-            # Don't blow away the old logs, just make a new directory for this
-            # run of the srid
-            self.logdir = '%s_%s' % (self.logdir, tstamp)
+        self.logdir = os.path.join(srout, 'logs')
         os.makedirs(self.logdir)
         logging.debug('Running test with logs in %s' % (self.logdir,))
 
@@ -46,7 +45,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         handler = logging.FileHandler(logfile)
         formatter = logging.Formatter(fmt=stoneridge.LOG_FMT)
         handler.setFormatter(formatter)
-        self.logger = logging.getLogger(logdir)
+        self.logger = logging.getLogger('%s_%s_%s' % (srid, netconfig, tstamp))
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(handler)
 
