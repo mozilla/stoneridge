@@ -59,7 +59,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
         self.srnetconfig = netconfig
         self.archive_on_failure = True
-        self.cleaner_called = False
         self.procno = 1
         self.childlog = None
 
@@ -78,7 +77,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
         self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
-        self.logger.debug('cleaner called: %s' % (self.cleaner_called,))
         self.logger.debug('procno: %s' % (self.procno,))
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
@@ -100,7 +98,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
     def reset(self):
         self.srnetconfig = None
         self.archive_on_failure = True
-        self.cleaner_called = True
         self.procno = -1
         self.childlog = None
         self.logdir = None
@@ -152,13 +149,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
                     self.run_process('archiver')
                 except StoneRidgeException as e:
                     pass
-            if not self.cleaner_called:
-                # Let's be nice and clean up after ourselves
-                self.cleaner_called = True
-                try:
-                    self.run_process('cleaner')
-                except StoneRidgeException as e:
-                    pass
 
             # Finally, bubble the error up to the top level
             self.do_error(stage)
@@ -183,9 +173,6 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.archive_on_failure = False
 
         self.run_process('archiver')
-
-        self.cleaner_called = True
-        self.run_process('cleaner')
 
 
 def daemon():

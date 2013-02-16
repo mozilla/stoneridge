@@ -19,26 +19,6 @@ MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
 WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
 
 
-class cwd(object):
-    """A context manager to change our working directory when we enter the
-    context, and then change back to the original working directory when we
-    exit the context
-    """
-    def __init__(self, dirname):
-        self.newcwd = dirname
-        self.oldcwd = os.getcwd()
-        logging.debug('creating cwd object with newcwd %s and oldcwd %s' %
-                (self.newcwd, self.oldcwd))
-
-    def __enter__(self):
-        logging.debug('changing cwd to %s' % (self.newcwd,))
-        os.chdir(self.newcwd)
-
-    def __exit__(self, *args):
-        logging.debug('returning cwd to %s' % (self.oldcwd,))
-        os.chdir(self.oldcwd)
-
-
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
     ftp.m.o to a local directory that is served up to the clients by a plain ol'
@@ -232,7 +212,7 @@ class StoneRidgeCloner(object):
         gets rid of ones we don't care about any more
         """
         logging.debug('cleaning up old directories')
-        with cwd(self.outroot):
+        with stoneridge.cwd(self.outroot):
             listing = os.listdir('.')
             logging.debug('candidate files: %s' %  (listing,))
 

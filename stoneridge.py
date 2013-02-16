@@ -85,6 +85,26 @@ def main(_main):
     return _main
 
 
+class cwd(object):
+    """A context manager to change our working directory when we enter the
+    context, and then change back to the original working directory when we
+    exit the context
+    """
+    def __init__(self, dirname):
+        self.newcwd = dirname
+        self.oldcwd = os.getcwd()
+        logging.debug('creating cwd object with newcwd %s and oldcwd %s' %
+                (self.newcwd, self.oldcwd))
+
+    def __enter__(self):
+        logging.debug('changing cwd to %s' % (self.newcwd,))
+        os.chdir(self.newcwd)
+
+    def __exit__(self, *args):
+        logging.debug('returning cwd to %s' % (self.oldcwd,))
+        os.chdir(self.oldcwd)
+
+
 _cp = None
 _srconf = None
 _runconf = None
