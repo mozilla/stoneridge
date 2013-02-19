@@ -170,13 +170,13 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.run_process('collator')
 
-        self.uploaded = True
-
-        self.run_process('uploader')
-
         self.archive_on_failure = False
 
         self.run_process('archiver')
+
+        self.uploaded = True
+
+        self.run_process('uploader')
 
 
 def daemon():
