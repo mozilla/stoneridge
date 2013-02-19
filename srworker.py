@@ -6,7 +6,6 @@
 import logging
 import os
 import subprocess
-import sys
 import tempfile
 
 import stoneridge
@@ -58,6 +57,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         info = os.path.join(srout, 'info.json')
 
         self.srnetconfig = netconfig
+        self.uploaded = False
         self.archive_on_failure = True
         self.procno = 1
         self.childlog = None
@@ -76,27 +76,23 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
             f.write('srid = %s\n' % (srid,))
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
+        self.logger.debug('uploaded: %s' % (self.uploaded,))
         self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
         self.logger.debug('procno: %s' % (self.procno,))
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
         self.logger.debug('runconfig: %s' % (self.runconfig,))
 
-        res = {'ok': True}
-
         try:
             self.run_test()
         except StoneRidgeException as e:
             self.logger.exception(e)
-            res['ok'] = False
-            res['msg'] = str(e)
 
         self.reset()
 
-        return res
-
     def reset(self):
         self.srnetconfig = None
+        self.uploaded = False
         self.archive_on_failure = True
         self.procno = -1
         self.childlog = None
@@ -149,6 +145,12 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
                     self.run_process('archiver')
                 except StoneRidgeException as e:
                     pass
+            if not self.uploaded:
+                self.uploaded = True
+                try:
+                    self.run_process('uploader')
+                except StoneRidgeException:
+                    pass
 
             # Finally, bubble the error up to the top level
             self.do_error(stage)
@@ -167,6 +169,8 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.run_process('dnsupdater', '--restore')
 
         self.run_process('collator')
+
+        self.uploaded = True
 
         self.run_process('uploader')
 

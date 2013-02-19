@@ -32,9 +32,9 @@ OPERATING_SYSTEMS = ('linux', 'mac', 'windows')
 INCOMING_QUEUE = 'sr_incoming'
 OUTGOING_QUEUE = 'sr_outgoing'
 NETCONFIG_QUEUES = {
-    'broadband': {'incoming': 'sr_nc_broadband', 'rpc': 'sr_nc_broadband_rpc'},
-    'umts': {'incoming': 'sr_nc_umts', 'rpc': 'sr_nc_umts_rpc'},
-    'gsm': {'incoming': 'sr_nc_gsm', 'rpc': 'sr_nc_gsm_rpc'}
+    'broadband': 'sr_nc_broadband',
+    'umts': 'sr_nc_umts',
+    'gsm': 'sr_nc_gsm'
 }
 CLIENT_QUEUES = {
     'linux': 'sr_ct_linux',
@@ -570,94 +570,3 @@ def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
     writer = QueueWriter(INCOMING_QUEUE)
     writer.enqueue(nightly=nightly, ldap=ldap, sha=sha, netconfigs=netconfigs,
             operating_systems=operating_systems, srid=srid, attempt=attempt)
-
-
-class RpcCaller(object):
-    """Used to call remote functions via the stone ridge mq of choice.
-    """
-    def __init__(self, outgoing_queue, incoming_queue):
-        self._host = get_config('stoneridge', 'mqhost')
-        self._outgoing_queue = outgoing_queue
-        self._incoming_queue = incoming_queue
-
-    def _on_rpc_done(self, channel, method, properties, body):
-        """The callback that is called when the remote function call
-        is complete.
-        """
-        logging.debug('RpcCaller got callback')
-        logging.debug('Body: %s' % (body,))
-        logging.debug('Correlation id: %s' % (properties.correlation_id,))
-        if self._srid == properties.correlation_id:
-            logging.debug('Correlation ID matches.')
-            self._response = body
-        else:
-            logging.debug('No match for correlation ID. Ignoring.')
-
-    def __call__(self, **msg):
-        if 'srid' not in msg:
-            logging.error('Attempted to make an RPC call without an srid!')
-            return None
-
-        self._response = None
-        self._srid = msg['srid']
-
-        logging.debug('Making RPC call with correlation id %s' % (self._srid,))
-        logging.debug('Sending to: %s' % (self._outgoing_queue,))
-        logging.debug('Reply to: %s' % (self._incoming_queue,))
-
-        params = pika.ConnectionParameters(host=self._host)
-        connection = pika.BlockingConnection(params)
-        channel = connection.channel()
-
-        # Send out our RPC request.
-        properties = pika.BasicProperties(reply_to=self._incoming_queue,
-                correlation_id=self._srid)
-        body = json.dumps(msg)
-        channel.basic_publish(exchange='',
-                routing_key=self._outgoing_queue, body=body,
-                properties=properties)
-
-        # Now start waiting on an answer from the RPC handler.
-        channel.basic_consume(self._on_rpc_done, no_ack=True,
-                queue=self._incoming_queue)
-
-        while self._response is None:
-            connection.process_data_events()
-
-        # Got our response. We no longer need this connection, so get rid
-        # of it (save the file descriptors!).
-        connection.close()
-
-        self._srid = None
-
-        return json.loads(self._response)
-
-
-class RpcHandler(QueueListener):
-    """Like stoneridge.QueueListener, but for programs that service RPC instead
-    of asynchronous queue events.
-    """
-    def handle(self, **kwargs):
-        """Just like stoneridge.QueueListener.handle, except the return value
-        from this must be serializable as a JSON string.
-        """
-        raise NotImplementedError
-
-    def _handle(self, channel, method, properties, body):
-        """Internal message callback to perform the RPC and return the result
-        to the caller.
-        """
-        msg = json.loads(body)
-        logging.debug('RPC Handler got message %s' % (msg,))
-        res = self.handle(**msg)
-
-        body = json.dumps(res)
-        logging.debug('Returning RPC result %s' % (res,))
-        logging.debug('Returning to %s' % (properties.reply_to,))
-        logging.debug('Returning for %s' % (properties.correlation_id,))
-        res_properties = pika.BasicProperties(
-                correlation_id=properties.correlation_id)
-        channel.basic_publish(exchange='', routing_key=properties.reply_to,
-                properties=res_properties, body=body)
-
-        channel.basic_ack(delivery_tag=method.delivery_tag)
