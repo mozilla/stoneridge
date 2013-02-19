@@ -71,6 +71,10 @@ key = PUT_OAUTH_KEY_HERE
 # An OAuth secret for authentication
 secret = PUT_OAUTH_SECRET_HERE
 
+[cleaner]
+# How many old runs to keep on the client itself
+keep = 50
+
 [machine]
 # The type of os this is running on, may be mac, linux, or windows
 os = mac

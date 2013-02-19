@@ -15,7 +15,7 @@ import stoneridge
 class StoneRidgeCleaner(object):
     def __init__(self):
         self.workdir = stoneridge.get_config('stoneridge', 'work')
-        self.keep = stoneridge.get_config('cleaner', 'keep')
+        self.keep = stoneridge.get_config_int('cleaner', 'keep')
 
     def run(self):
         logging.debug('cleaner running')
