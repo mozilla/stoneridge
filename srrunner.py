@@ -118,8 +118,9 @@ class StoneRidgeRunner(object):
                 logging.debug('Not running processes: in unit test mode')
             else:
                 if tcpdump_exe and tcpdump_if:
-                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-w',
-                                                tcpdump_output, '-i', tcpdump_if],
+                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-U',
+                                                '-w', tcpdump_output,
+                                                '-i', tcpdump_if],
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.STDOUT)
                 res, xpcshell_out = stoneridge.run_xpcshell(args)
