@@ -13,9 +13,9 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
         self.netconfig = netconfig
 
         self.runners = {
-            'linux': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['linux'])
-            'mac': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['mac'])
-            'windows': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['windows'])
+            'linux': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['linux']),
+            'mac': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['mac']),
+            'windows': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['windows']),
         }
 
     def handle(self, srid, operating_systems, tstamp):
