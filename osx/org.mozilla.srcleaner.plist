@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>org.mozilla.srworker</string>
+    <string>org.mozilla.srcleaner</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python</string>
