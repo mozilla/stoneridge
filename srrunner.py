@@ -4,12 +4,9 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import glob
-import json
 import logging
 import os
-import platform
 import subprocess
-import sys
 
 import stoneridge
 
