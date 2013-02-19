@@ -91,18 +91,12 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.logger.debug('logdir: %s' % (self.logdir,))
         self.logger.debug('runconfig: %s' % (self.runconfig,))
 
-        res = {'ok': True}
-
         try:
             self.run_test()
         except StoneRidgeException as e:
             self.logger.exception(e)
-            res['ok'] = False
-            res['msg'] = str(e)
 
         self.reset()
-
-        return res
 
     def reset(self):
         self.srnetconfig = None

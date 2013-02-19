@@ -16,11 +16,11 @@ class StoneRidgeMaster(stoneridge.QueueListener):
     def setup(self):
         self.queues = {
             'broadband': stoneridge.QueueWriter(
-                stoneridge.NETCONFIG_QUEUES['broadband']['incoming']),
+                stoneridge.NETCONFIG_QUEUES['broadband']),
             'umts': stoneridge.QueueWriter(
-                stoneridge.NETCONFIG_QUEUES['umts']['incoming']),
+                stoneridge.NETCONFIG_QUEUES['umts']),
             'gsm': stoneridge.QueueWriter(
-                stoneridge.NETCONFIG_QUEUES['gsm']['incoming'])
+                stoneridge.NETCONFIG_QUEUES['gsm'])
         }
         self.logdir = stoneridge.get_config('stoneridge', 'logs')
         self.config = stoneridge.get_config_file()
