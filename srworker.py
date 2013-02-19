@@ -15,7 +15,7 @@ class StoneRidgeException(Exception):
     pass
 
 
-class StoneRidgeWorker(stoneridge.RpcHandler):
+class StoneRidgeWorker(stoneridge.QueueListener):
     def setup(self):
         self.srconffile = stoneridge.get_config_file()
         self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
