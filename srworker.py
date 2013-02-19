@@ -62,6 +62,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         srxpcout = os.path.basename(tempfile.mktemp())
 
         self.srnetconfig = netconfig
+        self.uploaded = False
         self.archive_on_failure = True
         self.cleaner_called = False
         self.procno = 1
@@ -82,6 +83,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
             f.write('srid = %s\n' % (srid,))
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
+        self.logger.debug('uploaded: %s' % (self.uploaded,))
         self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
         self.logger.debug('cleaner called: %s' % (self.cleaner_called,))
         self.logger.debug('procno: %s' % (self.procno,))
@@ -104,6 +106,7 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
 
     def reset(self):
         self.srnetconfig = None
+        self.uploaded = False
         self.archive_on_failure = True
         self.cleaner_called = True
         self.procno = -1
@@ -164,6 +167,12 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
                     self.run_process('cleaner')
                 except StoneRidgeException as e:
                     pass
+            if not self.uploaded:
+                self.uploaded = True
+                try:
+                    self.run_process('uploader')
+                except StoneRidgeException:
+                    pass
 
             # Finally, bubble the error up to the top level
             self.do_error(stage)
@@ -182,6 +191,8 @@ class StoneRidgeWorker(stoneridge.RpcHandler):
         self.run_process('dnsupdater', '--restore')
 
         self.run_process('collator')
+
+        self.uploaded = True
 
         self.run_process('uploader')
 
