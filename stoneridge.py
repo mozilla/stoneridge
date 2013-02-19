@@ -480,6 +480,7 @@ class QueueListener(object):
         self._queue = queue
         self._params = pika.ConnectionParameters(host=self._host)
         self._args = kwargs
+        self._connection = None
         self.setup(**kwargs)
 
     def setup(self, **kwargs):
@@ -503,6 +504,15 @@ class QueueListener(object):
         self.handle(**msg)
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
+    def _handle_onclose(self, method_frame):
+        """Handle the case when our connection drops out from under us, for
+        whatever reason, by re-connecting (and trying to do so indefinitely).
+        """
+        logging.debug('Got close on channel, retrying')
+        self._connection.close()
+        self._connection = None
+        self.run()
+
     def run(self):
         """Main event loop for a queue listener.
         """
@@ -510,8 +520,9 @@ class QueueListener(object):
         if self._queue is None:
             raise Exception('You must set queue for %s' % (type(self),))
 
-        connection = pika.BlockingConnection(self._params)
-        channel = connection.channel()
+        self._connection = pika.BlockingConnection(self._params)
+        channel = self._connection.channel()
+        channel.add_on_close_callback(self._handle_onclose)
 
         channel.basic_qos(prefetch_count=1)
         channel.basic_consume(self._handle, queue=self._queue)
