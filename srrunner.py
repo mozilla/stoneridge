@@ -119,7 +119,7 @@ class StoneRidgeRunner(object):
             else:
                 if tcpdump_exe and tcpdump_if:
                     tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-U',
-                                                '-w', tcpdump_output,
+                                                '-p', '-w', tcpdump_output,
                                                 '-i', tcpdump_if],
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.STDOUT)
