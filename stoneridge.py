@@ -85,6 +85,26 @@ def main(_main):
     return _main
 
 
+class cwd(object):
+    """A context manager to change our working directory when we enter the
+    context, and then change back to the original working directory when we
+    exit the context
+    """
+    def __init__(self, dirname):
+        self.newcwd = dirname
+        self.oldcwd = os.getcwd()
+        logging.debug('creating cwd object with newcwd %s and oldcwd %s' %
+                (self.newcwd, self.oldcwd))
+
+    def __enter__(self):
+        logging.debug('changing cwd to %s' % (self.newcwd,))
+        os.chdir(self.newcwd)
+
+    def __exit__(self, *args):
+        logging.debug('returning cwd to %s' % (self.oldcwd,))
+        os.chdir(self.oldcwd)
+
+
 _cp = None
 _srconf = None
 _runconf = None
@@ -188,41 +208,6 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
             env=_xpcshell_environ)
     res = proc.wait()
     return (res, proc.stdout)
-
-
-_xpcoutdir = None
-
-
-def get_xpcshell_output_directory():
-    """Get the directory where xpcshell output will be placed.
-    """
-    global _xpcoutdir
-
-    if _xpcoutdir is None:
-        xpcoutleaf = get_config('run', 'xpcoutleaf')
-        if xpcoutleaf is None:
-            return None
-
-        xpcshell_tmp_dir = None
-        _, stdout = run_xpcshell(['-e',
-            'dump("SR-TMP-DIR:" + '
-            '     Components.classes["@mozilla.org/file/directory_service;1"]'
-            '     .getService(Components.interfaces.nsIProperties)'
-            '     .get("TmpD", Components.interfaces.nsILocalFile)'
-            '     .path + "\\n");'
-            'quit(0);'])
-
-        for line in stdout:
-            if line.startswith('SR-TMP-DIR:'):
-                xpcshell_tmp_dir = line.strip().split(':', 1)[1]
-
-        if xpcshell_tmp_dir is None:
-            # TODO - maybe raise exception?
-            return None
-
-        _xpcoutdir = os.path.join(xpcshell_tmp_dir, xpcoutleaf)
-
-    return _xpcoutdir
 
 
 _os_version = None

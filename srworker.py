@@ -19,6 +19,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
     def setup(self):
         self.srconffile = stoneridge.get_config_file()
         self.unittest = stoneridge.get_config_bool('stoneridge', 'unittest')
+        self.workroot = stoneridge.get_config('stoneridge', 'work')
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('unittest: %s' % (self.unittest,))
 
@@ -27,17 +28,15 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
     def handle(self, srid, netconfig, tstamp):
         # Create the directory where data we want to save from this run will go
-        srwork = tempfile.mkdtemp()
+        srwork = os.path.join(self.workroot, srid, netconfig)
+        if os.path.exists(srwork):
+            srwork = '%s_%s' % (srwork, tstamp)
+        os.makedirs(srwork)
         srout = os.path.join(srwork, 'out')
         os.mkdir(srout)
 
         # Have a logger just for this run
-        logdir = 'stoneridge_%s_%s' % (srid, netconfig)
-        self.logdir = os.path.join(srout, logdir)
-        if os.path.exists(self.logdir):
-            # Don't blow away the old logs, just make a new directory for this
-            # run of the srid
-            self.logdir = '%s_%s' % (self.logdir, tstamp)
+        self.logdir = os.path.join(srout, 'logs')
         os.makedirs(self.logdir)
         logging.debug('Running test with logs in %s' % (self.logdir,))
 
@@ -45,7 +44,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         handler = logging.FileHandler(logfile)
         formatter = logging.Formatter(fmt=stoneridge.LOG_FMT)
         handler.setFormatter(formatter)
-        self.logger = logging.getLogger(logdir)
+        self.logger = logging.getLogger('%s_%s_%s' % (srid, netconfig, tstamp))
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(handler)
 
@@ -57,14 +56,9 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         metadata = os.path.join(srout, 'metadata.zip')
         info = os.path.join(srout, 'info.json')
 
-        # Make a name for output from xpcshell (can't make the actual directory
-        # yet, because we don't know what directory it'll live in)
-        srxpcout = os.path.basename(tempfile.mktemp())
-
         self.srnetconfig = netconfig
         self.uploaded = False
         self.archive_on_failure = True
-        self.cleaner_called = False
         self.procno = 1
         self.childlog = None
 
@@ -78,14 +72,12 @@ class StoneRidgeWorker(stoneridge.QueueListener):
             f.write('out = %s\n' % (srout,))
             f.write('metadata = %s\n' % (metadata,))
             f.write('info = %s\n' % (info,))
-            f.write('xpcoutleaf = %s\n' % (srxpcout,))
             f.write('tstamp = %s\n' % (tstamp,))
             f.write('srid = %s\n' % (srid,))
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
         self.logger.debug('uploaded: %s' % (self.uploaded,))
         self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
-        self.logger.debug('cleaner called: %s' % (self.cleaner_called,))
         self.logger.debug('procno: %s' % (self.procno,))
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
@@ -102,7 +94,6 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.srnetconfig = None
         self.uploaded = False
         self.archive_on_failure = True
-        self.cleaner_called = True
         self.procno = -1
         self.childlog = None
         self.logdir = None
@@ -154,13 +145,6 @@ class StoneRidgeWorker(stoneridge.QueueListener):
                     self.run_process('archiver')
                 except StoneRidgeException as e:
                     pass
-            if not self.cleaner_called:
-                # Let's be nice and clean up after ourselves
-                self.cleaner_called = True
-                try:
-                    self.run_process('cleaner')
-                except StoneRidgeException as e:
-                    pass
             if not self.uploaded:
                 self.uploaded = True
                 try:
@@ -193,9 +177,6 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.archive_on_failure = False
 
         self.run_process('archiver')
-
-        self.cleaner_called = True
-        self.run_process('cleaner')
 
 
 def daemon():

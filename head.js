@@ -46,12 +46,11 @@ function do_test_finish() {
 function do_test_pending() {}
 
 function _do_save_results() {
-  var ofile = Cc["@mozilla.org/file/directory_service;1"].
-              getService(Ci.nsIProperties).
-              get("TmpD", Ci.nsILocalFile);
+  // Create a file pointing to our output directory
+  var ofile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+  ofile.initWithPath(_SR_OUT_SUBDIR);
 
   // And use the file determined by our caller
-  ofile.append(_SR_OUT_SUBDIR);
   ofile.append(_SR_OUT_FILE);
 
   // Now get an output stream for our file

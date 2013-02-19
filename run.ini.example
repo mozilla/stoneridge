@@ -21,8 +21,5 @@ metadata = /Users/hurley/src/stoneridge/testroot/work/out/metadata.zip
 # The json file to save info about the build for this test run in
 info = /Users/hurley/src/stoneridge/testroot/work/out/info.json
 
-# A subdirectory of your local tmp for xpcshell to save its output in
-xpcoutleaf = somedirectoryname
-
 # The stone ridge ID (srid) of this test run
 srid = somesrid

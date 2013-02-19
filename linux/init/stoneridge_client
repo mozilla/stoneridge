@@ -27,14 +27,18 @@ DNSPID=$SRHOME/srdns.pid
 DNSLOG=$SRHOME/srdns.log
 WORKERPID=$SRHOME/srworker.pid
 WORKERLOG=$SRHOME/srworker.log
+CLEANERPID=$SRHOME/srcleaner.pid
+CLEANERLOG=$SRHOME/srcleaner.log
 
 start() {
     ip addr add $MYIP/12 dev eth1
     python $SRRUN $SRROOT/srdns.py --config $CONFFILE --pidfile $DNSPID --log $DNSLOG
     python $SRRUN $SRROOT/srworker.py --config $CONFFILE --pidfile $WORKERPID --log $WORKERLOG
+    python $SRRUN $SRROOT/srcleaner.py --config $CONFFILE --pidfile $CLEANERPID --log $CLEANERLOG
 }
 
 stop() {
+    kill $(cat $CLEANERPID)
     kill $(cat $WORKERPID)
     kill $(cat $DNSPID)
     ip addr del $MYIP/12 dev eth1
