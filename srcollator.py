@@ -9,7 +9,6 @@ import glob
 import json
 import logging
 import os
-import shutil
 
 import stoneridge
 
@@ -70,7 +69,7 @@ class StoneRidgeCollator(object):
                         for s in ('start', 'stop'):
                             key = '%s_%s' % (k, s)
                             logging.debug('appending %s %s stamp %s' %
-                                    (k, s, v[s]))
+                                          (k, s, v[s]))
                             results['results_aux'][key].append(v[s])
 
             # Turn our defaultdicts into regular dicts for jsonification
