@@ -15,8 +15,8 @@ import stoneridge
 
 
 LINUX_SUBDIRS = ('try-linux', 'try-linux64')
-MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
-WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
+MAC_SUBDIRS = ('try-macosx64',)  # There is only one OS X build
+WINDOWS_SUBDIRS = ('try-win32',)  # win64 is unsupported, so ignore it for now
 
 
 class StoneRidgeCloner(object):
@@ -26,7 +26,7 @@ class StoneRidgeCloner(object):
     need from the central server.
     """
     def __init__(self, nightly, srid, operating_systems, netconfigs,
-            ldap, sha, attempt):
+                 ldap, sha, attempt):
         self.host = stoneridge.get_config('cloner', 'host')
         self.nightly = nightly
         self.outroot = stoneridge.get_config('cloner', 'output')
@@ -113,7 +113,7 @@ class StoneRidgeCloner(object):
         logging.debug('getting filename prefix')
         prefixfile = [f for f in files if f.endswith('.checksums.asc')][-1]
         prefix = prefixfile.replace('.checksums.asc', '')
-        prefix = prefix.rsplit('.', 1)[0] # Strip off the platform information
+        prefix = prefix.rsplit('.', 1)[0]  # Strip off the platform information
         logging.debug('filename prefix: %s' % (prefix,))
         return prefix
 
@@ -214,7 +214,7 @@ class StoneRidgeCloner(object):
         logging.debug('cleaning up old directories')
         with stoneridge.cwd(self.outroot):
             listing = os.listdir('.')
-            logging.debug('candidate files: %s' %  (listing,))
+            logging.debug('candidate files: %s' % (listing,))
 
             # We want to make sure that we're not looking at anything that's not
             # a directory that may have somehow gotten into our directory. We
@@ -262,8 +262,8 @@ class StoneRidgeCloner(object):
         next_attempt = self.attempt + 1
         if next_attempt > self.max_attempts:
             logging.error('Unable to get build results for %s after %s '
-                    'attempts. Cancelling run.' %
-                    (self.srid, self.max_attempts))
+                          'attempts. Cancelling run.' %
+                          (self.srid, self.max_attempts))
         else:
             self.defer()
             logging.debug(deferred_message)
@@ -290,7 +290,7 @@ class StoneRidgeCloner(object):
             for d in subdirs:
                 if d not in files:
                     self.exit_and_maybe_defer(
-                            'Run %s not available: retry later' % (d,))
+                        'Run %s not available: retry later' % (d,))
 
             dist_path = '/'.join([self.path, subdirs[0]])
             dist_files = self._gather_filelist(dist_path)
@@ -305,7 +305,7 @@ class StoneRidgeCloner(object):
 
         if not files:
             self.exit_and_maybe_defer(
-                    'No files found for %s: retry later' % (self.srid,))
+                'No files found for %s: retry later' % (self.srid,))
 
         self.prefix = self._get_prefix(files)
 
@@ -329,19 +329,20 @@ class StoneRidgeCloner(object):
 def main():
     parser = stoneridge.ArgumentParser()
     parser.add_argument('--nightly', dest='nightly', action='store_true',
-            default=False)
+                        default=False)
     parser.add_argument('--srid', dest='srid', required=True)
     for ops in stoneridge.OPERATING_SYSTEMS:
         parser.add_argument('--%s' % (ops,), dest='operating_systems',
-                action='append_const', const=ops, default=[])
+                            action='append_const', const=ops, default=[])
     for nc in stoneridge.NETCONFIGS:
         parser.add_argument('--%s' % (nc,), dest='netconfigs',
-                action='append_const', const=nc, default=[])
+                            action='append_const', const=nc, default=[])
     parser.add_argument('--attempt', dest='attempt', required=True, type=int)
     parser.add_argument('--ldap', dest='ldap', default='')
     parser.add_argument('--sha', dest='sha', default='')
     args = parser.parse_args()
 
     cloner = StoneRidgeCloner(args.nightly, args.srid, args.operating_systems,
-            args.netconfigs, args.ldap, args.sha, args.attempt)
+                              args.netconfigs, args.ldap, args.sha,
+                              args.attempt)
     cloner.run()
