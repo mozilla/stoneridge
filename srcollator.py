@@ -44,6 +44,11 @@ class StoneRidgeCollator(object):
             fname = os.path.basename(ofile)
             suite = fname.split('.')[0]
             results['testrun']['suite'] = suite
+            ldap = stoneridge.get_config('run', 'ldap')
+            if ldap is None:
+                results['testrun']['options']['ldap'] = 'nightly'
+            else:
+                results['testrun']['options']['ldap'] = ldap
             logging.debug('suite: %s' % (suite,))
 
             # Read the raw data
