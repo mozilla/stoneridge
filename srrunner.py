@@ -36,7 +36,7 @@ class StoneRidgeRunner(object):
         """
         if not self.tests:
             logging.debug('searching for all tests in %s' %
-                    (self.testroot,))
+                          (self.testroot,))
             if stoneridge.get_config('test', 'enabled'):
                 tests = ['fake.js']
             else:
@@ -128,10 +128,11 @@ class StoneRidgeRunner(object):
 def main():
     parser = stoneridge.TestRunArgumentParser()
     parser.add_argument('--head', dest='heads', action='append',
-            metavar='HEADFILE',
-            help='Extra head.js file to append (can be used more than once)')
+                        metavar='HEADFILE',
+                        help='Extra head.js file to append (can be used more '
+                             'than once)')
     parser.add_argument('tests', nargs='*', metavar='TEST',
-            help='Name of single test file to run')
+                        help='Name of single test file to run')
 
     args = parser.parse_args()
 
