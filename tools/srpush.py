@@ -44,7 +44,7 @@ def read_config_element(cp, option):
     try:
         val = cp.get('srpush', option)
         return val
-    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+    except (configparser.NoSectionError, configparser.NoOptionError):
         return None
 
 
@@ -128,13 +128,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', dest='config', default=default_config,
-            help='Path to configuration file')
+                        help='Path to configuration file')
     parser.add_argument('--netconfig', dest='netconfigs',
-            choices=('broadband', 'umts', 'gsm', 'all'), required=True,
-            help='Netconfigs to run tests against', action='append')
+                        choices=('broadband', 'umts', 'gsm', 'all'),
+                        required=True,
+                        help='Netconfigs to run tests against', action='append')
     parser.add_argument('--os', dest='operating_systems',
-            choices=('windows', 'mac', 'linux', 'all'), required=True,
-            help='Operating systems to run tests on', action='append')
+                        choices=('windows', 'mac', 'linux', 'all'),
+                        required=True,
+                        help='Operating systems to run tests on',
+                        action='append')
     parser.add_argument('sha', default=None,  help='SHA of try run to push')
     args = parser.parse_args()
 
@@ -182,7 +185,7 @@ if __name__ == '__main__':
         operating_systems = args.operating_systems
 
     srid = srpush(args.sha, host, ldap, password, netconfigs,
-            operating_systems)
+                  operating_systems)
 
     sys.stdout.write('Push succeeded. Run ID is %s\n' % (srid,))
 

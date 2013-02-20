@@ -31,7 +31,7 @@ def main():
     for entry in queue:
         try:
             requests.post(root + '/mark_handled', data={'id': entry['pushid']},
-                    auth=(username, password))
+                          auth=(username, password))
         except:
             # If we fail to mark this as handled, wait until the next try so we
             # don't run the same thing more than once. It's not the end of the
@@ -39,6 +39,6 @@ def main():
             return
 
         stoneridge.enqueue(nightly=False, ldap=entry['ldap'], sha=entry['sha'],
-                netconfigs=entry['netconfigs'],
-                operating_systems=entry['operating_systems'],
-                srid=entry['srid'])
+                           netconfigs=entry['netconfigs'],
+                           operating_systems=entry['operating_systems'],
+                           srid=entry['srid'])
