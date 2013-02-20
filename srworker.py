@@ -6,7 +6,6 @@
 import logging
 import os
 import subprocess
-import tempfile
 
 import stoneridge
 
@@ -23,7 +22,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('unittest: %s' % (self.unittest,))
 
-        self.runconfig = None # Needs to be here so reset doesn't barf
+        self.runconfig = None  # Needs to be here so reset doesn't barf
         self.reset()
 
     def handle(self, srid, netconfig, tstamp):
@@ -107,8 +106,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         top level
         """
         self.logger.error('Error exit during %s' % (stage,))
-        raise StoneRidgeException('Error running %s: see %s\n' % (stage,
-            self.childlog))
+        raise StoneRidgeException('Error running %s: see %s\n' %
+                                  (stage, self.childlog))
 
     def run_process(self, stage, *args):
         """Run a particular subprocess with the default arguments, as well as
@@ -116,7 +115,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         """
         script = 'sr%s.py' % (stage,)
         logfile = os.path.join(self.logdir, '%02d_%s_%s.log' %
-                (self.procno, stage, self.srnetconfig))
+                               (self.procno, stage, self.srnetconfig))
         self.procno += 1
 
         command = [script,
@@ -132,7 +131,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         try:
             stoneridge.run_process(*command, logger=self.logger)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             # The process failed to run correctly, we need to say so
             self.childlog = logfile
 
@@ -143,7 +142,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
                 self.archive_on_failure = False
                 try:
                     self.run_process('archiver')
-                except StoneRidgeException as e:
+                except StoneRidgeException:
                     pass
             if not self.uploaded:
                 self.uploaded = True
@@ -190,6 +189,6 @@ def daemon():
 @stoneridge.main
 def main():
     parser = stoneridge.DaemonArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     parser.start_daemon(daemon)
