@@ -21,7 +21,7 @@ class NeckoDnsProxyServer(DnsProxyServer):
             return self.necko_ips[client]
         except (AttributeError, KeyError):
             iproute = subprocess.Popen(['ip', 'route', 'get', client],
-                    stdout=subprocess.PIPE)
+                                       stdout=subprocess.PIPE)
             res = iproute.stdout.read()
             iproute.wait()
             bits = res.split()
