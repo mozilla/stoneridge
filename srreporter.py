@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import argparse
 import base64
 import dzclient
 import json
@@ -31,7 +30,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         logging.debug('unittest: %s' % (self.unittest,))
 
     def save_data(self, srid, netconfig, operating_system, results,
-            metadata_b64):
+                  metadata_b64):
         dirname = '%s_%s_%s' % (srid, netconfig, operating_system)
         archivedir = os.path.join(self.archives, dirname)
         if os.path.exists(archivedir):
@@ -56,17 +55,18 @@ class StoneRidgeReporter(stoneridge.QueueListener):
             dataset = results[name]
             if not isinstance(dataset, dict):
                 # This one is crap, ignore it
-                logging.error('bad json: %s' % (contents,))
+                logging.error('bad json: %s' % (results[name],))
                 continue
 
             if self.unittest:
                 logging.debug('would upload data via https to %s, project %s' %
-                        (self.host, self.project))
+                              (self.host, self.project))
                 logging.debug('dataset: %s' % (dataset,))
             else:
                 logging.debug('uploading data')
                 request = dzclient.DatazillaRequest('https', self.host,
-                        self.project, self.key, self.secret)
+                                                    self.project, self.key,
+                                                    self.secret)
                 response = request.send(dataset)
                 logging.debug('got status code %s' % (response.status,))
                 if response.status != 200:
@@ -91,6 +91,6 @@ def daemon():
 @stoneridge.main
 def main():
     parser = stoneridge.DaemonArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     parser.start_daemon(daemon)
