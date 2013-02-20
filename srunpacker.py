@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import glob
 import logging
 import os
 import shutil
@@ -43,7 +42,7 @@ class StoneRidgeUnpacker(object):
         downloaddir = stoneridge.get_config('run', 'download')
         download_suffix = stoneridge.get_config('machine', 'download_suffix')
         self.firefoxpkg = os.path.join(downloaddir,
-                'firefox.%s' % (download_suffix,))
+                                       'firefox.%s' % (download_suffix,))
         logging.debug('firefox package: %s' % (self.firefoxpkg,))
         self.testzip = os.path.join(downloaddir, 'tests.zip')
         logging.debug('test zip file: %s' % (self.testzip,))
@@ -107,13 +106,13 @@ class StoneRidgeUnpacker(object):
 
     def unpack_firefox(self):
         logging.critical('Base unpack_firefox called!')
-        raise NotImplementedError, 'Use a subclass of StoneRidgeUnpacker'
+        raise NotImplementedError('Use a subclass of StoneRidgeUnpacker')
 
 
 class WindowsUnpacker(StoneRidgeUnpacker):
     def unpack_firefox(self):
         logging.debug('extracting windows firefox zip %s to %s' %
-                (self.firefoxpkg, self.workdir))
+                      (self.firefoxpkg, self.workdir))
         z = zipfile.ZipFile(self.firefoxpkg, 'r')
         z.extractall(self.workdir)
 
@@ -121,9 +120,9 @@ class WindowsUnpacker(StoneRidgeUnpacker):
 class LinuxUnpacker(StoneRidgeUnpacker):
     def unpack_firefox(self):
         logging.debug('untarring linux package %s in %s' %
-                (self.firefoxpkg, self.workdir))
+                      (self.firefoxpkg, self.workdir))
         subprocess.call(['tar', 'xjvf', self.firefoxpkg],
-                cwd=self.workdir)
+                        cwd=self.workdir)
 
 
 class MacUnpacker(StoneRidgeUnpacker):
@@ -132,8 +131,10 @@ class MacUnpacker(StoneRidgeUnpacker):
         installroot = stoneridge.get_config('stoneridge', 'root')
         installdmg = os.path.join(installroot, 'installdmg.sh')
         logging.debug('mac using installdmg at %s' % (installdmg,))
-        out = subprocess.check_output(['/bin/bash', installdmg, self.firefoxpkg],
-                cwd=self.workdir, stderr=subprocess.STDOUT)
+        out = subprocess.check_output(['/bin/bash', installdmg,
+                                       self.firefoxpkg],
+                                      cwd=self.workdir,
+                                      stderr=subprocess.STDOUT)
         logging.debug(out)
 
 
@@ -141,7 +142,7 @@ class MacUnpacker(StoneRidgeUnpacker):
 def main():
     parser = stoneridge.TestRunArgumentParser()
 
-    args = parser.parse_args()
+    parser.parse_args()
 
     unpacker = StoneRidgeUnpacker()
     unpacker.run()
