@@ -56,13 +56,16 @@ if _args.log:
     _handler.setFormatter(_formatter)
     _logger.addHandler(_handler)
 
+
 def log(msg):
     if _args.log:
         logging.debug(msg)
 
+
 def log_exc(msg):
     if _args.log:
         logging.exception(msg)
+
 
 def main(_main):
     """Mark a function as the main function to run when run as a script.
@@ -78,7 +81,7 @@ def main(_main):
         except Exception as e:
             log_exc('EXCEPTION')
             traceback.print_exception(type(e), e, sys.exc_info()[2], None,
-                    sys.stderr)
+                                      sys.stderr)
             sys.exit(1)
         log('FINISHED')
         sys.exit(0)
@@ -94,7 +97,7 @@ class cwd(object):
         self.newcwd = dirname
         self.oldcwd = os.getcwd()
         logging.debug('creating cwd object with newcwd %s and oldcwd %s' %
-                (self.newcwd, self.oldcwd))
+                      (self.newcwd, self.oldcwd))
 
     def __enter__(self):
         logging.debug('changing cwd to %s' % (self.newcwd,))
@@ -119,7 +122,7 @@ def get_config(section, option, default=None):
     """
     global _cp
 
-    logging.debug('reading %s.%s (default %s)' %  (section, option, default))
+    logging.debug('reading %s.%s (default %s)' % (section, option, default))
 
     if _cp is None:
         _cp = ConfigParser.SafeConfigParser()
@@ -136,9 +139,9 @@ def get_config(section, option, default=None):
         val = _cp.get(section, option)
         logging.debug('found %s.%s, returning %s' % (section, option, val))
         return val
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError) as e:
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
         logging.debug('unable to find %s.%s, returning default %s' %
-                (section, option, default))
+                      (section, option, default))
         return default
 
 
@@ -150,7 +153,7 @@ def get_config_int(section, option, default=0):
         return int(value)
     except ValueError:
         logging.debug('invalid int value %s, returning default %s' %
-                (value, default))
+                      (value, default))
         return default
 
 
@@ -204,8 +207,8 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
     xpcargs = [_xpcshell] + args
     logging.debug('Running xpcshell: %s' % (xpcargs,))
     proc = subprocess.Popen(xpcargs, stdout=stdout,
-            stderr=subprocess.STDOUT, cwd=bindir,
-            env=_xpcshell_environ)
+                            stderr=subprocess.STDOUT, cwd=bindir,
+                            env=_xpcshell_environ)
     res = proc.wait()
     return (res, proc.stdout)
 
@@ -233,16 +236,16 @@ def get_os_version():
 
 
 _netconfig_ids = {
-    'broadband':'0',
-    'umts':'1',
-    'gsm':'2',
+    'broadband': '0',
+    'umts': '1',
+    'gsm': '2',
 }
 
 
 _os_ids = {
-    'windows':'w',
-    'linux':'l',
-    'mac':'m',
+    'windows': 'w',
+    'linux': 'l',
+    'mac': 'm',
 }
 
 
@@ -282,13 +285,13 @@ def run_process(procname, *args, **kwargs):
     logger.debug(' '.join(command))
     try:
         proc_stdout = subprocess.check_output(command,
-                stderr=subprocess.STDOUT)
+                                              stderr=subprocess.STDOUT)
         logger.debug(proc_stdout)
         logger.debug('SUCCEEDED: %s' % (procname,))
     except subprocess.CalledProcessError as e:
         logger.error('FAILED: %s (%s)' % (procname, e.returncode))
         logger.error(e.output)
-        raise # Do this in case caller has any special handling
+        raise  # Do this in case caller has any special handling
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -299,9 +302,9 @@ class ArgumentParser(argparse.ArgumentParser):
         argparse.ArgumentParser.__init__(self, **kwargs)
 
         self.add_argument('--config', dest='_sr_config_', required=True,
-                help='Configuration file')
+                          help='Configuration file')
         self.add_argument('--log', dest='_sr_log_', default=None, required=True,
-                help='File to place log info in')
+                          help='File to place log info in')
 
     def parse_args(self, **kwargs):
         global _srconf
@@ -389,7 +392,7 @@ def daemonize(pidfile, function, **kwargs):
 
     with file(pidfile, 'w') as f:
         logging.debug('locking %s' % (pidfile,))
-        fcntl.lockf(f, fcntl.LOCK_EX|fcntl.LOCK_NB)
+        fcntl.lockf(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         logging.debug('writing pid')
         f.write('%s' % (os.getpid(),))
@@ -458,7 +461,7 @@ class TestRunArgumentParser(ArgumentParser):
         ArgumentParser.__init__(self, **kwargs)
 
         self.add_argument('--runconfig', dest='_sr_runconfig_', required=True,
-                help='Run-specific configuration file')
+                          help='Run-specific configuration file')
 
     def parse_args(self, **kwargs):
         global _runconf
@@ -546,13 +549,14 @@ class QueueWriter(object):
         channel = connection.channel()
 
         body = json.dumps(msg)
+        properties = pika.BasicProperties(delivery_mode=2)  # Durable
         channel.basic_publish(exchange='', routing_key=self._queue, body=body,
-                properties=pika.BasicProperties(delivery_mode=2)) # Durable
-        connection.close() # Ensures the message is sent
+                              properties=properties)
+        connection.close()  # Ensures the message is sent
 
 
 def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
-        operating_systems=None, srid=None, attempt=1):
+            operating_systems=None, srid=None, attempt=1):
     """Convenience function to kick off a test run. If called with no arguments,
     this will kick off a run for all operating systems with all netconfigs
     against the latest nightly build.
@@ -580,4 +584,5 @@ def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
 
     writer = QueueWriter(INCOMING_QUEUE)
     writer.enqueue(nightly=nightly, ldap=ldap, sha=sha, netconfigs=netconfigs,
-            operating_systems=operating_systems, srid=srid, attempt=attempt)
+                   operating_systems=operating_systems, srid=srid,
+                   attempt=attempt)
