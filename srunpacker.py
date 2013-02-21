@@ -14,12 +14,13 @@ import stoneridge
 
 class StoneRidgeUnpacker(object):
     """Unpacks the firefox archive and the tests zipfile and puts all the files
-    in the right place. Most of this effort is common to all platforms, but some
-    is platform-specific.
+    in the right place. Most of this effort is common to all platforms, but
+    some is platform-specific.
     """
     def __new__(self, *args, **kwargs):
-        # The caller shouldn't care what platform its running on, so we override
-        # __new__ to create the class that will unpack properly no matter what
+        # The caller shouldn't care what platform its running on, so we
+        # override __new__ to create the class that will unpack properly no
+        # matter what
         os_name = stoneridge.get_config('machine', 'os')
         if os_name == 'windows':
             logging.debug('creating windows unpacker')

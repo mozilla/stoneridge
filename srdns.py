@@ -119,8 +119,8 @@ class MacDnsModifier(BaseDnsModifier):
             # Only need to bother saving this once per run
             logging.debug('Saving original DNS server(s)')
             args = ['networksetup', '-getdnsservers', self.main_if]
-            logging.debug('Getting original DNS server(s) using command line %s'
-                          % (args,))
+            logging.debug('Getting original DNS server(s) using command '
+                          'line %s' % (args,))
             p = subprocess.Popen(args, stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
             p.wait()

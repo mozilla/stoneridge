@@ -63,7 +63,8 @@ def get_config_from_user(cp, missing_options):
     """
     new_options = {}
 
-    sys.stdout.write('Some configuration options are missing. Please fill them in here.\n')
+    sys.stdout.write('Some configuration options are missing. Please fill '
+                     'them in here.\n')
     for option in missing_options:
         new_options[option] = raw_input('%s: ' % (option,)).strip()
         write_config_element(cp, option, new_options[option])
@@ -132,7 +133,8 @@ if __name__ == '__main__':
     parser.add_argument('--netconfig', dest='netconfigs',
                         choices=('broadband', 'umts', 'gsm', 'all'),
                         required=True,
-                        help='Netconfigs to run tests against', action='append')
+                        help='Netconfigs to run tests against',
+                        action='append')
     parser.add_argument('--os', dest='operating_systems',
                         choices=('windows', 'mac', 'linux', 'all'),
                         required=True,

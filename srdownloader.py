@@ -11,8 +11,8 @@ import stoneridge
 
 
 class StoneRidgeDownloader(object):
-    """Downloads the firefox archive and the tests.zip for a the machine this is
-    running on and puts them in the stone ridge working directory
+    """Downloads the firefox archive and the tests.zip for a the machine this
+    is running on and puts them in the stone ridge working directory
     """
     def __init__(self):
         self.server = stoneridge.get_config('download', 'server')

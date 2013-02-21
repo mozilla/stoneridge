@@ -21,9 +21,9 @@ WINDOWS_SUBDIRS = ('try-win32',)  # win64 is unsupported, so ignore it for now
 
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
-    ftp.m.o to a local directory that is served up to the clients by a plain ol'
-    web server. Those clients use stoneridge_downloader.py to get the files they
-    need from the central server.
+    ftp.m.o to a local directory that is served up to the clients by a plain
+    ol' web server. Those clients use stoneridge_downloader.py to get the files
+    they need from the central server.
     """
     def __init__(self, nightly, srid, operating_systems, netconfigs,
                  ldap, sha, attempt):
@@ -105,8 +105,8 @@ class StoneRidgeCloner(object):
         return url
 
     def _get_prefix(self, files):
-        """Get the filename prefix that is common to all the files we'll need to
-        download
+        """Get the filename prefix that is common to all the files we'll need
+        to download
 
         Returns: <prefix (string)>
         """
@@ -141,8 +141,8 @@ class StoneRidgeCloner(object):
             f.write(resp.content)
 
     def _dl_test_zip(self, try_subdir, archid, outdir):
-        """Download the test zip for a particular architecture id (<archid>) and
-        save it at <outdir>/tests.zip
+        """Download the test zip for a particular architecture id (<archid>)
+        and save it at <outdir>/tests.zip
         """
         logging.debug('downloading test zip for %s to %s' % (archid, outdir))
         srcfile = '%s.%s.tests.zip' % (self.prefix, archid)
@@ -208,17 +208,17 @@ class StoneRidgeCloner(object):
         self._dl_test_zip(WINDOWS_SUBDIRS[0], 'win32', 'win32')
 
     def _cleanup_old_directories(self):
-        """We only keep around so many directories of historical firefoxen. This
-        gets rid of ones we don't care about any more
+        """We only keep around so many directories of historical firefoxen.
+        This gets rid of ones we don't care about any more
         """
         logging.debug('cleaning up old directories')
         with stoneridge.cwd(self.outroot):
             listing = os.listdir('.')
             logging.debug('candidate files: %s' % (listing,))
 
-            # We want to make sure that we're not looking at anything that's not
-            # a directory that may have somehow gotten into our directory. We
-            # also need to ignore dotfiles.
+            # We want to make sure that we're not looking at anything that's
+            # not a directory that may have somehow gotten into our directory.
+            # We also need to ignore dotfiles.
             directories = [l for l in listing
                            if os.path.isdir(l) and not l.startswith('.')]
             logging.debug('directories: %s' % (directories,))
@@ -298,7 +298,8 @@ class StoneRidgeCloner(object):
             if not dist_files:
                 # We didn't get any files listed, but we should have. Just drop
                 # this run on the floor
-                logging.error('No files found! Dropping srid %s' % (self.srid,))
+                logging.error('No files found! Dropping srid %s' %
+                              (self.srid,))
                 sys.exit(1)
 
             files = dist_files

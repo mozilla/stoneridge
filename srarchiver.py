@@ -29,11 +29,12 @@ class StoneRidgeArchiver(object):
             info = json.load(f)
             logging.debug('loaded info %s' % (info,))
 
-        arcname = 'stoneridge_%s_%s_%s_%s_%s' % (info['date'],
-                                                 info['test_machine']['name'],
-                                                 info['test_build']['revision'],
-                                                 srid,
-                                                 netconfig)
+        arcname = 'stoneridge_%s_%s_%s_%s_%s' % (
+            info['date'],
+            info['test_machine']['name'],
+            info['test_build']['revision'],
+            srid,
+            netconfig)
         logging.debug('archive name %s.zip' % (arcname,))
 
         filename = os.path.join(archivedir, '%s.zip' % (arcname,))

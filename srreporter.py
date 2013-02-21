@@ -70,7 +70,8 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                 response = request.send(dataset)
                 logging.debug('got status code %s' % (response.status,))
                 if response.status != 200:
-                    logging.error('bad http status %s for %s' % (response.status, srid))
+                    logging.error('bad http status %s for %s' %
+                                  (response.status, srid))
 
                 try:
                     result = json.load(response)
@@ -78,7 +79,8 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                     result = ''
                 logging.debug('got result %s' % (result,))
                 if result['status'] != 'well-formed JSON stored':
-                    logging.error('bad status for %s: %s' % (srid, result['status']))
+                    logging.error('bad status for %s: %s' %
+                                  (srid, result['status']))
 
         self.save_data(srid, netconfig, operating_system, results, metadata)
 

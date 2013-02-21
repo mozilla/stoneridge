@@ -32,8 +32,9 @@ class StoneRidgeDeferrer(object):
             time.sleep(30)
             now = int(time.time())
 
-        stoneridge.enqueue(srid=self.srid, nightly=self.nightly, ldap=self.ldap,
-                           sha=self.sha, netconfigs=self.netconfigs,
+        stoneridge.enqueue(srid=self.srid, nightly=self.nightly,
+                           ldap=self.ldap, sha=self.sha,
+                           netconfigs=self.netconfigs,
                            operating_systems=self.operating_systems,
                            attempt=self.attempt)
 

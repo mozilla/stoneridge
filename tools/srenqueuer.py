@@ -22,8 +22,9 @@ def main():
     try:
         res = requests.get(root + '/list_unhandled', auth=(username, password))
     except:
-        # For some reason, we sometimes get a requests failure here, even though
-        # everything seems to be working fine. Ignore that, and try again later.
+        # For some reason, we sometimes get a requests failure here, even
+        # though everything seems to be working fine. Ignore that, and try
+        # again later.
         return
 
     queue = json.loads(res.text)

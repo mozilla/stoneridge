@@ -31,8 +31,8 @@ class StoneRidgeInfoGatherer(object):
         build_info['branch'] = stoneridge.get_config('run', 'netconfig')
 
         # Due to the way the graph server works, we need to create a unique
-        # build id for each build/os/netconfig combination. We also want to keep
-        # the unmodified build ID around for posterity.
+        # build id for each build/os/netconfig combination. We also want to
+        # keep the unmodified build ID around for posterity.
         build_info['original_buildid'] = cp.get('App', 'BuildID')
 
         # Build ID is limited to 16 characters in the receiving database, and

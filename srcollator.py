@@ -34,7 +34,9 @@ class StoneRidgeCollator(object):
             # Make a new copy of the base info
             results = copy.deepcopy(info)
             del results['date']
-            results['testrun'] = {'date': info['date'], 'suite': None, 'options': {}}
+            results['testrun'] = {'date': info['date'],
+                                  'suite': None,
+                                  'options': {}}
             results['results'] = collections.defaultdict(list)
             results['results_aux'] = collections.defaultdict(list)
             logging.debug('initial testrun: %s' % (results['testrun'],))
@@ -59,11 +61,12 @@ class StoneRidgeCollator(object):
                     logging.debug('v: %s' % (v,))
                     if k == 'total':
                         logging.debug('appending total %s' % (v['total'],))
-                        # The graph server calculates totals for us, we just keep
-                        # our calculations around for verification in case
+                        # The graph server calculates totals for us, we just
+                        # keep our calculations around for verification in case
                         results['results_aux']['totals'].append(v['total'])
                     else:
-                        logging.debug('appending %s total %s' % (k, v['total']))
+                        logging.debug('appending %s total %s' %
+                                      (k, v['total']))
                         results['results'][k].append(v['total'])
 
                         for s in ('start', 'stop'):

@@ -76,7 +76,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
         self.logger.debug('uploaded: %s' % (self.uploaded,))
-        self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
+        self.logger.debug('archive on failure: %s' %
+                          (self.archive_on_failure,))
         self.logger.debug('procno: %s' % (self.procno,))
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
@@ -137,8 +138,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
             if self.archive_on_failure:
                 # We've reached the point in our run where we have something to
-                # save off for usage. Archive it, but don't try to archive again
-                # if for some reason the archival process fails :)
+                # save off for usage. Archive it, but don't try to archive
+                # again if for some reason the archival process fails :)
                 self.archive_on_failure = False
                 try:
                     self.run_process('archiver')

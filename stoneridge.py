@@ -303,8 +303,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self.add_argument('--config', dest='_sr_config_', required=True,
                           help='Configuration file')
-        self.add_argument('--log', dest='_sr_log_', default=None, required=True,
-                          help='File to place log info in')
+        self.add_argument('--log', dest='_sr_log_', default=None,
+                          required=True, help='File to place log info in')
 
     def parse_args(self, **kwargs):
         global _srconf
@@ -557,9 +557,9 @@ class QueueWriter(object):
 
 def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
             operating_systems=None, srid=None, attempt=1):
-    """Convenience function to kick off a test run. If called with no arguments,
-    this will kick off a run for all operating systems with all netconfigs
-    against the latest nightly build.
+    """Convenience function to kick off a test run. If called with no
+    arguments, this will kick off a run for all operating systems with all
+    netconfigs against the latest nightly build.
     """
     if not netconfigs:
         netconfigs = _netconfig_ids.keys()
