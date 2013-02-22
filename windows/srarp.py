@@ -3,9 +3,9 @@
 import subprocess
 
 ip_mappings = {
-    '172.17.0.1': '2C:76:8A:D0:CE:89',  # Broadband
-    '172.18.0.1': '2C:76:8A:D0:CA:D9',  # UMTS
-    '172.19.0.1': '2C:76:8A:D0:CE:B9',  # GSM
+    '172.17.0.1': '2C-76-8A-D0-CE-89',  # Broadband
+    '172.18.0.1': '2C-76-8A-D0-CA-D9',  # UMTS
+    '172.19.0.1': '2C-76-8A-D0-CE-B9',  # GSM
 }
 
 for ip, mac in ip_mappings.items():
