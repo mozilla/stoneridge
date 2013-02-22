@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 # stoneridge_server	Stone Ridge server setup
-# 
+#
 # chkconfig: 2345 98 09
 # description: stoneridge_server is responsible for serving resources and \
 #              maintaining network conditions
 # processname: httpd
-# pidfile: 
+# pidfile:
 # config: /home/hurley/srhome/conf/httpd.conf
 
 ### BEGIN INIT INFO
@@ -19,34 +19,21 @@
 # Description: stoneridge server sets network conditions and serves resources
 ### END INIT INFO
 
-### BEGIN CONFIGURATION SECTION
-SRHOME=/home/hurley/srhome
-CONFFILE=$SRHOME/stoneridge.ini
-MAINIP=172.17.0.1
-RATE=10mbit
-MAXBURST=10240
-LIMIT=30720
-LATENCY=90ms
-JITTER=
-CORRELATION=
-NETCONFIG=broadband
-### END CONFIGURATION SECTION
+source /etc/default/stoneridge
 
-SRROOT=$SRHOME/stoneridge
-SRRUN=$SRROOT/srrun.py
 NAMEDPID=$SRHOME/srnamed.pid
 NAMEDLOG=$SRHOME/srnamed.log
 SCHEDULERPID=$SRHOME/srscheduler.pid
 SCHEDULERLOG=$SRHOME/srscheduler.log
 
 start() {
-    # Setup eth1 to have an address
-    ip addr add $MAINIP/12 dev eth1
-    # Setup our network conditions on eth1
-    tc qdisc add dev eth1 root handle 1:0 tbf rate $RATE maxburst $MAXBURST limit $LIMIT
-    tc qdisc add dev eth1 parent 1:1 handle 10:0 netem latency $LATENCY $JITTER $CORRELATION
+    # Setup $MYDEV to have an address
+    ip addr add $MYIP/12 dev $MYDEV
+    # Setup our network conditions on $MYDEV
+    tc qdisc add dev $MYDEV root handle 1:0 tbf rate $RATE maxburst $MAXBURST limit $LIMIT
+    tc qdisc add dev $MYDEV parent 1:1 handle 10:0 netem latency $LATENCY $JITTER $CORRELATION
     # Start srnamed
-    python $SRRUN $SRROOT/srnamed.py --listen $MAINIP --pidfile $NAMEDPID --log $NAMEDLOG
+    python $SRRUN $SRROOT/srnamed.py --listen $MYIP --pidfile $NAMEDPID --log $NAMEDLOG
     # Start srscheduler
     python $SRRUN $SRROOT/srscheduler.py --config $CONFFILE --pidfile $SCHEDULERPID --log $SCHEDULERLOG --netconfig $NETCONFIG
     # Start apache
@@ -61,9 +48,9 @@ stop() {
     # Stop srnamed
     kill $(cat $NAMEDPID)
     # Remove network conditions
-    tc qdisc del dev eth1 root
-    # Remove ip addresses from eth1
-    ip addr del $MAINIP/12 dev eth1
+    tc qdisc del dev $MYDEV root
+    # Remove ip addresses from $MYDEV
+    ip addr del $MYIP/12 dev $MYDEV
 }
 
 case "$1" in

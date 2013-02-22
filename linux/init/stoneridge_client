@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # stoneridge_client	Stone Ridge client setup
-# 
+#
 # chkconfig: 2345 98 09
 # description: stoneridge_client is responsible for running tests
 
@@ -15,14 +15,8 @@
 # Description: stoneridge client runs tests
 ### END INIT INFO
 
-### BEGIN CONFIGURATION SECTION
-SRHOME=/home/hurley/srhome
-CONFFILE=$SRHOME/stoneridge.ini
-MYIP=172.16.1.1
-### END CONFIGURATION SECTION
+source /etc/default/stoneridge
 
-SRROOT=$SRHOME/stoneridge
-SRRUN=$SRROOT/srrun.py
 DNSPID=$SRHOME/srdns.pid
 DNSLOG=$SRHOME/srdns.log
 WORKERPID=$SRHOME/srworker.pid
@@ -31,7 +25,7 @@ CLEANERPID=$SRHOME/srcleaner.pid
 CLEANERLOG=$SRHOME/srcleaner.log
 
 start() {
-    ip addr add $MYIP/12 dev eth1
+    ip addr add $MYIP/12 dev $MYDEV
     python $SRRUN $SRROOT/srdns.py --config $CONFFILE --pidfile $DNSPID --log $DNSLOG
     python $SRRUN $SRROOT/srworker.py --config $CONFFILE --pidfile $WORKERPID --log $WORKERLOG
     python $SRRUN $SRROOT/srcleaner.py --config $CONFFILE --pidfile $CLEANERPID --log $CLEANERLOG
@@ -41,7 +35,7 @@ stop() {
     kill $(cat $CLEANERPID)
     kill $(cat $WORKERPID)
     kill $(cat $DNSPID)
-    ip addr del $MYIP/12 dev eth1
+    ip addr del $MYIP/12 dev $MYDEV
 }
 
 case "$1" in

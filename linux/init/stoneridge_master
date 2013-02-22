@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # stoneridge_master	Stone Ridge master setup
-# 
+#
 # chkconfig: 2345 98 09
 # description: stoneridge_master is responsible for serving builds and \
 #              uploading results to the graph server
@@ -16,13 +16,8 @@
 # Description: stoneridge serves builds and uploads results
 ### END INIT INFO
 
-### BEGIN CONFIGURATION SECTION
-SRHOME=/home/hurley/srhome
-CONFFILE=$SRHOME/stoneridge.ini
-### END CONFIGURATION SECTION
+source /etc/default/stoneridge
 
-SRROOT=$SRHOME/stoneridge
-SRRUN=$SRROOT/srrun.py
 MASTERPID=$SRHOME/srmaster.pid
 MASTERLOG=$SRHOME/srmaster.log
 REPORTERPID=$SRHOME/srreporter.pid
