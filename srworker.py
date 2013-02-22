@@ -84,7 +84,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
         self.logger.debug('runconfig: %s' % (self.runconfig,))
-        self.logger.debug('ldap: %s' % (self.ldap,))
+        self.logger.debug('ldap: %s' % (ldap,))
 
         try:
             self.run_test()
