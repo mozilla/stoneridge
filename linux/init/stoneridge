@@ -38,6 +38,20 @@ CORRELATION=
 # What network configuration the above settings correspond to
 NETCONFIG=broadband
 
+### THESE ITEMS APPLY ONLY TO STONE RIDGE CLIENTS
+# These are the IP addresses and ethernet MAC addresses for each of the
+# network configurations. This allows us to have static ARP entries for
+# these machines, which makes the tests take the expected amount of time for
+# the latencies involved.
+BROADBAND_IP=172.17.0.1
+BROADBAND_MAC=2C:76:8A:D0:CE:89
+
+UMTS_IP=172.18.0.1
+UMTS_MAC=2C:76:8A:D0:CA:D9
+
+GSM_IP=172.19.0.1
+GSM_MAC=2C:76:8A:D0:CE:B9
+
 ### NOTHING BELOW HERE SHOULD BE CHANGED, UNLESS YOU ABSOLUTELY, POSITIVELY
 ### KNOW WHAT YOU ARE DOING! YOU HAVE BEEN WARNED, I MEAN IT!
 SRROOT=$SRHOME/stoneridge

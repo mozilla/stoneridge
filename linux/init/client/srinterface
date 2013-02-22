@@ -19,9 +19,15 @@ source /etc/default/stoneridge
 
 start() {
     ip addr add $MYIP/12 dev $MYDEV
+    ip neigh add $BROADBAND_IP lladdr $BROADBAND_MAC dev $MYDEV nud permanent
+    ip neigh add $UMTS_IP lladdr $UMTS_MAC dev $MYDEV nud permanent
+    ip neigh add $GSM_IP lladdr $GSM_MAC dev $MYDEV nud permanent
 }
 
 stop() {
+    ip neigh del $GSM_IP dev $MYDEV
+    ip neigh del $UMTS_IP dev $MYDEV
+    ip neigh del $BROADBAND_IP dev $MYDEV
     ip addr del $MYIP/12 dev $MYDEV
 }
 
