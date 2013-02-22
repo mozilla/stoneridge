@@ -26,7 +26,7 @@ start() {
 }
 
 stop() {
-    kill $(cat $SCHEDULERPID)
+    kill $(cat $PID)
 }
 
 case "$1" in
