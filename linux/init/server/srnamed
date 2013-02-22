@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# srnamed	Stone Ridge named
+#
+# chkconfig: 2345 98 09
+# description: srnamed is responsible for serving fake dns responses
+
+### BEGIN INIT INFO
+# Provides: srnamed
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start and stop stoneridge named
+# Description: srnamed serves fake dns responses
+### END INIT INFO
+
+source /etc/default/stoneridge
+
+PID=$SRHOME/srnamed.pid
+LOG=$SRHOME/srnamed.log
+
+start() {
+    python $SRRUN $SRROOT/srnamed.py --listen $MYIP --pidfile $PID --log $LOG
+}
+
+stop() {
+    kill $(cat $PID)
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|force-reload|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+    exit 2
+esac

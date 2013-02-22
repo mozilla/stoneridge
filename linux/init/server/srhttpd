@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# srhttpd	Stone Ridge httpd daemon
+#
+# chkconfig: 2345 98 09
+# description: srhttpd is responsible for serving resources
+# processname: httpd
+# pidfile:
+# config: /home/hurley/srhome/conf/httpd.conf
+
+### BEGIN INIT INFO
+# Provides: srhttpd
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start and stop stoneridge httpd
+# Description: stoneridge httpd serves resources
+### END INIT INFO
+
+source /etc/default/stoneridge
+
+start() {
+    $SRHOME/bin/apachectl start
+}
+
+stop() {
+    $SRHOME/bin/apachectl stop
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|force-reload|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+    exit 2
+esac
