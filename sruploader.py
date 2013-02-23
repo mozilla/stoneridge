@@ -38,7 +38,7 @@ class StoneRidgeUploader(object):
 
         metadata_file = stoneridge.get_config('run', 'metadata')
         if os.path.exists(metadata_file):
-            with file(metadata_file) as f:
+            with file(metadata_file, 'rb') as f:
                 contents = f.read()
             metadata = base64.b64encode(contents)
         else:
