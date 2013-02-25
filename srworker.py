@@ -6,7 +6,6 @@
 import logging
 import os
 import subprocess
-import tempfile
 
 import stoneridge
 
@@ -23,7 +22,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         logging.debug('srconffile: %s' % (self.srconffile,))
         logging.debug('unittest: %s' % (self.unittest,))
 
-        self.runconfig = None # Needs to be here so reset doesn't barf
+        self.runconfig = None  # Needs to be here so reset doesn't barf
         self.reset()
 
     def handle(self, srid, netconfig, tstamp, ldap):
@@ -79,7 +78,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
         self.logger.debug('uploaded: %s' % (self.uploaded,))
-        self.logger.debug('archive on failure: %s' % (self.archive_on_failure,))
+        self.logger.debug('archive on failure: %s' %
+                          (self.archive_on_failure,))
         self.logger.debug('procno: %s' % (self.procno,))
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
@@ -110,8 +110,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         top level
         """
         self.logger.error('Error exit during %s' % (stage,))
-        raise StoneRidgeException('Error running %s: see %s\n' % (stage,
-            self.childlog))
+        raise StoneRidgeException('Error running %s: see %s\n' %
+                                  (stage, self.childlog))
 
     def run_process(self, stage, *args):
         """Run a particular subprocess with the default arguments, as well as
@@ -119,7 +119,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         """
         script = 'sr%s.py' % (stage,)
         logfile = os.path.join(self.logdir, '%02d_%s_%s.log' %
-                (self.procno, stage, self.srnetconfig))
+                               (self.procno, stage, self.srnetconfig))
         self.procno += 1
 
         command = [script,
@@ -135,18 +135,18 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         try:
             stoneridge.run_process(*command, logger=self.logger)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             # The process failed to run correctly, we need to say so
             self.childlog = logfile
 
             if self.archive_on_failure:
                 # We've reached the point in our run where we have something to
-                # save off for usage. Archive it, but don't try to archive again
-                # if for some reason the archival process fails :)
+                # save off for usage. Archive it, but don't try to archive
+                # again if for some reason the archival process fails :)
                 self.archive_on_failure = False
                 try:
                     self.run_process('archiver')
-                except StoneRidgeException as e:
+                except StoneRidgeException:
                     pass
             if not self.uploaded:
                 self.uploaded = True
@@ -193,6 +193,6 @@ def daemon():
 @stoneridge.main
 def main():
     parser = stoneridge.DaemonArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     parser.start_daemon(daemon)

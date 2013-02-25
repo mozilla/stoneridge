@@ -36,7 +36,7 @@ class StoneRidgeRunner(object):
         """
         if not self.tests:
             logging.debug('searching for all tests in %s' %
-                    (self.testroot,))
+                          (self.testroot,))
             if stoneridge.get_config('test', 'enabled'):
                 tests = ['fake.js']
             else:
@@ -108,7 +108,8 @@ class StoneRidgeRunner(object):
                 logging.debug('Not running processes: in unit test mode')
             else:
                 if tcpdump_exe and tcpdump_if:
-                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000', '-U',
+                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000',
+                                                '-U', '-p',
                                                 '-w', tcpdump_output,
                                                 '-i', tcpdump_if],
                                                stdout=subprocess.PIPE,
@@ -116,7 +117,8 @@ class StoneRidgeRunner(object):
                 res, xpcshell_out = stoneridge.run_xpcshell(args)
                 if tcpdump:
                     tcpdump.terminate()
-                    logging.debug('tcpdump output\n%s' % (tcpdump.stdout.read(),))
+                    logging.debug('tcpdump output\n%s' %
+                                  (tcpdump.stdout.read(),))
                 logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
                 if res:
                     logging.error('TEST FAILED: %s' % (test,))
@@ -128,10 +130,11 @@ class StoneRidgeRunner(object):
 def main():
     parser = stoneridge.TestRunArgumentParser()
     parser.add_argument('--head', dest='heads', action='append',
-            metavar='HEADFILE',
-            help='Extra head.js file to append (can be used more than once)')
+                        metavar='HEADFILE',
+                        help='Extra head.js file to append (can be used more '
+                             'than once)')
     parser.add_argument('tests', nargs='*', metavar='TEST',
-            help='Name of single test file to run')
+                        help='Name of single test file to run')
 
     args = parser.parse_args()
 

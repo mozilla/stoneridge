@@ -48,4 +48,4 @@ for fname in sys.argv[1:]:
     except OSError as e:
         print 'Error opening %s for writing: %s' % (fname, e)
     except Exception as e:
-        print 'Error writing %s: %s' %  (fname, e)
+        print 'Error writing %s: %s' % (fname, e)

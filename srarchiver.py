@@ -29,13 +29,13 @@ class StoneRidgeArchiver(object):
             info = json.load(f)
             logging.debug('loaded info %s' % (info,))
 
-        arcname = 'stoneridge_%s_%s_%s_%s_%s' % (info['date'],
-                                                 info['test_machine']['name'],
-                                                 info['test_build']['revision'],
-                                                 srid,
-                                                 netconfig)
+        arcname = 'stoneridge_%s_%s_%s_%s_%s' % (
+            info['date'],
+            info['test_machine']['name'],
+            info['test_build']['revision'],
+            srid,
+            netconfig)
         logging.debug('archive name %s.zip' % (arcname,))
-
 
         filename = os.path.join(archivedir, '%s.zip' % (arcname,))
         if not os.path.exists(archivedir):
@@ -56,12 +56,12 @@ class StoneRidgeArchiver(object):
             for d in dirs:
                 logging.debug('subdirectory %s' % (d,))
                 zfile.write(os.path.join(dirpath, d),
-                        arcname=os.path.join(dirname, d))
+                            arcname=os.path.join(dirname, d))
             # Add the files to the zip
             for f in files:
                 logging.debug('file %s' % (f,))
                 zfile.write(os.path.join(dirpath, f),
-                        arcname=os.path.join(dirname, f))
+                            arcname=os.path.join(dirname, f))
 
         logging.debug('closing zip file')
         zfile.close()

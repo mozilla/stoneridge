@@ -51,14 +51,15 @@ class StoneRidgeUploader(object):
         ldap = stoneridge.get_config('run', 'ldap')
         operating_system = stoneridge.get_config('machine', 'os')
         self.queue.enqueue(srid=srid, results=results, metadata=metadata,
-                netconfig=netconfig, operating_system=operating_system,
-                ldap=ldap)
+                           netconfig=netconfig,
+                           operating_system=operating_system,
+                           ldap=ldap)
 
 
 @stoneridge.main
 def main():
     parser = stoneridge.TestRunArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     uploader = StoneRidgeUploader()
     uploader.run()

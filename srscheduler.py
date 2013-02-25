@@ -15,7 +15,8 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
         self.runners = {
             'linux': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['linux']),
             'mac': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['mac']),
-            'windows': stoneridge.QueueWriter(stoneridge.CLIENT_QUEUES['windows']),
+            'windows': stoneridge.QueueWriter(
+                stoneridge.CLIENT_QUEUES['windows']),
         }
 
     def handle(self, srid, operating_systems, tstamp, ldap):
@@ -32,7 +33,7 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
 
 def daemon(netconfig):
     scheduler = StoneRidgeScheduler(stoneridge.NETCONFIG_QUEUES[netconfig],
-            netconfig=netconfig)
+                                    netconfig=netconfig)
     scheduler.run()
 
 
@@ -40,7 +41,7 @@ def daemon(netconfig):
 def main():
     parser = stoneridge.DaemonArgumentParser()
     parser.add_argument('--netconfig', dest='netconfig',
-            choices=stoneridge.NETCONFIGS, required=True)
+                        choices=stoneridge.NETCONFIGS, required=True)
     args = parser.parse_args()
 
     parser.start_daemon(daemon, netconfig=args.netconfig)

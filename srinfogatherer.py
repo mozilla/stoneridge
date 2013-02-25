@@ -31,8 +31,8 @@ class StoneRidgeInfoGatherer(object):
         build_info['branch'] = stoneridge.get_config('run', 'netconfig')
 
         # Due to the way the graph server works, we need to create a unique
-        # build id for each build/os/netconfig combination. We also want to keep
-        # the unmodified build ID around for posterity.
+        # build id for each build/os/netconfig combination. We also want to
+        # keep the unmodified build ID around for posterity.
         build_info['original_buildid'] = cp.get('App', 'BuildID')
 
         # Build ID is limited to 16 characters in the receiving database, and
@@ -48,10 +48,10 @@ class StoneRidgeInfoGatherer(object):
         machine_info['osversion'] = stoneridge.get_os_version()
         machine_info['platform'] = platform.machine()
 
-        info = {'test_machine':machine_info,
-                'test_build':build_info,
-                'testrun':{},
-                'date':stoneridge.get_config_int('run', 'tstamp')}
+        info = {'test_machine': machine_info,
+                'test_build': build_info,
+                'testrun': {},
+                'date': stoneridge.get_config_int('run', 'tstamp')}
         logging.debug('gathered info: %s' % (info,))
 
         outdir = stoneridge.get_config('run', 'out')
@@ -67,7 +67,7 @@ class StoneRidgeInfoGatherer(object):
 @stoneridge.main
 def main():
     parser = stoneridge.TestRunArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     info_gatherer = StoneRidgeInfoGatherer()
     info_gatherer.run()

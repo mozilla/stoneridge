@@ -15,8 +15,8 @@ import stoneridge
 
 
 LINUX_SUBDIRS = ('try-linux64',)  # We only do 64-bit linux tests
-MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
-WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
+MAC_SUBDIRS = ('try-macosx64',)  # There is only one OS X build
+WINDOWS_SUBDIRS = ('try-win32',)  # win64 is unsupported, so ignore it for now
 
 
 EMAIL_MESSAGE = '''Hello, %s
@@ -35,12 +35,12 @@ My sincerest (for a computer) apologies,
 
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
-    ftp.m.o to a local directory that is served up to the clients by a plain ol'
-    web server. Those clients use stoneridge_downloader.py to get the files they
-    need from the central server.
+    ftp.m.o to a local directory that is served up to the clients by a plain
+    ol' web server. Those clients use stoneridge_downloader.py to get the files
+    they need from the central server.
     """
     def __init__(self, nightly, srid, operating_systems, netconfigs,
-            ldap, sha, attempt):
+                 ldap, sha, attempt):
         self.host = stoneridge.get_config('cloner', 'host')
         self.nightly = nightly
         self.outroot = stoneridge.get_config('cloner', 'output')
@@ -119,15 +119,15 @@ class StoneRidgeCloner(object):
         return url
 
     def _get_prefix(self, files):
-        """Get the filename prefix that is common to all the files we'll need to
-        download
+        """Get the filename prefix that is common to all the files we'll need
+        to download
 
         Returns: <prefix (string)>
         """
         logging.debug('getting filename prefix')
         prefixfile = [f for f in files if f.endswith('.checksums.asc')][-1]
         prefix = prefixfile.replace('.checksums.asc', '')
-        prefix = prefix.rsplit('.', 1)[0] # Strip off the platform information
+        prefix = prefix.rsplit('.', 1)[0]  # Strip off the platform information
         logging.debug('filename prefix: %s' % (prefix,))
         return prefix
 
@@ -155,8 +155,8 @@ class StoneRidgeCloner(object):
             f.write(resp.content)
 
     def _dl_test_zip(self, try_subdir, archid, outdir):
-        """Download the test zip for a particular architecture id (<archid>) and
-        save it at <outdir>/tests.zip
+        """Download the test zip for a particular architecture id (<archid>)
+        and save it at <outdir>/tests.zip
         """
         logging.debug('downloading test zip for %s to %s' % (archid, outdir))
         srcfile = '%s.%s.tests.zip' % (self.prefix, archid)
@@ -222,17 +222,17 @@ class StoneRidgeCloner(object):
         self._dl_test_zip(WINDOWS_SUBDIRS[0], 'win32', 'win32')
 
     def _cleanup_old_directories(self):
-        """We only keep around so many directories of historical firefoxen. This
-        gets rid of ones we don't care about any more
+        """We only keep around so many directories of historical firefoxen.
+        This gets rid of ones we don't care about any more
         """
         logging.debug('cleaning up old directories')
         with stoneridge.cwd(self.outroot):
             listing = os.listdir('.')
-            logging.debug('candidate files: %s' %  (listing,))
+            logging.debug('candidate files: %s' % (listing,))
 
-            # We want to make sure that we're not looking at anything that's not
-            # a directory that may have somehow gotten into our directory. We
-            # also need to ignore dotfiles.
+            # We want to make sure that we're not looking at anything that's
+            # not a directory that may have somehow gotten into our directory.
+            # We also need to ignore dotfiles.
             directories = [l for l in listing
                            if os.path.isdir(l) and not l.startswith('.')]
             logging.debug('directories: %s' % (directories,))
@@ -281,8 +281,8 @@ class StoneRidgeCloner(object):
         next_attempt = self.attempt + 1
         if next_attempt > self.max_attempts:
             logging.error('Unable to get build results for %s after %s '
-                    'attempts. Cancelling run.' %
-                    (self.srid, self.max_attempts))
+                          'attempts. Cancelling run.' %
+                          (self.srid, self.max_attempts))
             self.email(deferred_message)
         else:
             logging.debug(deferred_message)
@@ -310,7 +310,7 @@ class StoneRidgeCloner(object):
             for d in subdirs:
                 if d not in files:
                     self.exit_and_maybe_defer(
-                            'Run %s not available' % (d,))
+                        'Run %s not available' % (d,))
 
             dist_path = '/'.join([self.path, subdirs[0]])
             dist_files = self._gather_filelist(dist_path)
@@ -319,14 +319,15 @@ class StoneRidgeCloner(object):
                 # We didn't get any files listed, but we should have. Just drop
                 # this run on the floor
                 self.email('No dist files found for srid %s' % (self.srid,))
-                logging.error('No files found! Dropping srid %s' % (self.srid,))
+                logging.error('No files found! Dropping srid %s' %
+                              (self.srid,))
                 sys.exit(1)
 
             files = dist_files
 
         if not files:
             self.exit_and_maybe_defer(
-                    'No files found for %s' % (self.srid,))
+                'No files found for %s' % (self.srid,))
 
         self.prefix = self._get_prefix(files)
 
@@ -350,19 +351,20 @@ class StoneRidgeCloner(object):
 def main():
     parser = stoneridge.ArgumentParser()
     parser.add_argument('--nightly', dest='nightly', action='store_true',
-            default=False)
+                        default=False)
     parser.add_argument('--srid', dest='srid', required=True)
     for ops in stoneridge.OPERATING_SYSTEMS:
         parser.add_argument('--%s' % (ops,), dest='operating_systems',
-                action='append_const', const=ops, default=[])
+                            action='append_const', const=ops, default=[])
     for nc in stoneridge.NETCONFIGS:
         parser.add_argument('--%s' % (nc,), dest='netconfigs',
-                action='append_const', const=nc, default=[])
+                            action='append_const', const=nc, default=[])
     parser.add_argument('--attempt', dest='attempt', required=True, type=int)
     parser.add_argument('--ldap', dest='ldap', default='')
     parser.add_argument('--sha', dest='sha', default='')
     args = parser.parse_args()
 
     cloner = StoneRidgeCloner(args.nightly, args.srid, args.operating_systems,
-            args.netconfigs, args.ldap, args.sha, args.attempt)
+                              args.netconfigs, args.ldap, args.sha,
+                              args.attempt)
     cloner.run()

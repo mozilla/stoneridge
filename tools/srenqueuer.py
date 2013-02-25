@@ -23,8 +23,9 @@ def main():
     try:
         res = requests.get(root + '/list_unhandled', auth=(username, password))
     except:
-        # For some reason, we sometimes get a requests failure here, even though
-        # everything seems to be working fine. Ignore that, and try again later.
+        # For some reason, we sometimes get a requests failure here, even
+        # though everything seems to be working fine. Ignore that, and try
+        # again later.
         logging.exception('Error listing unhandled pushes')
         return
 
@@ -38,7 +39,7 @@ def main():
     for entry in queue:
         try:
             requests.post(root + '/mark_handled', data={'id': entry['pushid']},
-                    auth=(username, password))
+                          auth=(username, password))
         except:
             # If we fail to mark this as handled, wait until the next try so we
             # don't run the same thing more than once. It's not the end of the
@@ -48,6 +49,6 @@ def main():
 
         logging.debug('Equeuing entry %s' % (entry,))
         stoneridge.enqueue(nightly=False, ldap=entry['ldap'], sha=entry['sha'],
-                netconfigs=entry['netconfigs'],
-                operating_systems=entry['operating_systems'],
-                srid=entry['srid'])
+                           netconfigs=entry['netconfigs'],
+                           operating_systems=entry['operating_systems'],
+                           srid=entry['srid'])

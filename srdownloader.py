@@ -11,16 +11,16 @@ import stoneridge
 
 
 class StoneRidgeDownloader(object):
-    """Downloads the firefox archive and the tests.zip for a the machine this is
-    running on and puts them in the stone ridge working directory
+    """Downloads the firefox archive and the tests.zip for a the machine this
+    is running on and puts them in the stone ridge working directory
     """
     def __init__(self):
         self.server = stoneridge.get_config('download', 'server')
         self.downloadroot = stoneridge.get_config('download', 'root')
         self.download_platform = stoneridge.get_config('machine',
-                'download_platform')
+                                                       'download_platform')
         self.download_suffix = stoneridge.get_config('machine',
-                'download_suffix')
+                                                     'download_suffix')
         self.srid = stoneridge.get_config('run', 'srid')
         self.downloaddir = stoneridge.get_config('run', 'download')
         logging.debug('server = %s' % (self.server,))
@@ -32,14 +32,15 @@ class StoneRidgeDownloader(object):
 
     def _download_file(self, filename):
         url = 'http://%s/%s/%s/%s/%s' % (self.server, self.downloadroot,
-                self.srid, self.download_platform, filename)
+                                         self.srid, self.download_platform,
+                                         filename)
         logging.debug('downloading %s from %s' % (filename, url))
         r = requests.get(url)
         if r.status_code != 200:
-            logging.critical('Error downloading %s: %s' % (filename,
-                                                           r.status_code))
-            raise Exception, 'Error downloading %s: %s' % (filename,
-                    r.status_code)
+            msg = 'Error downloading %s: %s' % (filename, r.status_code)
+            logging.critical(msg)
+            raise Exception(msg)
+
         with file(filename, 'wb') as f:
             f.write(r.content)
 
@@ -47,7 +48,7 @@ class StoneRidgeDownloader(object):
         logging.debug('downloader running')
         if not os.path.exists(self.downloaddir):
             logging.debug('creating download directory %s' %
-                    (self.downloaddir,))
+                          (self.downloaddir,))
             os.mkdir(self.downloaddir)
         os.chdir(self.downloaddir)
 
@@ -58,7 +59,7 @@ class StoneRidgeDownloader(object):
 @stoneridge.main
 def main():
     parser = stoneridge.TestRunArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     downloader = StoneRidgeDownloader()
     downloader.run()

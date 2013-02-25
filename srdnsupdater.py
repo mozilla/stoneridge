@@ -6,7 +6,6 @@
 import logging
 import struct
 import socket
-import sys
 import time
 
 import stoneridge
@@ -61,7 +60,7 @@ class StoneRidgeDnsUpdater(object):
 
         if result != 'ok':
             logging.error('Could not %sset dns server' %
-                    ('re' if msgtype == 'r' else ''))
+                          ('re' if msgtype == 'r' else ''))
 
         # XXX - WARNING! UGLY HACK BELOW!
         # Since, on Windows, we have to actually disable the WAN interface to
@@ -87,7 +86,7 @@ class StoneRidgeDnsUpdater(object):
             return
 
         logging.debug('Searching for dns server for netconfig %s' %
-                (self.netconfig,))
+                      (self.netconfig,))
         dns_server = stoneridge.get_config('dns', self.netconfig)
         if dns_server is None:
             logging.error('Error finding dns server')
@@ -101,7 +100,8 @@ def main():
     parser = stoneridge.TestRunArgumentParser()
 
     parser.add_argument('--restore', dest='restore', action='store_true',
-            default=False, help='Restore DNS server to default settings')
+                        default=False,
+                        help='Restore DNS server to default settings')
 
     args = parser.parse_args()
 

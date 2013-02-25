@@ -26,7 +26,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
         self.config = stoneridge.get_config_file()
 
     def handle(self, nightly, ldap, sha, netconfigs, operating_systems,
-            srid=None, attempt=1):
+               srid=None, attempt=1):
         if srid is None:
             srid = str(uuid.uuid4())
 
@@ -63,7 +63,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
 
         try:
             stoneridge.run_process(*args)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             # Either we will retry this later, at the cloner's request, or the
             # error has already been logged by run_process and there's no
             # recovery we can do.
@@ -87,7 +87,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
                 continue
 
             queue.enqueue(operating_systems=operating_systems, srid=srid,
-                    tstamp=tstamp, ldap=ldap)
+                          tstamp=tstamp, ldap=ldap)
 
 
 def daemon():
@@ -98,6 +98,6 @@ def daemon():
 @stoneridge.main
 def main():
     parser = stoneridge.DaemonArgumentParser()
-    args = parser.parse_args()
+    parser.parse_args()
 
     parser.start_daemon(daemon)

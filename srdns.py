@@ -3,7 +3,6 @@
 # v. 2.0. If a copy of the MPL was not distributed with this file, You can
 # obtain one at http://mozilla.org/MPL/2.0/.
 
-import argparse
 import logging
 import os
 import platform
@@ -12,7 +11,6 @@ import shutil
 import SocketServer
 import struct
 import subprocess
-import sys
 import tempfile
 
 import stoneridge
@@ -70,7 +68,7 @@ class MacDnsModifier(BaseDnsModifier):
     def setup(self):
         logging.debug('Initializing Mac handler')
         p = subprocess.Popen(['networksetup', '-listnetworkserviceorder'],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         p.wait()
         lines = p.stdout.readlines()
         logging.debug('networksetup -listnetworkserviceorder => %s' % (lines,))
@@ -95,7 +93,7 @@ class MacDnsModifier(BaseDnsModifier):
         args = ['networksetup', '-setdnsservers', self.main_if] + dnsservers
         logging.debug('Setting dns using command line %s' % (args,))
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT)
+                             stderr=subprocess.STDOUT)
         p.wait()
 
     def reset_dns(self):
@@ -105,7 +103,7 @@ class MacDnsModifier(BaseDnsModifier):
             with file(self.dnsbackup) as f:
                 orig_dns = [line.strip() for line in f.readlines()]
                 logging.debug('Stripped lines: %s' % (orig_dns,))
-                orig_dns = [d for d in orig_dns if d] # Filter out empty lines
+                orig_dns = [d for d in orig_dns if d]  # Filter out empty lines
                 logging.debug('Non-empty lines: %s' % (orig_dns,))
 
         logging.debug('Original DNS server(s): %s' % (orig_dns,))
@@ -121,10 +119,10 @@ class MacDnsModifier(BaseDnsModifier):
             # Only need to bother saving this once per run
             logging.debug('Saving original DNS server(s)')
             args = ['networksetup', '-getdnsservers', self.main_if]
-            logging.debug('Getting original DNS server(s) using command line %s'
-                    % (args,))
+            logging.debug('Getting original DNS server(s) using command '
+                          'line %s' % (args,))
             p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT)
+                                 stderr=subprocess.STDOUT)
             p.wait()
 
             dns_servers = p.stdout.readlines()
@@ -196,20 +194,24 @@ class LinuxDnsModifier(BaseDnsModifier):
 
 class WindowsDnsModifier(BaseDnsModifier):
     def setup(self):
-        self.key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                'System\\CurrentControLSet\\Services\\TCPIP\\Parameters')
+        self.key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            'System\\CurrentControLSet\\Services\\TCPIP\\Parameters')
 
     def reset_dns(self):
         logging.debug('About to kill DNS on StoneRidge interface')
         netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
-            'StoneRidge', 'static', 'none', 'validate=no'],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                  'StoneRidge', 'static', 'none',
+                                  'validate=no'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
         netsh.wait()
 
         logging.debug('About to resurrect WAN interface')
         netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
-            'name=WAN', 'admin=ENABLED'], stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+                                  'name=WAN', 'admin=ENABLED'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
         netsh.wait()
 
         logging.debug('About to reset search suffix')
@@ -218,8 +220,9 @@ class WindowsDnsModifier(BaseDnsModifier):
     def set_dns(self, dnsserver):
         logging.debug('About to kill WAN interface')
         netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
-            'name=WAN', 'admin=DISABLED'], stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+                                  'name=WAN', 'admin=DISABLED'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
         netsh.wait()
 
         logging.debug('About to clear search suffix')
@@ -227,8 +230,10 @@ class WindowsDnsModifier(BaseDnsModifier):
 
         logging.debug('About to set DNS on StoneRidge interface')
         netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
-            'StoneRidge', 'static', dnsserver, 'validate=no'],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                  'StoneRidge', 'static', dnsserver,
+                                  'validate=no'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
         netsh.wait()
 
 
