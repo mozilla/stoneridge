@@ -19,6 +19,20 @@ MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
 WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
 
 
+EMAIL_MESSAGE = '''Hello, %s
+
+This is the Stone Ridge service. Unfortunately, I have had to cancel your test
+run for the following reason:
+
+    %s
+
+I hope this doesn't impact the happiness of your day too significantly.
+
+My sincerest (for a computer) apologies,
+-Stone Ridge
+'''
+
+
 class StoneRidgeCloner(object):
     """This runs on the central stone ridge server, and downloads releases from
     ftp.m.o to a local directory that is served up to the clients by a plain ol'
@@ -256,12 +270,20 @@ class StoneRidgeCloner(object):
 
         stoneridge.run_process(*args)
 
+    def email(self, failure_message):
+        if not self.ldap:
+            return
+
+        message = EMAIL_MESSAGE % (self.ldap, failure_message)
+        stoneridge.sendmail(self.ldap, 'Stone Ridge Run Cancelled', message)
+
     def exit_and_maybe_defer(self, deferred_message):
         next_attempt = self.attempt + 1
         if next_attempt > self.max_attempts:
             logging.error('Unable to get build results for %s after %s '
                     'attempts. Cancelling run.' %
                     (self.srid, self.max_attempts))
+            self.email(deferred_message)
         else:
             logging.debug(deferred_message)
             self.defer()
@@ -288,7 +310,7 @@ class StoneRidgeCloner(object):
             for d in subdirs:
                 if d not in files:
                     self.exit_and_maybe_defer(
-                            'Run %s not available: retry later' % (d,))
+                            'Run %s not available' % (d,))
 
             dist_path = '/'.join([self.path, subdirs[0]])
             dist_files = self._gather_filelist(dist_path)
@@ -296,6 +318,7 @@ class StoneRidgeCloner(object):
             if not dist_files:
                 # We didn't get any files listed, but we should have. Just drop
                 # this run on the floor
+                self.email('No dist files found for srid %s' % (self.srid,))
                 logging.error('No files found! Dropping srid %s' % (self.srid,))
                 sys.exit(1)
 
@@ -303,7 +326,7 @@ class StoneRidgeCloner(object):
 
         if not files:
             self.exit_and_maybe_defer(
-                    'No files found for %s: retry later' % (self.srid,))
+                    'No files found for %s' % (self.srid,))
 
         self.prefix = self._get_prefix(files)
 

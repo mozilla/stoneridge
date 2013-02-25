@@ -5,12 +5,14 @@
 import argparse
 import ConfigParser
 import copy
+import email
 import inspect
 import json
 import logging
 import os
 import platform
 import signal
+import smtplib
 import subprocess
 import sys
 import traceback
@@ -581,3 +583,39 @@ def enqueue(nightly=True, ldap='', sha='', netconfigs=None,
     writer = QueueWriter(INCOMING_QUEUE)
     writer.enqueue(nightly=nightly, ldap=ldap, sha=sha, netconfigs=netconfigs,
             operating_systems=operating_systems, srid=srid, attempt=attempt)
+
+
+def sendmail(to, subject, message, *attachments):
+    """Send an email, with optional attachments
+
+    to - email address to send the email to
+    subject - subject of the email
+    message - body text of the email
+    attachments - optional (path, name) tuples, where <path> is the path to
+                  the file to be attached on disk, and <name> is the name to
+                  be used as the attachment's name in the email.
+    """
+    msg = email.MIMEMultipart.MIMEMultipart()
+    msg['from'] = 'stoneridge@noreply.mozilla.com'
+    msg['to'] = to
+    msg['date'] = email.Utils.formatdate()
+    msg['subject'] = subject
+
+    # Create the main part that displays
+    msg.attach(email.MIMEText.MIMEText(message))
+
+    # Add the attachments as base64-encoded application/octet-stream parts
+    for fpath, fname in attachments:
+        mpart = email.MIMEBase.MIMEBase('application', 'octet-stream')
+        with file(fpath, 'rb') as f:
+            mpart.set_payload(f.read())
+        email.Encoders.encode_base64(mpart)
+        mpart.add_header('Content-Disposition',
+                         'attachment; filename=%s' % (fname,))
+        msg.attach(mpart)
+
+    # And now we can actuall send the email
+    smtp = smtplib.SMTP('localhost')
+    smtp.sendmail('stoneridge@noreply.mozilla.com', [to],
+                  msg.as_string())
+    smtp.close()
