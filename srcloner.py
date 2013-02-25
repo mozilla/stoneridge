@@ -14,7 +14,7 @@ import tempfile
 import stoneridge
 
 
-LINUX_SUBDIRS = ('try-linux', 'try-linux64')
+LINUX_SUBDIRS = ('try-linux64',)  # We only do 64-bit linux tests
 MAC_SUBDIRS = ('try-macosx64',) # There is only one OS X build
 WINDOWS_SUBDIRS = ('try-win32',) # win64 is unsupported, so ignore it for now
 
@@ -187,8 +187,8 @@ class StoneRidgeCloner(object):
         builds
         """
         logging.debug('cloning linux builds')
-        archids = ('i686', 'x86_64')
-        outdirs = ('linux32', 'linux64')
+        archids = ('x86_64',)
+        outdirs = ('linux64',)
         for archid, outdir, subdir in zip(archids, outdirs, LINUX_SUBDIRS):
             logging.debug('architecture: %s' % (archid,))
             logging.debug('outdir: %s' % (outdir,))
