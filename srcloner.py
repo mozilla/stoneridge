@@ -256,8 +256,6 @@ class StoneRidgeCloner(object):
 
         stoneridge.run_process(*args)
 
-        sys.exit(0)
-
     def exit_and_maybe_defer(self, deferred_message):
         next_attempt = self.attempt + 1
         if next_attempt > self.max_attempts:
@@ -265,8 +263,8 @@ class StoneRidgeCloner(object):
                     'attempts. Cancelling run.' %
                     (self.srid, self.max_attempts))
         else:
-            self.defer()
             logging.debug(deferred_message)
+            self.defer()
         sys.exit(1)
 
     def run(self):
