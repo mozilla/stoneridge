@@ -73,12 +73,12 @@ class StoneRidgeMaster(stoneridge.QueueListener):
         # other for a particular test run (good for graphing), we set the
         # timestamp once we know we're going to actually run the test (which is
         # right now, after we've cloned the builds).
-        # We also sleep for one second, so we don't accidentally have 2
+        # We also sleep for one minute, so we don't accidentally have 2
         # different runs show up at the same time as each other on the graphs.
-        # Sure, it's unlikely, but sleeping for a second won't kill us, and
+        # Sure, it's unlikely, but sleeping for a minute won't kill us, and
         # better safe than sorry!
         tstamp = int(time.time())
-        time.sleep(1)
+        time.sleep(60)
 
         for nc in netconfigs:
             queue = self.queues.get(nc, None)

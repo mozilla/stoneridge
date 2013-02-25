@@ -5,14 +5,26 @@
 
 import base64
 import dzclient
-import email
 import json
 import logging
 import os
-import smtplib
 import time
 
 import stoneridge
+
+
+EMAIL_MESSAGE = '''Hello, %s!
+
+Your stone ridge test has completed its run. Your results are attached.
+For your reference, here's the details about this particular run:
+
+    ID: %s
+    Operating System: %s
+    Network Configuration: %s
+
+Enjoy!
+-The Stone Ridge System
+'''
 
 
 class StoneRidgeReporter(stoneridge.QueueListener):
@@ -51,40 +63,10 @@ class StoneRidgeReporter(stoneridge.QueueListener):
             f.write(metadata)
 
         if ldap is not None:
-            msg = email.MIMEMultipart.MIMEMultipart()
-            msg['from'] = 'stoneridge@noreply.mozilla.com'
-            msg['to'] = ldap
-            msg['date'] = email.Utils.formatdate()
-            msg['subject'] = 'Stone Ridge Complete'
-
-            # Create the main part that displays
-            msg_text = '''Hello, %s!
-
-Your stone ridge test has completed its run. Your results are attached.
-For your reference, here's the details about this particular run:
-
-    ID: %s
-    Operating System: %s
-    Network Configuration: %s
-
-Enjoy!
--The Stone Ridge System
-''' % (ldap, srid, operating_system, netconfig)
-            msg.attach(email.MIMEText.MIMEText(msg_text))
-
-            # Add the metadata.zip as a base64-encoded application/octet-stream
-            # attachment
-            mpart = email.MIMEBase.MIMEBase('application', 'octet-stream')
-            mpart.set_payload(metadata)
-            email.Encoders.encode_base64(mpart)
-            mpart.add_header('Content-Disposition',
-                             'attachment; filename=results.zip')
-            msg.attach(mpart)
-
-            smtp = smtplib.SMTP('localhost')
-            smtp.sendmail('stoneridge@noreply.mozilla.com', [ldap],
-                          msg.as_string())
-            smtp.close()
+            msg_text =  EMAIL_MESSAGE % (ldap, srid, operating_system,
+                                         netconfig)
+            stoneridge.sendmail(ldap, 'Stone Ridge Complete',
+                                msg_text, (metadata_file, 'results.zip'))
 
     def handle(self, srid, netconfig, operating_system, results, metadata,
                ldap):
