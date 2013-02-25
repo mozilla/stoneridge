@@ -27,7 +27,12 @@ def main():
         logging.exception('Error listing unhandled pushes')
         return
 
-    queue = json.loads(res.text)
+    try:
+        queue = json.loads(res.text)
+    except:
+        # Yet another failure mode. Yay.
+        logging.exception('Error demarshalling result %s' % (res.text,))
+        return
 
     for entry in queue:
         try:
