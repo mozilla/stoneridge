@@ -5,9 +5,11 @@
 
 import base64
 import dzclient
+import email
 import json
 import logging
 import os
+import smtplib
 import time
 
 import stoneridge
@@ -30,7 +32,7 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         logging.debug('unittest: %s' % (self.unittest,))
 
     def save_data(self, srid, netconfig, operating_system, results,
-                  metadata_b64):
+                  metadata_b64, ldap):
         dirname = '%s_%s_%s' % (srid, netconfig, operating_system)
         archivedir = os.path.join(self.archives, dirname)
         if os.path.exists(archivedir):
@@ -48,7 +50,44 @@ class StoneRidgeReporter(stoneridge.QueueListener):
         with file(metadata_file, 'wb') as f:
             f.write(metadata)
 
-    def handle(self, srid, netconfig, operating_system, results, metadata):
+        if ldap is not None:
+            msg = email.MIMEMultipart.MIMEMultipart()
+            msg['from'] = 'stoneridge@noreply.mozilla.com'
+            msg['to'] = ldap
+            msg['date'] = email.Utils.formatdate()
+            msg['subject'] = 'Stone Ridge Complete'
+
+            # Create the main part that displays
+            msg_text = '''Hello, %s!
+
+Your stone ridge test has completed its run. Your results are attached.
+For your reference, here's the details about this particular run:
+
+    ID: %s
+    Operating System: %s
+    Network Configuration: %s
+
+Enjoy!
+-The Stone Ridge System
+''' % (ldap, srid, operating_system, netconfig)
+            msg.attach(email.MIMEText.MIMEText(msg_text))
+
+            # Add the metadata.zip as a base64-encoded application/octet-stream
+            # attachment
+            mpart = email.MIMEBase.MIMEBase('application', 'octet-stream')
+            mpart.set_payload(metadata)
+            email.Encoders.encode_base64(mpart)
+            mpart.add_header('Content-Disposition',
+                             'attachment; filename=results.zip')
+            msg.attach(mpart)
+
+            smtp = smtplib.SMTP('localhost')
+            smtp.sendmail('stoneridge@noreply.mozilla.com', [ldap],
+                          msg.as_string())
+            smtp.close()
+
+    def handle(self, srid, netconfig, operating_system, results, metadata,
+               ldap):
         logging.debug('uploading results for %s' % (srid,))
 
         for name in results:
@@ -82,7 +121,8 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                     logging.error('bad status for %s: %s' %
                                   (srid, result['status']))
 
-        self.save_data(srid, netconfig, operating_system, results, metadata)
+        self.save_data(srid, netconfig, operating_system, results, metadata,
+                       ldap)
 
 
 def daemon():

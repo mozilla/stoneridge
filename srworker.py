@@ -25,7 +25,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.runconfig = None  # Needs to be here so reset doesn't barf
         self.reset()
 
-    def handle(self, srid, netconfig, tstamp):
+    def handle(self, srid, netconfig, tstamp, ldap):
         # Create the directory where data we want to save from this run will go
         srwork = os.path.join(self.workroot, srid, netconfig)
         if os.path.exists(srwork):
@@ -73,6 +73,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
             f.write('info = %s\n' % (info,))
             f.write('tstamp = %s\n' % (tstamp,))
             f.write('srid = %s\n' % (srid,))
+            if ldap:
+                f.write('ldap = %s\n' % (ldap,))
 
         self.logger.debug('srnetconfig: %s' % (self.srnetconfig,))
         self.logger.debug('uploaded: %s' % (self.uploaded,))
@@ -82,6 +84,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.logger.debug('childlog: %s' % (self.childlog,))
         self.logger.debug('logdir: %s' % (self.logdir,))
         self.logger.debug('runconfig: %s' % (self.runconfig,))
+        self.logger.debug('ldap: %s' % (ldap,))
 
         try:
             self.run_test()

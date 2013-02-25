@@ -1,0 +1,58 @@
+# vim: set ft=sh:
+# Configuration file for stone ridge processes
+
+### THESE ITEMS APPLY ON ALL MACHINES RUNNING ANYTHING TO DO WITH STONE RIDGE
+# Where most (if not all) things in stone ridge live. This is where everything
+# except (possibly) the stoneridge python module MUST be.
+SRHOME=/home/hurley/srhome
+
+# The configuration file for stone ridge
+CONFFILE=$SRHOME/stoneridge.ini
+
+### THESE ITEMS APPLY ONLY TO STONE RIDGE SERVERS AND CLIENTS
+# What IP address to use for the test network interface
+MYIP=172.16.1.1
+
+# What interface is attached to the test network
+MYDEV=eth1
+
+### THESE ITEMS APPLY ONLY TO STONE RIDGE SERVERS
+# What data rate to shape the interface to
+RATE=10mbit
+
+# MAXBURST and LIMIT help to smooth traffic out over a full bucket period,
+# to prevent things from being bursty. MAXBURST should be equal to RATE
+# while LIMIT should be MAXBURST*3
+MAXBURST=10240
+LIMIT=30720
+
+# What sort of latency to have on the interface.
+LATENCY=90ms
+
+# JITTER and CORRELATION control jitter on the interface. JITTER is the
+# average number of ms of jitter, while CORRELATION is how similar a packet's
+# actual jitter will be to the previous packet's jitter
+JITTER=
+CORRELATION=
+
+# What network configuration the above settings correspond to
+NETCONFIG=broadband
+
+### THESE ITEMS APPLY ONLY TO STONE RIDGE CLIENTS
+# These are the IP addresses and ethernet MAC addresses for each of the
+# network configurations. This allows us to have static ARP entries for
+# these machines, which makes the tests take the expected amount of time for
+# the latencies involved.
+BROADBAND_IP=172.17.0.1
+BROADBAND_MAC=2C:76:8A:D0:CE:89
+
+UMTS_IP=172.18.0.1
+UMTS_MAC=2C:76:8A:D0:CA:D9
+
+GSM_IP=172.19.0.1
+GSM_MAC=2C:76:8A:D0:CE:B9
+
+### NOTHING BELOW HERE SHOULD BE CHANGED, UNLESS YOU ABSOLUTELY, POSITIVELY
+### KNOW WHAT YOU ARE DOING! YOU HAVE BEEN WARNED, I MEAN IT!
+SRROOT=$SRHOME/stoneridge
+SRRUN=$SRROOT/srrun.py

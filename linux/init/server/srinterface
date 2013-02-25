@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# srinterface	Stone Ridge interface setup
+#
+# chkconfig: 2345 97 10
+# description: srinterface configures the stone ridge network interface
+
+### BEGIN INIT INFO
+# Provides: srinterface
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Configure the stone ridge network interface
+# Description: srinterface sets network conditions
+### END INIT INFO
+
+source /etc/default/stoneridge
+
+start() {
+    # Setup $MYDEV to have an address
+    ip addr add $MYIP/12 dev $MYDEV
+    # Setup our network conditions on $MYDEV
+    tc qdisc add dev $MYDEV root handle 1:0 tbf rate $RATE maxburst $MAXBURST limit $LIMIT
+    tc qdisc add dev $MYDEV parent 1:1 handle 10:0 netem latency $LATENCY $JITTER $CORRELATION
+}
+
+stop() {
+    # Remove network conditions
+    tc qdisc del dev $MYDEV root
+    # Remove ip addresses from $MYDEV
+    ip addr del $MYIP/12 dev $MYDEV
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|force-reload|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+    exit 2
+esac

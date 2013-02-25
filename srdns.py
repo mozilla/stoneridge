@@ -86,7 +86,7 @@ class MacDnsModifier(BaseDnsModifier):
         self.sr_if = srline.strip().split(' ', 1)[1]
         self.dnsbackup = os.path.join(rundir, 'dnsbackup')
         logging.debug('Main interface name: %s' % (self.main_if,))
-        logging.debug('Stone Ridge interface name: %s' % (self.main_if,))
+        logging.debug('Stone Ridge interface name: %s' % (self.sr_if,))
         logging.debug('Backup file: %s' % (self.dnsbackup,))
 
     def _set_dns(self, dnsservers):

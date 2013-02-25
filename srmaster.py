@@ -87,7 +87,7 @@ class StoneRidgeMaster(stoneridge.QueueListener):
                 continue
 
             queue.enqueue(operating_systems=operating_systems, srid=srid,
-                          tstamp=tstamp)
+                          tstamp=tstamp, ldap=ldap)
 
 
 def daemon():

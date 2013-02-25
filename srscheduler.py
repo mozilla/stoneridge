@@ -19,7 +19,7 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
                 stoneridge.CLIENT_QUEUES['windows']),
         }
 
-    def handle(self, srid, operating_systems, tstamp):
+    def handle(self, srid, operating_systems, tstamp, ldap):
         for o in operating_systems:
             runner = self.runners.get(o, None)
             if runner is None:
@@ -27,7 +27,8 @@ class StoneRidgeScheduler(stoneridge.QueueListener):
                 continue
 
             logging.debug('Calling to run %s on %s' % (srid, o))
-            runner.enqueue(srid=srid, netconfig=self.netconfig, tstamp=tstamp)
+            runner.enqueue(srid=srid, netconfig=self.netconfig, tstamp=tstamp,
+                           ldap=ldap)
 
 
 def daemon(netconfig):
