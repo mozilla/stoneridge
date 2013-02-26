@@ -21,7 +21,7 @@ PID=$SRHOME/srwebmq.pid
 LOG=$SRHOME/srwebmq.log
 
 start() {
-    python $SRRUN $SRROOT/srwebmq.py --config $CONFFILE --pidfile $PID --log $LOG
+    python $SRRUN $SRROOT/windows/srwebmq.py --config $CONFFILE --pidfile $PID --log $LOG
 }
 
 stop() {

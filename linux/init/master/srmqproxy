@@ -21,7 +21,7 @@ PID=$SRHOME/srmqproxy.pid
 LOG=$SRHOME/srmqproxy.log
 
 start() {
-    python $SRRUN $SRROOT/srmqproxy.py --config $CONFFILE --pidfile $PID --log $LOG
+    python $SRRUN $SRROOT/windows/srmqproxy.py --config $CONFFILE --pidfile $PID --log $LOG
 }
 
 stop() {
