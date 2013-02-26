@@ -27,7 +27,7 @@ class StoneRidgeMQProxy(stoneridge.QueueListener):
 
 def daemon():
     proxy = StoneRidgeMQProxy(stoneridge.CLIENT_QUEUES['windows'])
-    proxy.connrun()
+    proxy.run()
 
 
 @stoneridge.main
