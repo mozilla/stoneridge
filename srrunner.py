@@ -108,19 +108,30 @@ class StoneRidgeRunner(object):
                 logging.debug('Not running processes: in unit test mode')
             else:
                 if tcpdump_exe and tcpdump_if:
+                    tcpdump_out_file = '%s.tcpdump.out' % (test,)
+                    tcpdump_out_file = os.path.join(outdir, tcpdump_out_file)
+                    logging.debug('tcpdump output at %s' % (tcpdump_out_file,))
+                    tcpdump_out = file(tcpdump_out_file, 'wb')
                     tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000',
                                                 '-U', '-p',
                                                 '-w', tcpdump_output,
                                                 '-i', tcpdump_if],
-                                               stdout=subprocess.PIPE,
+                                               stdout=tcpdump_out,
                                                stderr=subprocess.STDOUT)
-                res, xpcshell_out = stoneridge.run_xpcshell(args)
+                xpcshell_out_file = '%s.xpcshell.out' % (test,)
+                xpcshell_out_file = os.path.join(outdir, xpcshell_out_file)
+                logging.debug('xpcshell output at %s' % (xpcshell_out_file,))
+                timed_out = False
+                with file(xpcshell_out_file, 'wb') as f:
+                    try:
+                        res, _ = stoneridge.run_xpcshell(args, stdout=f)
+                    except stoneridge.XpcshellTimeout:
+                        logging.exception('xpcshell timed out!')
+                        timed_out = True
                 if tcpdump:
                     tcpdump.terminate()
-                    logging.debug('tcpdump output\n%s' %
-                                  (tcpdump.stdout.read(),))
-                logging.debug('xpcshell output\n%s' % (xpcshell_out.read(),))
-                if res:
+                    tcpdump_out.close()
+                if res or timed_out:
                     logging.error('TEST FAILED: %s' % (test,))
                 else:
                     logging.debug('test succeeded')

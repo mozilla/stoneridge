@@ -15,6 +15,7 @@ import signal
 import smtplib
 import subprocess
 import sys
+import time
 import traceback
 
 import pika
@@ -176,6 +177,15 @@ def get_config_bool(section, option):
     return value
 
 
+class XpcshellTimeout(Exception):
+    def __init__(self, timeout_secs, xpcshell_stdout):
+        self.timeout_secs = timeout_secs
+        self.xpcshell_output_fd = xpcshell_stdout
+        Exception.__init__(self,
+                           'Killed xpcshell after %s seconds' %
+                           (timeout_secs,))
+
+
 _xpcshell = None
 _xpcshell_environ = None
 
@@ -208,11 +218,22 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
 
     xpcargs = [_xpcshell] + args
     logging.debug('Running xpcshell: %s' % (xpcargs,))
+
+    xpcshell_timeout = get_config_int('xpcshell', 'timeout')
+    xpcshell_start = int(time.time())
+
     proc = subprocess.Popen(xpcargs, stdout=stdout,
                             stderr=subprocess.STDOUT, cwd=bindir,
                             env=_xpcshell_environ)
-    res = proc.wait()
-    return (res, proc.stdout)
+    while (int(time.time()) - xpcshell_start) < xpcshell_timeout:
+        time.sleep(5)
+
+        if proc.poll() is not None:
+            return (proc.returncode, proc.stdout)
+
+    # If we get here, that means we hit the timeout
+    proc.kill()
+    raise XpcshellTimeout(xpcshell_timeout, proc.stdout)
 
 
 _os_version = None
