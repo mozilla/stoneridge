@@ -136,7 +136,7 @@ if __name__ == '__main__':
                         help='Netconfigs to run tests against',
                         action='append')
     parser.add_argument('--os', dest='operating_systems',
-                        choices=('windows', 'mac', 'linux', 'all'),
+                        choices=('win32', 'macosx64', 'linux64', 'all'),
                         required=True,
                         help='Operating systems to run tests on',
                         action='append')
@@ -184,7 +184,10 @@ if __name__ == '__main__':
     if 'all' in args.operating_systems:
         operating_systems = ['windows', 'mac', 'linux']
     else:
-        operating_systems = args.operating_systems
+        operating_systems = [{'win32': 'windows',
+                              'macosx64': 'mac',
+                              'linux64': 'linux'}[o]
+                             for o in args.operating_systems]
 
     srid = srpush(args.sha, host, ldap, password, netconfigs,
                   operating_systems)
