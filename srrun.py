@@ -5,15 +5,19 @@
 
 import copy
 import os
+import platform
 import subprocess
 import sys
 
 mypath = os.path.abspath(__file__)
 mydir = os.path.split(mypath)[0]
-srhome = os.path.join(mydir, '..')
-srhome = os.path.abspath(srhome)
-srbin = os.path.join(srhome, 'bin')
-srpython = os.path.join(srbin, 'python')
+if platform.system().lower() == 'windows':
+    srpython = sys.executable
+else:
+    srhome = os.path.join(mydir, '..')
+    srhome = os.path.abspath(srhome)
+    srbin = os.path.join(srhome, 'bin')
+    srpython = os.path.join(srbin, 'python')
 srpypath = [mydir, os.path.join(mydir, 'wpr')]
 
 env = copy.copy(os.environ)
