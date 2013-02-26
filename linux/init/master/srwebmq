@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# srwebmq	Stone Ridge web mq setup
+#
+# chkconfig: 2345 98 09
+# description: srwebmq is responsible for serving messages to windows
+
+### BEGIN INIT INFO
+# Provides: srreporter
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start and stop stoneridge web mq
+# Description: stoneridge web mq serves messages to windows
+### END INIT INFO
+
+source /etc/default/stoneridge
+
+PID=$SRHOME/srwebmq.pid
+LOG=$SRHOME/srwebmq.log
+
+start() {
+    python $SRRUN $SRROOT/srwebmq.py --config $CONFFILE --pidfile $PID --log $LOG
+}
+
+stop() {
+    kill $(cat $PID)
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|force-reload|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+    exit 2
+esac
