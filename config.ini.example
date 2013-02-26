@@ -80,6 +80,16 @@ keep = 50
 # corresponds to 15 minutes
 timeout = 900
 
+[mqproxy]
+# Where to keep the proxy database for windows queue entries
+db = /Users/hurley/src/stoneridge/testroot/mqproxy.db
+
+# What port to listen on for the server
+port = 8888
+
+# What URL the client should hit to get requests
+url = http://127.0.0.1:8888/get_next
+
 [machine]
 # The type of os this is running on, may be mac, linux, or windows
 os = mac
