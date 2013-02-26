@@ -21,7 +21,7 @@ else:
 srpypath = [mydir, os.path.join(mydir, 'wpr')]
 
 env = copy.copy(os.environ)
-env['PYTHONPATH'] = ':'.join(srpypath)
+env['PYTHONPATH'] = os.pathsep.join(srpypath)
 
 # Set a sane umask for all children
 os.umask(022)
