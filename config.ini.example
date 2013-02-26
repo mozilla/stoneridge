@@ -75,6 +75,11 @@ secret = PUT_OAUTH_SECRET_HERE
 # How many old runs to keep on the client itself
 keep = 50
 
+[xpcshell]
+# How long to wait for xpcshell before killing it, in seconds. The value below
+# corresponds to 15 minutes
+timeout = 900
+
 [machine]
 # The type of os this is running on, may be mac, linux, or windows
 os = mac
