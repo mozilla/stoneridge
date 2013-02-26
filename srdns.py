@@ -69,8 +69,8 @@ class MacDnsModifier(BaseDnsModifier):
         logging.debug('Initializing Mac handler')
         p = subprocess.Popen(['networksetup', '-listnetworkserviceorder'],
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        p.wait()
-        lines = p.stdout.readlines()
+        stdout, _ = p.communicate()
+        lines = stdout.split('\n')
         logging.debug('networksetup -listnetworkserviceorder => %s' % (lines,))
         mainline = None
         srline = None
@@ -94,7 +94,7 @@ class MacDnsModifier(BaseDnsModifier):
         logging.debug('Setting dns using command line %s' % (args,))
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
-        p.wait()
+        p.communicate()
 
     def reset_dns(self):
         orig_dns = None
@@ -123,14 +123,14 @@ class MacDnsModifier(BaseDnsModifier):
                           'line %s' % (args,))
             p = subprocess.Popen(args, stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
-            p.wait()
+            stdout, _ = p.communicate()
 
-            dns_servers = p.stdout.readlines()
+            dns_servers = stdout.split('\n')
             logging.debug('Got original dns server(s) %s' % (dns_servers,))
             if dns_servers:
                 with file(self.dnsbackup, 'w') as f:
                     logging.debug('Writing backup file')
-                    f.write(''.join(dns_servers))
+                    f.write('\n'.join(dns_servers))
 
         logging.debug('New DNS server: %s' % (dnsserver,))
 
@@ -205,14 +205,14 @@ class WindowsDnsModifier(BaseDnsModifier):
                                   'validate=no'],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
-        netsh.wait()
+        netsh.communicate()
 
         logging.debug('About to resurrect WAN interface')
         netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
                                   'name=WAN', 'admin=ENABLED'],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
-        netsh.wait()
+        netsh.communicate()
 
         logging.debug('About to reset search suffix')
         winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, 'mozilla.com')
@@ -223,7 +223,7 @@ class WindowsDnsModifier(BaseDnsModifier):
                                   'name=WAN', 'admin=DISABLED'],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
-        netsh.wait()
+        netsh.communicate()
 
         logging.debug('About to clear search suffix')
         winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, '')
@@ -234,7 +234,7 @@ class WindowsDnsModifier(BaseDnsModifier):
                                   'validate=no'],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
-        netsh.wait()
+        netsh.communicate()
 
 
 def daemon():
