@@ -10,5 +10,6 @@ ip_mappings = {
 
 for ip, mac in ip_mappings.items():
     p = subprocess.Popen(['arp', '-s', ip, mac, '172.16.1.2'],
-                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         universal_newlines=True)
     p.communicate()
