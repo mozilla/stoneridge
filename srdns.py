@@ -10,7 +10,6 @@ import re
 import shutil
 import SocketServer
 import struct
-import subprocess
 import tempfile
 
 import stoneridge
@@ -67,8 +66,7 @@ class BaseDnsModifier(SocketServer.BaseRequestHandler):
 class MacDnsModifier(BaseDnsModifier):
     def setup(self):
         logging.debug('Initializing Mac handler')
-        p = subprocess.Popen(['networksetup', '-listnetworkserviceorder'],
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = stoneridge.Process(['networksetup', '-listnetworkserviceorder'])
         stdout, _ = p.communicate()
         lines = stdout.split('\n')
         logging.debug('networksetup -listnetworkserviceorder => %s' % (lines,))
@@ -92,8 +90,7 @@ class MacDnsModifier(BaseDnsModifier):
     def _set_dns(self, dnsservers):
         args = ['networksetup', '-setdnsservers', self.main_if] + dnsservers
         logging.debug('Setting dns using command line %s' % (args,))
-        p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
+        p = stoneridge.Process(args)
         p.communicate()
 
     def reset_dns(self):
@@ -121,8 +118,7 @@ class MacDnsModifier(BaseDnsModifier):
             args = ['networksetup', '-getdnsservers', self.main_if]
             logging.debug('Getting original DNS server(s) using command '
                           'line %s' % (args,))
-            p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+            p = stoneridge.Process(args)
             stdout, _ = p.communicate()
 
             dns_servers = stdout.split('\n')
@@ -200,18 +196,14 @@ class WindowsDnsModifier(BaseDnsModifier):
 
     def reset_dns(self):
         logging.debug('About to kill DNS on StoneRidge interface')
-        netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
-                                  'StoneRidge', 'static', 'none',
-                                  'validate=no'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+        netsh = stoneridge.Process(['netsh.exe', 'ipv4', 'set', 'dnsservers',
+                                    'StoneRidge', 'static', 'none',
+                                    'validate=no'])
         netsh.communicate()
 
         logging.debug('About to resurrect WAN interface')
-        netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
-                                  'name=WAN', 'admin=ENABLED'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+        netsh = stoneridge.Process(['netsh.exe', 'interface', 'set',
+                                    'interface', 'name=WAN', 'admin=ENABLED'])
         netsh.communicate()
 
         logging.debug('About to reset search suffix')
@@ -219,21 +211,17 @@ class WindowsDnsModifier(BaseDnsModifier):
 
     def set_dns(self, dnsserver):
         logging.debug('About to kill WAN interface')
-        netsh = subprocess.Popen(['netsh.exe', 'interface', 'set', 'interface',
-                                  'name=WAN', 'admin=DISABLED'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+        netsh = stoneridge.Process(['netsh.exe', 'interface', 'set',
+                                    'interface', 'name=WAN', 'admin=DISABLED'])
         netsh.communicate()
 
         logging.debug('About to clear search suffix')
         winreg.SetValue(self.key, 'SearchList', winreg.REG_SZ, '')
 
         logging.debug('About to set DNS on StoneRidge interface')
-        netsh = subprocess.Popen(['netsh.exe', 'ipv4', 'set', 'dnsservers',
-                                  'StoneRidge', 'static', dnsserver,
-                                  'validate=no'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+        netsh = stoneridge.Process(['netsh.exe', 'ipv4', 'set', 'dnsservers',
+                                    'StoneRidge', 'static', dnsserver,
+                                    'validate=no'])
         netsh.communicate()
 
 

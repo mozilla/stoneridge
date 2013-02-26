@@ -6,7 +6,6 @@
 import glob
 import logging
 import os
-import subprocess
 
 import stoneridge
 
@@ -112,12 +111,11 @@ class StoneRidgeRunner(object):
                     tcpdump_out_file = os.path.join(outdir, tcpdump_out_file)
                     logging.debug('tcpdump output at %s' % (tcpdump_out_file,))
                     tcpdump_out = file(tcpdump_out_file, 'wb')
-                    tcpdump = subprocess.Popen([tcpdump_exe, '-s', '2000',
-                                                '-U', '-p',
-                                                '-w', tcpdump_output,
-                                                '-i', tcpdump_if],
-                                               stdout=tcpdump_out,
-                                               stderr=subprocess.STDOUT)
+                    tcpdump = stoneridge.Process([tcpdump_exe, '-s', '2000',
+                                                  '-U', '-p',
+                                                  '-w', tcpdump_output,
+                                                  '-i', tcpdump_if],
+                                                 stdout=tcpdump_out)
                 xpcshell_out_file = '%s.xpcshell.out' % (test,)
                 xpcshell_out_file = os.path.join(outdir, xpcshell_out_file)
                 logging.debug('xpcshell output at %s' % (xpcshell_out_file,))

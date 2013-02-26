@@ -111,6 +111,17 @@ class cwd(object):
         os.chdir(self.oldcwd)
 
 
+class Process(subprocess.Popen):
+    """A subclass of subprocess.Popen that does the right things by default for
+    capturing stdout and stderr from programs run as part of stone ridge.
+    """
+    def __init__(self, args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                 **kwargs):
+        kwargs['universal_newlines'] = True
+        subprocess.Popen.__init__(self, args, stdout=stdout, stderr=stderr,
+                                  **kwargs)
+
+
 _cp = None
 _srconf = None
 _runconf = None
@@ -222,9 +233,8 @@ def run_xpcshell(args, stdout=subprocess.PIPE):
     xpcshell_timeout = get_config_int('xpcshell', 'timeout')
     xpcshell_start = int(time.time())
 
-    proc = subprocess.Popen(xpcargs, stdout=stdout,
-                            stderr=subprocess.STDOUT, cwd=bindir,
-                            env=_xpcshell_environ)
+    proc = Process(xpcargs, stdout=stdout, cwd=bindir, env=_xpcshell_environ)
+
     while (int(time.time()) - xpcshell_start) < xpcshell_timeout:
         time.sleep(5)
 
