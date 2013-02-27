@@ -28,7 +28,6 @@ var delay = 250;
 var timeoutEvent = -1;
 var running = false;
 var forceCC = true;
-var reportRSS = true;
 
 var useMozAfterPaint = false;
 var gPaintWindow = window;
@@ -76,7 +75,6 @@ function plInit() {
     if (args.timeout) timeout = parseInt(args.timeout, 10);
     if (args.delay) delay = parseInt(args.delay, 10);
     if (args.mozafterpaint) useMozAfterPaint = true;
-    if (args.rss) reportRSS = true;
 
     forceCC = !args.noForceCC;
 
@@ -174,11 +172,7 @@ function plInit() {
                          "addEventListener('load', _contentLoadHandler, true); ";
                        content.messageManager.loadFrameScript(contentScript, false);
                      }
-                     if (reportRSS) {
-                       initializeMemoryCollector(plLoadPage, 100);
-                     } else {
-                       setTimeout(plLoadPage, 100);
-                     }
+                     setTimeout(plLoadPage, 100);
                    }, 500);
       };
 
@@ -189,11 +183,7 @@ function plInit() {
 
       content = document.getElementById('contentPageloader');
 
-      if (reportRSS) {
-        initializeMemoryCollector(plLoadPage, delay);
-      } else {
-        setTimeout(plLoadPage, delay);
-      }
+      setTimeout(plLoadPage, delay);
     }
   } catch(e) {
     dumpLine(e);
@@ -262,11 +252,7 @@ function plLoadPage() {
   if (timeout > 0) {
     timeoutEvent = setTimeout(loadFail, timeout);
   }
-  if (reportRSS) {
-    collectMemory(startAndLoadURI, pageName);
-  } else {
-    startAndLoadURI(pageName);
-  }
+  startAndLoadURI(pageName);
 }
 
 function startAndLoadURI(pageName) {
@@ -526,11 +512,7 @@ function plRecordTimeMessage(message) {
 }
 
 function plStop(force) {
-  if (reportRSS) {
-    collectMemory(plStopAll, force);
-  } else {
-    plStopAll(force);
-  }
+  plStopAll(force);
 }
 
 function plStopAll(force) {
@@ -552,10 +534,6 @@ function plStopAll(force) {
     }
   } catch (e) {
     dumpLine(e);
-  }
-
-  if (reportRSS) {
-    stopMemCollector();
   }
 
   if (content) {

@@ -93,7 +93,6 @@ PageLoaderCmdLineHandler.prototype =
       args.delay = cmdLine.handleFlagWithParam("tpdelay", false);
       args.noForceCC = cmdLine.handleFlag("tpnoforcecc", false);
       args.mozafterpaint = cmdLine.handleFlag("tpmozafterpaint", false);
-      args.rss = cmdLine.handleFlag("rss", false);
     }
     catch (e) {
       return;
@@ -127,8 +126,7 @@ PageLoaderCmdLineHandler.prototype =
   "  -tpdelay           Amount of time to wait between each pageload\n" +
   "  -tpnoforcecc       Don't force cycle collection between each pageload\n" +
   "  -tpmozafterpaint   Measure Time after recieving MozAfterPaint event " +
-                       "instead of load event\n" +
-  "  -rss               Dump RSS after each page is loaded\n"
+                       "instead of load event\n"
 
 };
 
