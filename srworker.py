@@ -60,6 +60,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.archive_on_failure = True
         self.procno = 1
         self.childlog = None
+        self.need_dns_reset = False
 
         self.runconfig = os.path.join(srout, 'run.ini')
         with file(self.runconfig, 'w') as f:
@@ -139,6 +140,28 @@ class StoneRidgeWorker(stoneridge.QueueListener):
             # The process failed to run correctly, we need to say so
             self.childlog = logfile
 
+            if self.need_dns_reset:
+                # We were in the midst of having our dns all screwy, so we
+                # need to try our best to fix that. Let's hope it works!
+
+                # First of all, we don't want to archive or upload during
+                # the process of running the dns updater.
+                do_archive = self.archive_on_failure
+                self.archive_on_failure = False
+
+                uploaded = self.uploaded
+                self.uploaded = True
+
+                try:
+                    self.run_process('dnsupdater', '--restore')
+                except StoneRidgeException:
+                    logging.error('Was unable to reset DNS after failure')
+
+                # Reset this state back to where it was previously so the rest
+                # of this block can work as expected.
+                self.archive_on_failure = do_archive
+                self.uploaded = uploaded
+
             if self.archive_on_failure:
                 # We've reached the point in our run where we have something to
                 # save off for usage. Archive it, but don't try to archive
@@ -167,7 +190,11 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.run_process('dnsupdater')
 
+        self.need_dns_reset = True
+
         self.run_process('runner')
+
+        self.need_dns_reset = False
 
         self.run_process('dnsupdater', '--restore')
 
