@@ -17,8 +17,6 @@ var useBrowser = true;
 var winWidth = 1024;
 var winHeight = 768;
 
-var doRenderTest = false;
-
 var pages;
 var pageIndex;
 var start_time;
@@ -83,7 +81,6 @@ function plInit() {
     if (args.rss) reportRSS = true;
 
     forceCC = !args.noForceCC;
-    doRenderTest = args.doRender;
 
     if (forceCC &&
         !window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -121,9 +118,6 @@ function plInit() {
     pages = pages.slice(startIndex,endIndex+1);
     pageUrls = pages.map(function(p) { return p.url.spec.toString(); });
     report = new Report();
-
-    if (doRenderTest)
-      renderReport = new Report();
 
     pageIndex = 0;
 
@@ -475,9 +469,6 @@ function _loadHandler() {
 
   plRecordTime(time);
 
-  if (doRenderTest)
-    runRenderTest();
-
   plNextPage();
 }
 
@@ -522,8 +513,6 @@ function _loadHandlerMessage() {
 
   if (time >= 0) {
     plRecordTime(time);
-    if (doRenderTest)
-      runRenderTest();
 
     plNextPage();
   }
@@ -536,28 +525,6 @@ function plRecordTimeMessage(message) {
     gStartTime = message.json.startTime;
   }
   _loadHandlerMessage();
-}
-
-function runRenderTest() {
-  const redrawsPerSample = 500;
-
-  if (!Ci.nsIDOMWindowUtils)
-    return;
-
-  var win;
-
-  if (browserWindow)
-    win = content.contentWindow;
-  else
-    win = window;
-  var wu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-
-  var start = Date.now();
-  for (var j = 0; j < redrawsPerSample; j++)
-    wu.redraw();
-  var end = Date.now();
-
-  renderReport.recordTime(pageIndex, end - start);
 }
 
 function plStop(force) {
