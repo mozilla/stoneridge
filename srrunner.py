@@ -126,6 +126,7 @@ class StoneRidgeRunner(object):
                     except stoneridge.XpcshellTimeout:
                         logging.exception('xpcshell timed out!')
                         timed_out = True
+                        res = None
                 if tcpdump:
                     tcpdump.terminate()
                     tcpdump_out.close()
