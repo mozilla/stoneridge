@@ -79,6 +79,7 @@ PageLoaderCmdLineHandler.prototype =
         return;
       }
 
+      // NWGH: Modify the flags to have output filename
       args.numCycles = cmdLine.handleFlagWithParam("tpcycles", false);
       args.numPageCycles = cmdLine.handleFlagWithParam("tppagecycles", false);
       args.startIndex = cmdLine.handleFlagWithParam("tpstart", false);
@@ -110,6 +111,7 @@ PageLoaderCmdLineHandler.prototype =
     cmdLine.preventDefault = true;
   },
 
+  // NWGH: Modify the flags to have output filename
   helpInfo :
   "  -tp <file>         Run pageload perf tests on given manifest\n" +
   "  -tpfilter str      Only include pages from manifest that contain str (regexp)\n" +

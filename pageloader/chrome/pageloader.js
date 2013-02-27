@@ -582,6 +582,8 @@ function plStopAll(force) {
       }
 
       /* output report */
+      // NWGH: This line will be changed to save to the file instead of
+      //       dumping to stdout.
       dumpLine(report.getReport());
     }
   } catch (e) {

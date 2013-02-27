@@ -50,6 +50,7 @@ Report.prototype.pageNames = function() {
   return retval;
 }
 
+// NWGH: This needs to change to return the json type thing we expect in SR
 Report.prototype.getReport = function() {
 
   var report;
