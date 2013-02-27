@@ -12,7 +12,6 @@ try {
 var NUM_CYCLES = 5;
 var numPageCycles = 1;
 
-var pageFilterRegexp = null;
 var useBrowser = true;
 var winWidth = 1024;
 var winHeight = 768;
@@ -73,7 +72,6 @@ function plInit() {
     if (args.numPageCycles) numPageCycles = parseInt(args.numPageCycles, 10);
     if (args.width) winWidth = parseInt(args.width, 10);
     if (args.height) winHeight = parseInt(args.height, 10);
-    if (args.filter) pageFilterRegexp = new RegExp(args.filter);
     if (args.noisy) noisy = true;
     if (args.timeout) timeout = parseInt(args.timeout, 10);
     if (args.delay) delay = parseInt(args.delay, 10);
@@ -644,9 +642,6 @@ function plLoadURLsFromURI(manifestUri) {
       }
 
       var url = gIOS.newURI(urlspec, null, manifestUri);
-
-      if (pageFilterRegexp && !pageFilterRegexp.test(url.spec))
-        continue;
 
       d.push({   url: url,
                flags: flags });

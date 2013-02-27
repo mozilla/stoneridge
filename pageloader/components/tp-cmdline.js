@@ -84,7 +84,6 @@ PageLoaderCmdLineHandler.prototype =
       args.numPageCycles = cmdLine.handleFlagWithParam("tppagecycles", false);
       args.startIndex = cmdLine.handleFlagWithParam("tpstart", false);
       args.endIndex = cmdLine.handleFlagWithParam("tpend", false);
-      args.filter = cmdLine.handleFlagWithParam("tpfilter", false);
       args.useBrowserChrome = cmdLine.handleFlag("tpchrome", false);
       args.width = cmdLine.handleFlagWithParam("tpwidth", false);
       args.height = cmdLine.handleFlagWithParam("tpheight", false);
@@ -113,8 +112,6 @@ PageLoaderCmdLineHandler.prototype =
   // NWGH: Modify the flags to have output filename
   helpInfo :
   "  -tp <file>         Run pageload perf tests on given manifest\n" +
-  "  -tpfilter str      Only include pages from manifest that contain str " +
-                       "(regexp)\n" +
   "  -tpcycles n        Loop through pages n times\n" +
   "  -tppagecycles n    Loop through each page n times before going onto " +
                        "the next page\n" +
