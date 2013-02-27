@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -70,16 +69,16 @@ function plInit() {
     var manifestURI = args.manifest;
     var startIndex = 0;
     var endIndex = -1;
-    if (args.startIndex) startIndex = parseInt(args.startIndex);
-    if (args.endIndex) endIndex = parseInt(args.endIndex);
-    if (args.numCycles) NUM_CYCLES = parseInt(args.numCycles);
-    if (args.numPageCycles) numPageCycles = parseInt(args.numPageCycles);
-    if (args.width) winWidth = parseInt(args.width);
-    if (args.height) winHeight = parseInt(args.height);
+    if (args.startIndex) startIndex = parseInt(args.startIndex, 10);
+    if (args.endIndex) endIndex = parseInt(args.endIndex, 10);
+    if (args.numCycles) NUM_CYCLES = parseInt(args.numCycles, 10);
+    if (args.numPageCycles) numPageCycles = parseInt(args.numPageCycles, 10);
+    if (args.width) winWidth = parseInt(args.width, 10);
+    if (args.height) winHeight = parseInt(args.height, 10);
     if (args.filter) pageFilterRegexp = new RegExp(args.filter);
     if (args.noisy) noisy = true;
-    if (args.timeout) timeout = parseInt(args.timeout);
-    if (args.delay) delay = parseInt(args.delay);
+    if (args.timeout) timeout = parseInt(args.timeout, 10);
+    if (args.delay) delay = parseInt(args.delay, 10);
     if (args.mozafterpaint) useMozAfterPaint = true;
     if (args.rss) reportRSS = true;
 
@@ -105,7 +104,7 @@ function plInit() {
       plStop(true);
     }
 
-    if (pages.length == 0) {
+    if (pages.length === 0) {
       dumpLine('tp: no pages to test, quitting');
       plStop(true);
     }
@@ -161,14 +160,14 @@ function plInit() {
                          "  if (e.originalTarget.defaultView == content) { " +
                          "    content.wrappedJSObject.tpRecordTime = function(t, s) { sendAsyncMessage('PageLoader:RecordTime', { time: t, startTime: s }); }; ";
                         if (useMozAfterPaint) {
-                          contentScript += "" + 
+                          contentScript += "" +
                           "function _contentPaintHandler() { " +
                           "  var utils = content.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils); " +
                           "  if (utils.isMozAfterPaintPending) { " +
                           "    addEventListener('MozAfterPaint', function(e) { " +
-                          "      removeEventListener('MozAfterPaint', arguments.callee, true); " + 
+                          "      removeEventListener('MozAfterPaint', arguments.callee, true); " +
                           "      sendAsyncMessage('PageLoader:MozAfterPaint', {}); " +
-                          "    }, true); " + 
+                          "    }, true); " +
                           "  } else { " +
                           "    sendAsyncMessage('PageLoader:MozAfterPaint', {}); " +
                           "  } " +
@@ -177,7 +176,7 @@ function plInit() {
                        } else {
                          contentScript += "    sendAsyncMessage('PageLoader:Load', {}); ";
                        }
-                       contentScript += "" + 
+                       contentScript += "" +
                          "  }" +
                          "} " +
                          "addEventListener('load', _contentLoadHandler, true); ";
@@ -269,7 +268,7 @@ function plLoadPage() {
   }
 
   if (timeout > 0) {
-    timeoutEvent = setTimeout('loadFail()', timeout);
+    timeoutEvent = setTimeout(loadFail, timeout);
   }
   if (reportRSS) {
     collectMemory(startAndLoadURI, pageName);
@@ -285,7 +284,7 @@ function startAndLoadURI(pageName) {
 
 function loadFail() {
   var pageName = pages[pageIndex].url.spec;
-  dumpLine("__FAILTimeout exceeded on " + pageName + "__FAIL")
+  dumpLine("__FAILTimeout exceeded on " + pageName + "__FAIL");
   plStop(true);
 }
 
@@ -301,7 +300,7 @@ function plNextPage() {
     doNextPage = true;
   }
 
-  if (doNextPage == true) {
+  if (doNextPage === true) {
     if (forceCC) {
       var tccstart = new Date();
       window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -319,7 +318,7 @@ function plNextPage() {
 
 function plRecordTime(time) {
   var pageName = pages[pageIndex].url.spec;
-  var i = pageIndex
+  var i = pageIndex;
   if (i < pages.length-1) {
     i++;
   } else {
@@ -359,7 +358,7 @@ function plLoadHandlerCapturing(evt) {
     gStartTime = startTime;
     recordedName = testName;
     setTimeout(plWaitForPaintingCapturing, 0);
-  }
+  };
 
   content.removeEventListener('load', plLoadHandlerCapturing, true);
 
@@ -374,7 +373,7 @@ function plWaitForPaintingCapturing() {
                    .getInterface(Components.interfaces.nsIDOMWindowUtils);
 
   if (utils.isMozAfterPaintPending && useMozAfterPaint) {
-    if (gPaintListener == false)
+    if (gPaintListener === false)
       gPaintWindow.addEventListener("MozAfterPaint", plPaintedCapturing, true);
     gPaintListener = true;
     return;
@@ -390,7 +389,7 @@ function plPaintedCapturing() {
 }
 
 function _loadHandlerCapturing() {
-  if (timeout > 0) { 
+  if (timeout > 0) {
     clearTimeout(timeoutEvent);
   }
 
@@ -400,7 +399,7 @@ function _loadHandlerCapturing() {
   }
 
   if (useMozAfterPaint) {
-    if (gStartTime != null && gStartTime >= 0) {
+    if (gStartTime !== null && gStartTime >= 0) {
       gTime = (new Date()) - gStartTime;
       gStartTime = -1;
     }
@@ -412,7 +411,7 @@ function _loadHandlerCapturing() {
     gTime = -1;
     recordedName = null;
     setTimeout(plNextPage, delay);
-  };
+  }
 }
 
 // the onload handler
@@ -437,7 +436,7 @@ function waitForPainted() {
     return;
   }
 
-  if (gPaintListener == false)
+  if (gPaintListener === false)
     gPaintWindow.addEventListener("MozAfterPaint", plPainted, true);
   gPaintListener = true;
 }
@@ -449,7 +448,7 @@ function plPainted() {
 }
 
 function _loadHandler() {
-  if (timeout > 0) { 
+  if (timeout > 0) {
     clearTimeout(timeoutEvent);
   }
   var docElem;
@@ -494,7 +493,7 @@ function plPaintHandler(message) {
 
 // the core handler for remote (e10s) browser
 function _loadHandlerMessage() {
-  if (timeout > 0) { 
+  if (timeout > 0) {
     clearTimeout(timeoutEvent);
   }
 
@@ -571,7 +570,7 @@ function plStop(force) {
 
 function plStopAll(force) {
   try {
-    if (force == false) {
+    if (force === false) {
       pageIndex = 0;
       pageCycle = 1;
       if (cycle < NUM_CYCLES-1) {
@@ -657,13 +656,13 @@ function plLoadURLsFromURI(manifestUri) {
       }
 
       var subManifest = gIOS.newURI(items[1], null, manifestUri);
-      if (subManifest == null) {
+      if (subManifest === null) {
         dumpLine("tp: invalid URI on line " + manifestUri.spec + ":" + lineNo + " : '" + line.value + "'");
         return null;
       }
 
       var subItems = plLoadURLsFromURI(subManifest);
-      if (subItems == null)
+      if (subItems === null)
         return null;
       d = d.concat(subItems);
     } else {

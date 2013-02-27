@@ -14,16 +14,16 @@ function findCommonPrefixLength(strs) {
     var failed = false;
     for (var i = 0; i < strs.length; i++) {
       if (newlen > strs[i].length) {
-	failed = true;
-	break;
+        failed = true;
+        break;
       }
 
       var s = strs[i].substr(0, newlen);
-      if (newprefix == null) {
-	newprefix = s;
+      if (newprefix === null) {
+        newprefix = s;
       } else if (newprefix != s) {
-	failed = true;
-	break;
+        failed = true;
+        break;
       }
     }
 
@@ -43,12 +43,12 @@ function Report() {
 }
 
 Report.prototype.pageNames = function() {
-  var retval = new Array();
+  var retval = [];
   for (var page in this.timeVals) {
     retval.push(page);
   }
   return retval;
-}
+};
 
 // NWGH: This needs to change to return the json type thing we expect in SR
 Report.prototype.getReport = function() {
@@ -80,16 +80,16 @@ Report.prototype.getReport = function() {
   report += "__startTimestamp" + now + "__endTimestamp\n"; //timestamp for determning shutdown time, used by talos
 
   return report;
-}
+};
 
 Report.prototype.recordTime = function(pageName, ms) {
-  if (this.timeVals[pageName] == undefined) {
-    this.timeVals[pageName] = new Array();
+  if (this.timeVals[pageName] === undefined) {
+    this.timeVals[pageName] = [];
   }
   this.timeVals[pageName].push(ms);
-}
+};
 
 Report.prototype.recordCCTime = function(ms) {
   this.totalCCTime += ms;
   this.showTotalCCTime = true;
-}
+};

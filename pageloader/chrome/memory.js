@@ -34,8 +34,8 @@ function initializeMemoryCollector(callback, args) {
         gChildProcess = false;
         gMemCallback();
       }
-    }
- 
+    };
+
     memTimer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
     memTimer.initWithCallback(event, 10000, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
 
@@ -72,9 +72,9 @@ function collectRSS() {
     var reporter = e.getNext().QueryInterface(Components.interfaces.nsIMemoryReporter);
     if (reporter.path == 'resident') {
       procName = reporter.process;
-      if (procName == '')
+      if (procName === '')
         procName = "Main";
-        
+
       //For content process it is in the format "Content (<PID>)", we just want Content
       procName = procName.split(' ')[0];
       text += "RSS: " + procName + ": " + reporter.amount + "\n";

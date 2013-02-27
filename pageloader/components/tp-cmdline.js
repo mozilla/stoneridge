@@ -44,7 +44,7 @@ const TP_CMDLINE_CONTRACTID     = "@mozilla.org/commandlinehandler/general-start
 const TP_CMDLINE_CLSID          = Components.ID('{8AF052F5-8EFE-4359-8266-E16498A82E8B}');
 const CATMAN_CONTRACTID         = "@mozilla.org/categorymanager;1";
 const nsISupports               = Components.interfaces.nsISupports;
-  
+
 const nsICategoryManager        = Components.interfaces.nsICategoryManager;
 const nsICommandLine            = Components.interfaces.nsICommandLine;
 const nsICommandLineHandler     = Components.interfaces.nsICommandLineHandler;
@@ -71,7 +71,7 @@ PageLoaderCmdLineHandler.prototype =
     var args = {};
     try {
       var uristr = cmdLine.handleFlagWithParam("tp", false);
-      if (uristr == null)
+      if (uristr === null)
         return;
       try {
         args.manifest = cmdLine.resolveURI(uristr).spec;
@@ -124,7 +124,7 @@ PageLoaderCmdLineHandler.prototype =
   "  -tpwidth width     Width of window\n" +
   "  -tpheight height   Height of window\n" +
   "  -tpoffline         Force offline mode\n" +
-  "  -tpnoisy           Dump the name of the last loaded page to console\n" + 
+  "  -tpnoisy           Dump the name of the last loaded page to console\n" +
   "  -tptimeout         Max amount of time given for a page to load, quit if exceeded\n" +
   "  -tpdelay           Amount of time to wait between each pageload\n" +
   "  -tpnoforcecc       Don't force cycle collection between each pageload\n" +
@@ -138,7 +138,7 @@ var PageLoaderCmdLineFactory =
 {
   createInstance : function(outer, iid)
   {
-    if (outer != null) {
+    if (outer !== null) {
       throw Components.results.NS_ERROR_NO_AGGREGATION;
     }
 
