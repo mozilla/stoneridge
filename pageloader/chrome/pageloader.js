@@ -13,7 +13,6 @@ try {
 
 var NUM_CYCLES = 5;
 
-var useBrowser = true;
 var winWidth = 1024;
 var winHeight = 768;
 
