@@ -367,10 +367,6 @@ function plRecordTimeMessage(message) {
 }
 
 function plStop(force) {
-  plStopAll(force);
-}
-
-function plStopAll(force) {
   try {
     if (force === false) {
       pageIndex = 0;
