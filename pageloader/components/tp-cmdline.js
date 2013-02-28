@@ -37,6 +37,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/*jshint es5:true, esnext:true*/
+
 // This only implements nsICommandLineHandler, since it needs
 // to handle multiple arguments.
 
