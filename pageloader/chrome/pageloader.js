@@ -60,10 +60,6 @@ function plInit() {
     var args = window.arguments[0].wrappedJSObject;
 
     var manifestURI = args.manifest;
-    var startIndex = 0;
-    var endIndex = -1;
-    if (args.startIndex) startIndex = parseInt(args.startIndex, 10);
-    if (args.endIndex) endIndex = parseInt(args.endIndex, 10);
     if (args.numCycles) NUM_CYCLES = parseInt(args.numCycles, 10);
     if (args.width) winWidth = parseInt(args.width, 10);
     if (args.height) winHeight = parseInt(args.height, 10);
@@ -98,16 +94,6 @@ function plInit() {
       plStop(true);
     }
 
-    if (startIndex < 0)
-      startIndex = 0;
-    if (endIndex == -1 || endIndex >= pages.length)
-      endIndex = pages.length-1;
-    if (startIndex > endIndex) {
-      dumpLine("tp: error: startIndex >= endIndex");
-      plStop(true);
-    }
-
-    pages = pages.slice(startIndex,endIndex+1);
     pageUrls = pages.map(function(p) { return p.url.spec.toString(); });
     report = new Report();
 
