@@ -86,7 +86,6 @@ PageLoaderCmdLineHandler.prototype =
       args.useBrowserChrome = cmdLine.handleFlag("tpchrome", false);
       args.width = cmdLine.handleFlagWithParam("tpwidth", false);
       args.height = cmdLine.handleFlagWithParam("tpheight", false);
-      args.noisy = cmdLine.handleFlag("tpnoisy", false);
       args.timeout = cmdLine.handleFlagWithParam("tptimeout", false);
       args.delay = cmdLine.handleFlagWithParam("tpdelay", false);
       args.mozafterpaint = cmdLine.handleFlag("tpmozafterpaint", false);
@@ -112,7 +111,6 @@ PageLoaderCmdLineHandler.prototype =
   "  -tpchrome          Test with normal browser chrome\n" +
   "  -tpwidth width     Width of window\n" +
   "  -tpheight height   Height of window\n" +
-  "  -tpnoisy           Dump the name of the last loaded page to console\n" +
   "  -tptimeout         Max amount of time given for a page to load, quit if " +
                        "exceeded\n" +
   "  -tpdelay           Amount of time to wait between each pageload\n" +

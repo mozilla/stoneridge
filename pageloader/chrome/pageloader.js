@@ -21,7 +21,6 @@ var pageIndex;
 var start_time;
 var cycle;
 var report;
-var noisy = false;
 var timeout = -1;
 var delay = 250;
 var timeoutEvent = -1;
@@ -56,7 +55,6 @@ function plInit() {
     if (args.numCycles) NUM_CYCLES = parseInt(args.numCycles, 10);
     if (args.width) winWidth = parseInt(args.width, 10);
     if (args.height) winHeight = parseInt(args.height, 10);
-    if (args.noisy) noisy = true;
     if (args.timeout) timeout = parseInt(args.timeout, 10);
     if (args.delay) delay = parseInt(args.delay, 10);
     if (args.mozafterpaint) useMozAfterPaint = true;
@@ -256,9 +254,6 @@ function plRecordTime(time) {
     }
   } else {
     report.recordTime(recordedName, time);
-  }
-  if (noisy) {
-    dumpLine("Cycle " + (cycle+1) + ": loaded " + pageName + " (next: " + nextName + ")");
   }
 }
 
