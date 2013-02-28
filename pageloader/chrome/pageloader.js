@@ -10,7 +10,6 @@ try {
 } catch (ex) {}
 
 var NUM_CYCLES = 5;
-var numPageCycles = 1;
 
 var useBrowser = true;
 var winWidth = 1024;
@@ -20,7 +19,6 @@ var pages;
 var pageIndex;
 var start_time;
 var cycle;
-var pageCycle;
 var report;
 var noisy = false;
 var timeout = -1;
@@ -57,7 +55,6 @@ function plInit() {
   running = true;
 
   cycle = 0;
-  pageCycle = 1;
 
   try {
     var args = window.arguments[0].wrappedJSObject;
@@ -68,7 +65,6 @@ function plInit() {
     if (args.startIndex) startIndex = parseInt(args.startIndex, 10);
     if (args.endIndex) endIndex = parseInt(args.endIndex, 10);
     if (args.numCycles) NUM_CYCLES = parseInt(args.numCycles, 10);
-    if (args.numPageCycles) numPageCycles = parseInt(args.numPageCycles, 10);
     if (args.width) winWidth = parseInt(args.width, 10);
     if (args.height) winHeight = parseInt(args.height, 10);
     if (args.noisy) noisy = true;
@@ -268,13 +264,9 @@ function loadFail() {
 
 function plNextPage() {
   var doNextPage = false;
-  if (pageCycle < numPageCycles) {
-    pageCycle++;
-    doNextPage = true;
-  } else if (pageIndex < pages.length-1) {
+  if (pageIndex < pages.length-1) {
     pageIndex++;
     recordedName = null;
-    pageCycle = 1;
     doNextPage = true;
   }
 
@@ -320,7 +312,7 @@ function plRecordTime(time) {
     report.recordTime(recordedName, time);
   }
   if (noisy) {
-    dumpLine("Cycle " + (cycle+1) + "(" + pageCycle + ")" + ": loaded " + pageName + " (next: " + nextName + ")");
+    dumpLine("Cycle " + (cycle+1) + ": loaded " + pageName + " (next: " + nextName + ")");
   }
 }
 
@@ -519,7 +511,6 @@ function plStopAll(force) {
   try {
     if (force === false) {
       pageIndex = 0;
-      pageCycle = 1;
       if (cycle < NUM_CYCLES-1) {
         cycle++;
         recordedName = null;
