@@ -22,6 +22,7 @@
  *   Christopher A. Aillon <christopher@aillon.com>
  *   L. David Baron, Mozilla Corporation <dbaron@dbaron.org> (modified for reftest)
  *   Vladimir Vukicevic, Mozilla Corporation <dbaron@dbaron.org> (modified for tp)
+ *   Nick Hurley, Mozilla Corporation <hurley@todesschaf.org> (modified for stoneridge)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -42,8 +43,8 @@
 // This only implements nsICommandLineHandler, since it needs
 // to handle multiple arguments.
 
-const TP_CMDLINE_CONTRACTID     = "@mozilla.org/commandlinehandler/general-startup;1?type=tp";
-const TP_CMDLINE_CLSID          = Components.ID('{8AF052F5-8EFE-4359-8266-E16498A82E8B}');
+const SR_CMDLINE_CONTRACTID     = "@mozilla.org/commandlinehandler/general-startup;1?type=sr";
+const SR_CMDLINE_CLSID          = Components.ID('{E17FB86D-1CEB-4B67-8A6C-5B97AD068A7F}');
 const CATMAN_CONTRACTID         = "@mozilla.org/categorymanager;1";
 const nsISupports               = Components.interfaces.nsISupports;
 
@@ -72,7 +73,7 @@ PageLoaderCmdLineHandler.prototype =
   handle : function handler_handle(cmdLine) {
     var args = {};
     try {
-      var uristr = cmdLine.handleFlagWithParam("tp", false);
+      var uristr = cmdLine.handleFlagWithParam("sr", false);
       if (uristr === null)
         return;
       try {
@@ -82,11 +83,11 @@ PageLoaderCmdLineHandler.prototype =
       }
 
       // NWGH: Modify the flags to have output filename
-      args.width = cmdLine.handleFlagWithParam("tpwidth", false);
-      args.height = cmdLine.handleFlagWithParam("tpheight", false);
-      args.timeout = cmdLine.handleFlagWithParam("tptimeout", false);
-      args.delay = cmdLine.handleFlagWithParam("tpdelay", false);
-      args.mozafterpaint = cmdLine.handleFlag("tpmozafterpaint", false);
+      args.width = cmdLine.handleFlagWithParam("srwidth", false);
+      args.height = cmdLine.handleFlagWithParam("srheight", false);
+      args.timeout = cmdLine.handleFlagWithParam("srtimeout", false);
+      args.delay = cmdLine.handleFlagWithParam("srdelay", false);
+      args.mozafterpaint = cmdLine.handleFlag("srmozafterpaint", false);
     }
     catch (e) {
       return;
@@ -104,13 +105,13 @@ PageLoaderCmdLineHandler.prototype =
 
   // NWGH: Modify the flags to have output filename
   helpInfo :
-  "  -tp <file>         Run pageload perf tests on given manifest\n" +
-  "  -tpwidth width     Width of window\n" +
-  "  -tpheight height   Height of window\n" +
-  "  -tptimeout         Max amount of time given for a page to load, quit if " +
+  "  -sr <file>         Run stone ridge pageload tests on given manifest\n" +
+  "  -srwidth width     Width of window\n" +
+  "  -srheight height   Height of window\n" +
+  "  -srtimeout         Max amount of time given for a page to load, quit if " +
                        "exceeded\n" +
-  "  -tpdelay           Amount of time to wait between each pageload\n" +
-  "  -tpmozafterpaint   Measure Time after recieving MozAfterPaint event " +
+  "  -srdelay           Amount of time to wait between each pageload\n" +
+  "  -srmozafterpaint   Measure Time after recieving MozAfterPaint event " +
                        "instead of load event\n"
 
 };
@@ -129,7 +130,7 @@ var PageLoaderCmdLineFactory =
 };
 
 function NSGetFactory(cid) {
-  if (!cid.equals(TP_CMDLINE_CLSID))
+  if (!cid.equals(SR_CMDLINE_CLSID))
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
 
   return PageLoaderCmdLineFactory;
@@ -141,27 +142,27 @@ var PageLoaderCmdLineModule =
   {
     compMgr = compMgr.QueryInterface(nsIComponentRegistrar);
 
-    compMgr.registerFactoryLocation(TP_CMDLINE_CLSID,
-                                    "PageLoader CommandLine Service",
-                                    TP_CMDLINE_CONTRACTID,
+    compMgr.registerFactoryLocation(SR_CMDLINE_CLSID,
+                                    "Stone Ridge PageLoader CommandLine Service",
+                                    SR_CMDLINE_CONTRACTID,
                                     fileSpec,
                                     location,
                                     type);
 
     var catman = Components.classes[CATMAN_CONTRACTID].getService(nsICategoryManager);
     catman.addCategoryEntry("command-line-handler",
-                            "m-tp",
-                            TP_CMDLINE_CONTRACTID, true, true);
+                            "m-sr",
+                            SR_CMDLINE_CONTRACTID, true, true);
   },
 
   unregisterSelf : function(compMgr, fileSpec, location)
   {
     compMgr = compMgr.QueryInterface(nsIComponentRegistrar);
 
-    compMgr.unregisterFactoryLocation(TP_CMDLINE_CLSID, fileSpec);
+    compMgr.unregisterFactoryLocation(SR_CMDLINE_CLSID, fileSpec);
     catman = Components.classes[CATMAN_CONTRACTID].getService(nsICategoryManager);
     catman.deleteCategoryEntry("command-line-handler",
-                               "m-tp", true);
+                               "m-sr", true);
   },
 
   getClassObject : function(compMgr, cid, iid)
