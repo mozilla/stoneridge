@@ -33,14 +33,7 @@ var useMozAfterPaint = false;
 var gPaintWindow = window;
 var gPaintListener = false;
 
-//when TEST_DOES_OWN_TIMING, we need to store the time from the page as MozAfterPaint can be slower than pageload
-var gTime = -1;
-var gStartTime = -1;
-var gReference = -1;
-
 var content;
-
-var TEST_DOES_OWN_TIMING = 1;
 
 var browserWindow = null;
 
@@ -173,10 +166,6 @@ function plInit() {
   }
 }
 
-function plPageFlags() {
-  return pages[pageIndex].flags;
-}
-
 // load the current page, start timing
 var removeLastAddedListener = null;
 var removeLastAddedMsgListener = null;
@@ -189,33 +178,16 @@ function plLoadPage() {
   if (removeLastAddedMsgListener)
     removeLastAddedMsgListener();
 
-  if (plPageFlags() & TEST_DOES_OWN_TIMING) {
-    // if the page does its own timing, use a capturing handler
-    // to make sure that we can set up the function for content to call
-
-    content.addEventListener('load', plLoadHandlerCapturing, true);
-    removeLastAddedListener = function() {
-      content.removeEventListener('load', plLoadHandlerCapturing, true);
-      if (useMozAfterPaint) {
-        content.removeEventListener("MozAfterPaint", plPaintedCapturing, true);
-        gPaintListener = false;
-      }
-    };
-  } else {
-    // if the page doesn't do its own timing, use a bubbling handler
-    // to make sure that we're called after the page's own onload() handling
-
-    // XXX we use a capturing event here too -- load events don't bubble up
-    // to the <browser> element.  See bug 390263.
-    content.addEventListener('load', plLoadHandler, true);
-    removeLastAddedListener = function() {
-      content.removeEventListener('load', plLoadHandler, true);
-      if (useMozAfterPaint) {
-        gPaintWindow.removeEventListener("MozAfterPaint", plPainted, true);
-        gPaintListener = false;
-      }
-    };
-  }
+  // XXX we use a capturing event here -- load events don't bubble up
+  // to the <browser> element.  See bug 390263.
+  content.addEventListener('load', plLoadHandler, true);
+  removeLastAddedListener = function() {
+    content.removeEventListener('load', plLoadHandler, true);
+    if (useMozAfterPaint) {
+      gPaintWindow.removeEventListener("MozAfterPaint", plPainted, true);
+      gPaintListener = false;
+    }
+  };
 
   // If the test browser is remote (e10s / IPC) we need to use messages to watch for page load
   if (content.getAttribute("remote") == "true") {
@@ -302,74 +274,6 @@ function plRecordTime(time) {
   }
 }
 
-function plLoadHandlerCapturing(evt) {
-  // make sure we pick up the right load event
-  if (evt.type != 'load' ||
-       evt.originalTarget.defaultView.frameElement)
-      return;
-
-  //set the tpRecordTime function (called from test pages we load to store a global time.
-  content.contentWindow.wrappedJSObject.tpRecordTime = function (time, startTime, testName) {
-    gTime = time;
-    gStartTime = startTime;
-    recordedName = testName;
-    setTimeout(plWaitForPaintingCapturing, 0);
-  };
-
-  content.removeEventListener('load', plLoadHandlerCapturing, true);
-
-  setTimeout(plWaitForPaintingCapturing, 0);
-}
-
-function plWaitForPaintingCapturing() {
-  if (gPaintListener)
-    return;
-
-  var utils = gPaintWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                   .getInterface(Components.interfaces.nsIDOMWindowUtils);
-
-  if (utils.isMozAfterPaintPending && useMozAfterPaint) {
-    if (gPaintListener === false)
-      gPaintWindow.addEventListener("MozAfterPaint", plPaintedCapturing, true);
-    gPaintListener = true;
-    return;
-  }
-
-  _loadHandlerCapturing();
-}
-
-function plPaintedCapturing() {
-  gPaintWindow.removeEventListener("MozAfterPaint", plPaintedCapturing, true);
-  gPaintListener = false;
-  _loadHandlerCapturing();
-}
-
-function _loadHandlerCapturing() {
-  if (timeout > 0) {
-    clearTimeout(timeoutEvent);
-  }
-
-  if (!(plPageFlags() & TEST_DOES_OWN_TIMING)) {
-    dumpLine("tp: Capturing onload handler used with page that doesn't do its own timing?");
-    plStop(true);
-  }
-
-  if (useMozAfterPaint) {
-    if (gStartTime !== null && gStartTime >= 0) {
-      gTime = (new Date()) - gStartTime;
-      gStartTime = -1;
-    }
-  }
-
-  // set up the function for content to call
-  if (gTime != -1) {
-    plRecordTime(gTime);
-    gTime = -1;
-    recordedName = null;
-    setTimeout(plNextPage, delay);
-  }
-}
-
 // the onload handler
 function plLoadHandler(evt) {
   // make sure we pick up the right load event
@@ -422,13 +326,6 @@ function _loadHandler() {
   var end_time = Date.now();
   var time = (end_time - start_time);
 
-  // does this page want to do its own timing?
-  // if so, we shouldn't be here
-  if (plPageFlags() & TEST_DOES_OWN_TIMING) {
-    dumpLine("tp: Bubbling onload handler used with page that does its own timing?");
-    plStop(true);
-  }
-
   plRecordTime(time);
 
   plNextPage();
@@ -451,27 +348,8 @@ function _loadHandlerMessage() {
   }
 
   var time = -1;
-
-  // does this page want to do its own timing?
-  if ((plPageFlags() & TEST_DOES_OWN_TIMING)) {
-    if (typeof(gStartTime) != "number")
-      gStartTime = Date.parse(gStartTime);
-
-    if (gTime >= 0) {
-      if (useMozAfterPaint && gStartTime >= 0) {
-        gTime = Date.now() - gStartTime;
-        gStartTime = -1;
-      } else if (useMozAfterPaint) {
-        gTime = -1;
-      }
-      time = gTime;
-      gTime = -1;
-    }
-
-  } else {
-    var end_time = Date.now();
-    time = (end_time - start_time);
-  }
+  var end_time = Date.now();
+  time = (end_time - start_time);
 
   if (time >= 0) {
     plRecordTime(time);
@@ -514,10 +392,8 @@ function plStopAll(force) {
   }
 
   if (content) {
-    content.removeEventListener('load', plLoadHandlerCapturing, true);
     content.removeEventListener('load', plLoadHandler, true);
     if (useMozAfterPaint)
-      content.removeEventListener("MozAfterPaint", plPaintedCapturing, true);
       content.removeEventListener("MozAfterPaint", plPainted, true);
 
     if (content.getAttribute("remote") == "true") {
@@ -587,8 +463,6 @@ function plLoadURLsFromURI(manifestUri) {
       d = d.concat(subItems);
     } else {
       if (items.length == 2) {
-        if (items[0].indexOf("%") != -1)
-          flags |= TEST_DOES_OWN_TIMING;
 
         urlspec = items[1];
       } else if (items.length != 1) {
