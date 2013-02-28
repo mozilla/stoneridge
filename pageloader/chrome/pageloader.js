@@ -79,8 +79,6 @@ function plInit() {
 
     gIOS = Cc["@mozilla.org/network/io-service;1"]
       .getService(Ci.nsIIOService);
-    if (args.offline)
-      gIOS.offline = true;
     var fileURI = gIOS.newURI(manifestURI, null, null);
     pages = plLoadURLsFromURI(fileURI);
 
