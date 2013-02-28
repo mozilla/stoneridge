@@ -11,8 +11,6 @@ try {
   }
 } catch (ex) {}
 
-var NUM_CYCLES = 5;
-
 var winWidth = 1024;
 var winHeight = 768;
 
@@ -52,7 +50,6 @@ function plInit() {
     var args = window.arguments[0].wrappedJSObject;
 
     var manifestURI = args.manifest;
-    if (args.numCycles) NUM_CYCLES = parseInt(args.numCycles, 10);
     if (args.width) winWidth = parseInt(args.width, 10);
     if (args.height) winHeight = parseInt(args.height, 10);
     if (args.timeout) timeout = parseInt(args.timeout, 10);
@@ -354,12 +351,6 @@ function plStop(force) {
   try {
     if (force === false) {
       pageIndex = 0;
-      if (cycle < NUM_CYCLES-1) {
-        cycle++;
-        recordedName = null;
-        setTimeout(plLoadPage, delay);
-        return;
-      }
 
       /* output report */
       // NWGH: This line will be changed to save to the file instead of

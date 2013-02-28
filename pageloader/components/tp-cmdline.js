@@ -82,7 +82,6 @@ PageLoaderCmdLineHandler.prototype =
       }
 
       // NWGH: Modify the flags to have output filename
-      args.numCycles = cmdLine.handleFlagWithParam("tpcycles", false);
       args.useBrowserChrome = cmdLine.handleFlag("tpchrome", false);
       args.width = cmdLine.handleFlagWithParam("tpwidth", false);
       args.height = cmdLine.handleFlagWithParam("tpheight", false);
@@ -107,7 +106,6 @@ PageLoaderCmdLineHandler.prototype =
   // NWGH: Modify the flags to have output filename
   helpInfo :
   "  -tp <file>         Run pageload perf tests on given manifest\n" +
-  "  -tpcycles n        Loop through pages n times\n" +
   "  -tpchrome          Test with normal browser chrome\n" +
   "  -tpwidth width     Width of window\n" +
   "  -tpheight height   Height of window\n" +
