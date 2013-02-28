@@ -26,7 +26,6 @@ var timeout = -1;
 var delay = 250;
 var timeoutEvent = -1;
 var running = false;
-var forceCC = true;
 
 var useMozAfterPaint = false;
 var gPaintWindow = window;
@@ -61,15 +60,6 @@ function plInit() {
     if (args.timeout) timeout = parseInt(args.timeout, 10);
     if (args.delay) delay = parseInt(args.delay, 10);
     if (args.mozafterpaint) useMozAfterPaint = true;
-
-    forceCC = !args.noForceCC;
-
-    if (forceCC &&
-        !window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-               .getInterface(Components.interfaces.nsIDOMWindowUtils)
-               .garbageCollect) {
-      forceCC = false;
-    }
 
     gIOS = Cc["@mozilla.org/network/io-service;1"]
       .getService(Ci.nsIIOService);
@@ -228,14 +218,13 @@ function plNextPage() {
   }
 
   if (doNextPage === true) {
-    if (forceCC) {
-      var tccstart = new Date();
-      window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-            .getInterface(Components.interfaces.nsIDOMWindowUtils)
-            .garbageCollect();
-      var tccend = new Date();
-      report.recordCCTime(tccend - tccstart);
-    }
+    // Force cycle collection (like you do)
+    var tccstart = new Date();
+    window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+          .getInterface(Components.interfaces.nsIDOMWindowUtils)
+          .garbageCollect();
+    var tccend = new Date();
+    report.recordCCTime(tccend - tccstart);
 
     setTimeout(plLoadPage, delay);
   } else {
