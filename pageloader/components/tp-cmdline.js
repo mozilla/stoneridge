@@ -82,12 +82,15 @@ PageLoaderCmdLineHandler.prototype =
         return;
       }
 
-      // NWGH: Modify the flags to have output filename
       args.width = cmdLine.handleFlagWithParam("srwidth", false);
       args.height = cmdLine.handleFlagWithParam("srheight", false);
       args.timeout = cmdLine.handleFlagWithParam("srtimeout", false);
       args.delay = cmdLine.handleFlagWithParam("srdelay", false);
       args.mozafterpaint = cmdLine.handleFlag("srmozafterpaint", false);
+      args.outputfile = cmdLine.handleFlag("sroutput", false);
+      if (args.outputfile === null) {
+          return;
+      }
     }
     catch (e) {
       return;
@@ -106,6 +109,7 @@ PageLoaderCmdLineHandler.prototype =
   // NWGH: Modify the flags to have output filename
   helpInfo :
   "  -sr <file>         Run stone ridge pageload tests on given manifest\n" +
+  "  -sroutput <file>   Save output to <file>\n" +
   "  -srwidth width     Width of window\n" +
   "  -srheight height   Height of window\n" +
   "  -srtimeout         Max amount of time given for a page to load, quit if " +
