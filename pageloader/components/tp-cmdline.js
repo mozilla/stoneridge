@@ -82,7 +82,6 @@ PageLoaderCmdLineHandler.prototype =
       }
 
       // NWGH: Modify the flags to have output filename
-      args.useBrowserChrome = cmdLine.handleFlag("tpchrome", false);
       args.width = cmdLine.handleFlagWithParam("tpwidth", false);
       args.height = cmdLine.handleFlagWithParam("tpheight", false);
       args.timeout = cmdLine.handleFlagWithParam("tptimeout", false);
@@ -106,7 +105,6 @@ PageLoaderCmdLineHandler.prototype =
   // NWGH: Modify the flags to have output filename
   helpInfo :
   "  -tp <file>         Run pageload perf tests on given manifest\n" +
-  "  -tpchrome          Test with normal browser chrome\n" +
   "  -tpwidth width     Width of window\n" +
   "  -tpheight height   Height of window\n" +
   "  -tptimeout         Max amount of time given for a page to load, quit if " +

@@ -35,6 +35,13 @@ var browserWindow = null;
 var recordedName = null;
 var pageUrls;
 
+/* TODO
+ *  We need to remove this (and code that depends on it) before we deploy
+ *  the full page load test. This is just for now, to make sure we don't
+ *  forget about mindfully making the decision later.
+ */
+const USE_BROWSER_CHROME = false;
+
 // the io service
 var gIOS = null;
 
@@ -76,7 +83,7 @@ function plInit() {
 
     pageIndex = 0;
 
-    if (args.useBrowserChrome) {
+    if (USE_BROWSER_CHROME) {
       var wwatch = Cc["@mozilla.org/embedcomp/window-watcher;1"]
         .getService(Ci.nsIWindowWatcher);
       var blank = Cc["@mozilla.org/supports-string;1"]
