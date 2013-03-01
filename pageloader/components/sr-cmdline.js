@@ -101,7 +101,7 @@ PageLoaderCmdLineHandler.prototype =
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
-    wwatch.openWindow(null, "chrome://pageloader/content/pageloader.xul",
+    wwatch.openWindow(null, "chrome://srpl/content/srpl.xul",
                       "_blank", "chrome,dialog=no,all", args);
     cmdLine.preventDefault = true;
   },

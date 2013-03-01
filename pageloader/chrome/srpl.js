@@ -77,7 +77,7 @@ function plInit() {
       plStop(true);
     }
 
-    pageUrls = pages.map(function(p) { return p.url.spec.toString(); });
+    pageUrls = pages.map(function(p) { return p.url; });
 
     pageIndex = 0;
 
@@ -159,7 +159,7 @@ function plInit() {
 var removeLastAddedListener = null;
 var removeLastAddedMsgListener = null;
 function plLoadPage() {
-  var pageName = pages[pageIndex].url.spec;
+  var pageName = pages[pageIndex].url;
 
   if (removeLastAddedListener)
     removeLastAddedListener();
@@ -204,7 +204,7 @@ function startAndLoadURI(pageName) {
 }
 
 function loadFail() {
-  var pageName = pages[pageIndex].url.spec;
+  var pageName = pages[pageIndex].url;
   dumpLine("__FAILTimeout exceeded on " + pageName + "__FAIL");
   plStop(true);
 }

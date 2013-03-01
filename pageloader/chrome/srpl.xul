@@ -47,8 +47,8 @@
 
   <script type="application/x-javascript" 
           src="chrome://global/content/globalOverlay.js"/>
-  <script type="application/x-javascript" src="pageloader.js"></script>
-  <script type="application/x-javascript" src="quit.js"></script>
+  <script type="application/x-javascript" src="srpl.js"></script>
+  <script type="application/x-javascript" src="srquit.js"></script>
   <!-- This gets copied in from the top level stone ridge directory, so we can
        share the code with the rest of stone ridge -->
   <script type="application/x-javascript" src="srdata.js"></script>
