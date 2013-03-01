@@ -17,31 +17,19 @@ var winHeight = 768;
 var pages;
 var pageIndex;
 var start_time;
-var cycle;
 var timeout = -1;
 var delay = 250;
 var timeoutEvent = -1;
 var running = false;
 
 var useMozAfterPaint = false;
-var gPaintWindow = window;
 var gPaintListener = false;
 
 var content;
 
-var browserWindow = null;
-
-var recordedName = null;
 var pageUrls;
 
 var outputFile = null;
-
-/* TODO
- *  We need to remove this (and code that depends on it) before we deploy
- *  the full page load test. This is just for now, to make sure we don't
- *  forget about mindfully making the decision later.
- */
-const USE_BROWSER_CHROME = false;
 
 // the io service
 var gIOS = null;
@@ -51,8 +39,6 @@ function plInit() {
     return;
   }
   running = true;
-
-  cycle = 0;
 
   try {
     var args = window.arguments[0].wrappedJSObject;
@@ -89,74 +75,11 @@ function plInit() {
 
     pageIndex = 0;
 
-    if (USE_BROWSER_CHROME) {
-      var wwatch = Cc["@mozilla.org/embedcomp/window-watcher;1"]
-        .getService(Ci.nsIWindowWatcher);
-      var blank = Cc["@mozilla.org/supports-string;1"]
-        .createInstance(Ci.nsISupportsString);
-      blank.data = "about:blank";
-      browserWindow = wwatch.openWindow
-        (null, "chrome://browser/content/", "_blank",
-         "chrome,all,dialog=no,width=" + winWidth + ",height=" + winHeight, blank);
+    window.resizeTo(winWidth, winHeight);
 
-      gPaintWindow = browserWindow;
-      // get our window out of the way
-      window.resizeTo(10,10);
+    content = document.getElementById('contentPageloader');
 
-      var browserLoadFunc = function (ev) {
-        browserWindow.removeEventListener('load', browserLoadFunc, true);
-
-        // do this half a second after load, because we need to be
-        // able to resize the window and not have it get clobbered
-        // by the persisted values
-        setTimeout(function () {
-                     browserWindow.resizeTo(winWidth, winHeight);
-                     browserWindow.moveTo(0, 0);
-                     browserWindow.focus();
-
-                     content = browserWindow.getBrowser();
-
-                     // Load the frame script for e10s / IPC message support
-                     if (content.getAttribute("remote") == "true") {
-                       let contentScript = "data:,function _contentLoadHandler(e) { " +
-                         "  if (e.originalTarget.defaultView == content) { " +
-                         "    content.wrappedJSObject.tpRecordTime = function(t, s) { sendAsyncMessage('PageLoader:RecordTime', { time: t, startTime: s }); }; ";
-                        if (useMozAfterPaint) {
-                          contentScript += "" +
-                          "function _contentPaintHandler() { " +
-                          "  var utils = content.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils); " +
-                          "  if (utils.isMozAfterPaintPending) { " +
-                          "    addEventListener('MozAfterPaint', function(e) { " +
-                          "      removeEventListener('MozAfterPaint', arguments.callee, true); " +
-                          "      sendAsyncMessage('PageLoader:MozAfterPaint', {}); " +
-                          "    }, true); " +
-                          "  } else { " +
-                          "    sendAsyncMessage('PageLoader:MozAfterPaint', {}); " +
-                          "  } " +
-                          "}; " +
-                          "content.wrappedJSObject.setTimeout(_contentPaintHandler, 0); ";
-                       } else {
-                         contentScript += "    sendAsyncMessage('PageLoader:Load', {}); ";
-                       }
-                       contentScript += "" +
-                         "  }" +
-                         "} " +
-                         "addEventListener('load', _contentLoadHandler, true); ";
-                       content.messageManager.loadFrameScript(contentScript, false);
-                     }
-                     setTimeout(plLoadPage, 100);
-                   }, 500);
-      };
-
-      browserWindow.addEventListener('load', browserLoadFunc, true);
-    } else {
-      gPaintWindow = window;
-      window.resizeTo(winWidth, winHeight);
-
-      content = document.getElementById('contentPageloader');
-
-      setTimeout(plLoadPage, delay);
-    }
+    setTimeout(plLoadPage, delay);
   } catch(e) {
     dumpLine(e);
     plStop(true);
@@ -181,7 +104,7 @@ function plLoadPage() {
   removeLastAddedListener = function() {
     content.removeEventListener('load', plLoadHandler, true);
     if (useMozAfterPaint) {
-      gPaintWindow.removeEventListener("MozAfterPaint", plPainted, true);
+      window.removeEventListener("MozAfterPaint", plPainted, true);
       gPaintListener = false;
     }
   };
@@ -221,7 +144,6 @@ function plNextPage() {
   var doNextPage = false;
   if (pageIndex < pages.length-1) {
     pageIndex++;
-    recordedName = null;
     doNextPage = true;
   }
 
@@ -256,7 +178,7 @@ function plLoadHandler(evt) {
 // This is called after we have received a load event, now we wait for painted
 function waitForPainted() {
 
-  var utils = gPaintWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+  var utils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                    .getInterface(Components.interfaces.nsIDOMWindowUtils);
 
   if (!utils.isMozAfterPaintPending || !useMozAfterPaint) {
@@ -265,12 +187,12 @@ function waitForPainted() {
   }
 
   if (gPaintListener === false)
-    gPaintWindow.addEventListener("MozAfterPaint", plPainted, true);
+    window.addEventListener("MozAfterPaint", plPainted, true);
   gPaintListener = true;
 }
 
 function plPainted() {
-  gPaintWindow.removeEventListener("MozAfterPaint", plPainted, true);
+  window.removeEventListener("MozAfterPaint", plPainted, true);
   gPaintListener = false;
   _loadHandler();
 }
@@ -279,11 +201,7 @@ function _loadHandler() {
   if (timeout > 0) {
     clearTimeout(timeoutEvent);
   }
-  var docElem;
-  if (browserWindow)
-    docElem = browserWindow.frames["content"].document.documentElement;
-  else
-    docElem = content.contentDocument.documentElement;
+  var docElem = content.contentDocument.documentElement;
   var width;
   if ("getBoundingClientRect" in docElem) {
     width = docElem.getBoundingClientRect().width;
