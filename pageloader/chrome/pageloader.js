@@ -18,7 +18,6 @@ var pages;
 var pageIndex;
 var start_time;
 var cycle;
-var report;
 var timeout = -1;
 var delay = 250;
 var timeoutEvent = -1;
@@ -79,7 +78,6 @@ function plInit() {
     }
 
     pageUrls = pages.map(function(p) { return p.url.spec.toString(); });
-    report = new Report();
 
     pageIndex = 0;
 
@@ -225,8 +223,6 @@ function plNextPage() {
     window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
           .getInterface(Components.interfaces.nsIDOMWindowUtils)
           .garbageCollect();
-    var tccend = new Date();
-    report.recordCCTime(tccend - tccstart);
 
     setTimeout(plLoadPage, delay);
   } else {
@@ -251,13 +247,13 @@ function plRecordTime(time) {
     var names = recordedName.split(',');
     for (var t = 0; t < times.length; t++) {
       if (names.length == 1) {
-        report.recordTime(names, times[t]);
+        // TODO: report time for names, times[t] here
       } else {
-        report.recordTime(names[t], times[t]);
+        // TODO: report time for names[t], times[t] here
       }
     }
   } else {
-    report.recordTime(recordedName, time);
+    // TODO: report time for recordedName, time here
   }
 }
 
@@ -359,10 +355,7 @@ function plStop(force) {
     if (force === false) {
       pageIndex = 0;
 
-      /* output report */
-      // NWGH: This line will be changed to save to the file instead of
-      //       dumping to stdout.
-      dumpLine(report.getReport());
+      // TODO: write output to file here
     }
   } catch (e) {
     dumpLine(e);
