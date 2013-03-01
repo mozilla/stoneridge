@@ -10,7 +10,7 @@
 /*jshint curly:true, indent:4, latedef:true, undef:true, unused:true,
   trailing:true, es5:true, esnext:true*/
 /*global Components:true, run_test:true, _SR_OUT_FILE:true,
-  do_save_results:true, STONERIDGE_RESULTS:true*/
+  do_save_results:true*/
 
 var STONERIDGE_FINISHED = null;
 
@@ -43,7 +43,6 @@ function make_channel(url) {
  */
 function do_stoneridge() {
     STONERIDGE_FINISHED = false;
-    STONERIDGE_RESULTS = {};
 
     run_test();
 

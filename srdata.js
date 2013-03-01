@@ -20,6 +20,10 @@ function do_write_result(key, start, stop) {
     var startms;
     var stopms;
 
+    if (STONERIDGE_RESULTS === null) {
+        STONERIDGE_RESULTS = {};
+    }
+
     if (start instanceof Date) {
         startms = start.valueOf();
     } else {
