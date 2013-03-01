@@ -40,6 +40,8 @@
   These files did not have a license
 */
 
+/*jshint es5:true, esnext:true*/
+
 function canQuitApplication()
 {
   var os = Components.classes["@mozilla.org/observer-service;1"]
