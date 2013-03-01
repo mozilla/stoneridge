@@ -87,7 +87,7 @@ PageLoaderCmdLineHandler.prototype =
       args.timeout = cmdLine.handleFlagWithParam("srtimeout", false);
       args.delay = cmdLine.handleFlagWithParam("srdelay", false);
       args.mozafterpaint = cmdLine.handleFlag("srmozafterpaint", false);
-      args.outputfile = cmdLine.handleFlag("sroutput", false);
+      args.outputfile = cmdLine.handleFlagWithParam("sroutput", false);
       if (args.outputfile === null) {
           return;
       }
