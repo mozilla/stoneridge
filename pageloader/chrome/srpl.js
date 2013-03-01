@@ -34,6 +34,8 @@ var browserWindow = null;
 var recordedName = null;
 var pageUrls;
 
+var outputFile = null;
+
 /* TODO
  *  We need to remove this (and code that depends on it) before we deploy
  *  the full page load test. This is just for now, to make sure we don't
@@ -55,6 +57,12 @@ function plInit() {
   try {
     var args = window.arguments[0].wrappedJSObject;
 
+    outputFile = args.outputfile;
+    if (!outputFile) {
+        dumpLine('sr: no output file, quitting');
+        plStop(true);
+    }
+
     var manifestURI = args.manifest;
     if (args.width) winWidth = parseInt(args.width, 10);
     if (args.height) winHeight = parseInt(args.height, 10);
@@ -68,12 +76,12 @@ function plInit() {
     pages = plLoadURLsFromURI(fileURI);
 
     if (!pages) {
-      dumpLine('tp: could not load URLs, quitting');
+      dumpLine('sr: could not load URLs, quitting');
       plStop(true);
     }
 
     if (pages.length === 0) {
-      dumpLine('tp: no pages to test, quitting');
+      dumpLine('sr: no pages to test, quitting');
       plStop(true);
     }
 
@@ -329,7 +337,7 @@ function plStop(force) {
     if (force === false) {
       pageIndex = 0;
 
-      do_save_results(args.outputfile);
+      do_save_results(outputFile);
     }
   } catch (e) {
     dumpLine(e);
