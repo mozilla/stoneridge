@@ -9,8 +9,8 @@
 
 /*jshint curly:true, indent:4, latedef:true, undef:true, unused:true,
   trailing:true, es5:true, esnext:true*/
-/*global Components:true, run_test:true, _SR_OUT_SUBDIR:true,
-  _SR_OUT_FILE:true, do_save_results:true, STONERIDGE_RESULTS:true*/
+/*global Components:true, run_test:true, _SR_OUT_FILE:true,
+  do_save_results:true, STONERIDGE_RESULTS:true*/
 
 var STONERIDGE_FINISHED = null;
 
@@ -57,5 +57,5 @@ function do_stoneridge() {
         thread.processNextEvent(true);
     }
 
-    do_save_results(_SR_OUT_SUBDIR, _SR_OUT_FILE);
+    do_save_results(_SR_OUT_FILE);
 }

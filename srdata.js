@@ -29,16 +29,13 @@ function do_write_result(key, start, stop) {
     }
 }
 
-function do_save_results(output_directory, output_file) {
+function do_save_results(output_file) {
     var cc = Components.classes;
     var ci = Components.interfaces;
 
-    // Create a file pointing to our output directory
+    // Create a file pointing to our output file
     var ofile = cc["@mozilla.org/file/local;1"].createInstance(ci.nsILocalFile);
-    ofile.initWithPath(output_directory);
-
-    // And use the file determined by our caller
-    ofile.append(output_file);
+    ofile.initWithPath(output_file);
 
     // Now get an output stream for our file
     var ostream = cc["@mozilla.org/network/file-output-stream;1"].

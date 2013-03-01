@@ -82,15 +82,14 @@ class StoneRidgeRunner(object):
         # Ensure our output directory exists
         outdir = stoneridge.get_config('run', 'out')
         installroot = stoneridge.get_config('stoneridge', 'root')
-        escaped_outdir = outdir.replace('\\', '\\\\')
 
         for test in tests:
             logging.debug('test: %s' % (test,))
-            outfile = '%s.out' % (test,)
+            outfile = os.path.join(outdir, '%s.out' % (test,))
             logging.debug('outfile: %s' % (outfile,))
+            escaped_outfile = outfile.replace('\\', '\\\\')
             args = preargs + [
-                '-e', 'const _SR_OUT_SUBDIR = "%s";' % (escaped_outdir,),
-                '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
+                '-e', 'const _SR_OUT_FILE = "%s";' % (escaped_outfile,),
                 '-f', os.path.join(installroot, 'srdata.js'),
                 '-f', os.path.join(installroot, 'head.js'),
                 '-f', os.path.join(self.testroot, test),
