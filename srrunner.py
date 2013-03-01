@@ -39,9 +39,12 @@ class StoneRidgeRunner(object):
             if stoneridge.get_config('test', 'enabled'):
                 tests = ['fake.js']
             else:
-                tests = [os.path.basename(f) for f in
-                         glob.glob(os.path.join(self.testroot, '*.js'))]
-                tests.remove('fake.js')
+                jstests = [os.path.basename(f) for f in
+                           glob.glob(os.path.join(self.testroot, '*.js'))]
+                jstests.remove('fake.js')
+                pagetests = [os.path.basename(f) for f in
+                             glob.glob(os.path.join(self.testroot, '*.page'))]
+                tests = jstests + pagetests
             logging.debug('tests found %s' % (tests,))
             return tests
 
@@ -87,15 +90,29 @@ class StoneRidgeRunner(object):
             logging.debug('test: %s' % (test,))
             outfile = os.path.join(outdir, '%s.out' % (test,))
             logging.debug('outfile: %s' % (outfile,))
-            escaped_outfile = outfile.replace('\\', '\\\\')
-            args = preargs + [
-                '-e', 'const _SR_OUT_FILE = "%s";' % (escaped_outfile,),
-                '-f', os.path.join(installroot, 'srdata.js'),
-                '-f', os.path.join(installroot, 'head.js'),
-                '-f', os.path.join(self.testroot, test),
-                '-e', 'do_stoneridge(); quit(0);'
-            ]
-            logging.debug('xpcshell args: %s' % (args,))
+            if test.endswith('.js'):
+                escaped_outfile = outfile.replace('\\', '\\\\')
+                args = preargs + [
+                    '-e', 'const _SR_OUT_FILE = "%s";' % (escaped_outfile,),
+                    '-f', os.path.join(installroot, 'srdata.js'),
+                    '-f', os.path.join(installroot, 'head.js'),
+                    '-f', os.path.join(self.testroot, test),
+                    '-e', 'do_stoneridge(); quit(0);'
+                ]
+                logging.debug('xpcshell args: %s' % (args,))
+                runner = stoneridge.run_xpcshell
+            else:
+                args = [
+                    '-sr', os.path.join(self.testroot, test),
+                    '-sroutput', outfile,
+                    # -srwidth, <some width value>,
+                    # -srheight, <some height value>,
+                    # -srtimeout, <some timeout value per page>,
+                    # -srdelay, <some delay value between pages>,
+                    # -srmozafterpaint
+                ]
+                runner = stoneridge.run_firefox
+
             tcpdump_output = os.path.join(outdir, 'traffic.pcap')
             logging.debug('tcpdump capture at %s' % (tcpdump_output,))
             tcpdump_exe = stoneridge.get_config('tcpdump', 'exe')
@@ -116,15 +133,15 @@ class StoneRidgeRunner(object):
                                                   '-w', tcpdump_output,
                                                   '-i', tcpdump_if],
                                                  stdout=tcpdump_out)
-                xpcshell_out_file = '%s.xpcshell.out' % (test,)
-                xpcshell_out_file = os.path.join(outdir, xpcshell_out_file)
-                logging.debug('xpcshell output at %s' % (xpcshell_out_file,))
+                process_out_file = '%s.process.out' % (test,)
+                process_out_file = os.path.join(outdir, process_out_file)
+                logging.debug('process output at %s' % (process_out_file,))
                 timed_out = False
-                with file(xpcshell_out_file, 'wb') as f:
+                with file(process_out_file, 'wb') as f:
                     try:
-                        res, _ = stoneridge.run_xpcshell(args, stdout=f)
-                    except stoneridge.XpcshellTimeout:
-                        logging.exception('xpcshell timed out!')
+                        res = runner(args, f)
+                    except stoneridge.TestProcessTimeout:
+                        logging.exception('test process timed out!')
                         timed_out = True
                         res = None
                 if tcpdump:
