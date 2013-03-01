@@ -121,6 +121,17 @@ class StoneRidgeUnpacker(object):
             os.unlink(srdatadst)
         shutil.copyfile(srdatasrc, srdatadst)
 
+        # Finally, we need to update chrome.manifest with the appropriate bits
+        # from our local pageloader
+        plmanifest = os.path.join(pageloader, 'chrome.manifest')
+        fxmanifest = os.path.join(self.bindir, 'chrome.manifest')
+        with file(fxmanifest, 'rb') as f:
+            lines = f.readlines()
+        with file(plmanifest, 'rb') as f:
+            lines.extend(f.readlines())
+        with file(fxmanifest, 'wb') as f:
+            f.writelines(lines)
+
     def unpack_firefox(self):
         logging.critical('Base unpack_firefox called!')
         raise NotImplementedError('Use a subclass of StoneRidgeUnpacker')
