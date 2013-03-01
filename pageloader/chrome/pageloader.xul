@@ -21,6 +21,7 @@
    - Contributor(s):
    -   Rob Helmer <rhelmer@mozilla.com>
    -   Vladimir Vukicevic <vladimir@mozilla.com>
+   -   Nick Hurley <hurley@todesschaf.org> (Stone Ridge modifications)
    -
    - Alternatively, the contents of this file may be used under the terms of
    - either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -48,6 +49,9 @@
           src="chrome://global/content/globalOverlay.js"/>
   <script type="application/x-javascript" src="pageloader.js"></script>
   <script type="application/x-javascript" src="quit.js"></script>
+  <!-- This gets copied in from the top level stone ridge directory, so we can
+       share the code with the rest of stone ridge -->
+  <script type="application/x-javascript" src="srdata.js"></script>
 
   <browser id="contentPageloader" src="about:blank" 
     type="content" flex="1"/>
