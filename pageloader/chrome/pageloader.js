@@ -360,65 +360,13 @@ function plLoadURLsFromURI(manifestUri) {
   var uriFile = manifestUri.QueryInterface(Ci.nsIFileURL);
 
   fstream.init(uriFile.file, -1, 0, 0);
-  var lstream = fstream.QueryInterface(Ci.nsILineInputStream);
+  var istream = Cc["@mozilla.org/scriptableinputstream;1"]
+      .createInstance(Ci.nsIScriptableInputStream);
+  istream.init(fstream);
 
-  var d = [];
+  var json = istream.read(istream.available());
 
-  var lineNo = 0;
-  var line = {value:null};
-  var more;
-  do {
-    lineNo++;
-    more = lstream.readLine(line);
-    var s = line.value;
-
-    // strip comments
-    s = s.replace(/#.*/, '');
-
-    // strip leading and trailing whitespace
-    s = s.replace(/^\s*/, '').replace(/\s*$/, '');
-
-    if (!s)
-      continue;
-
-    var flags = 0;
-    var urlspec = s;
-
-    // split on whitespace, and figure out if we have any flags
-    var items = s.split(/\s+/);
-    if (items[0] == "include") {
-      if (items.length != 2) {
-        dumpLine("tp: Error on line " + lineNo + " in " + manifestUri.spec + ": include must be followed by the manifest to include!");
-        return null;
-      }
-
-      var subManifest = gIOS.newURI(items[1], null, manifestUri);
-      if (subManifest === null) {
-        dumpLine("tp: invalid URI on line " + manifestUri.spec + ":" + lineNo + " : '" + line.value + "'");
-        return null;
-      }
-
-      var subItems = plLoadURLsFromURI(subManifest);
-      if (subItems === null)
-        return null;
-      d = d.concat(subItems);
-    } else {
-      if (items.length == 2) {
-
-        urlspec = items[1];
-      } else if (items.length != 1) {
-        dumpLine("tp: Error on line " + lineNo + " in " + manifestUri.spec + ": whitespace must be %-escaped!");
-        return null;
-      }
-
-      var url = gIOS.newURI(urlspec, null, manifestUri);
-
-      d.push({   url: url,
-               flags: flags });
-    }
-  } while (more);
-
-  return d;
+  return JSON.parse(json);
 }
 
 function dumpLine(str) {
