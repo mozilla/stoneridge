@@ -376,9 +376,6 @@ function plStop(force) {
     }
   }
 
-  if (MozillaFileLogger)
-    MozillaFileLogger.close();
-
   goQuitApplication();
 }
 
@@ -451,8 +448,6 @@ function plLoadURLsFromURI(manifestUri) {
 }
 
 function dumpLine(str) {
-  if (MozillaFileLogger)
-    MozillaFileLogger.log(str + "\n");
   dump(str);
   dump("\n");
 }
