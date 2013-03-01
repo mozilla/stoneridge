@@ -91,6 +91,7 @@ class StoneRidgeRunner(object):
             args = preargs + [
                 '-e', 'const _SR_OUT_SUBDIR = "%s";' % (escaped_outdir,),
                 '-e', 'const _SR_OUT_FILE = "%s";' % (outfile,),
+                '-f', os.path.join(installroot, 'srdata.js'),
                 '-f', os.path.join(installroot, 'head.js'),
                 '-f', os.path.join(self.testroot, test),
                 '-e', 'do_stoneridge(); quit(0);'
