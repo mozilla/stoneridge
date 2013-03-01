@@ -7,7 +7,7 @@
  * test suite. This must be run under xpcshell running in JS v1.8 mode.
  */
 
-/*jshint curly:true, indent:4, latedef:true, undef:true, unused:true,
+/*jshint curly:true, indent:4, latedef:true, undef:true,
   trailing:true, es5:true, esnext:true*/
 /*global Components:true, run_test:true, _SR_OUT_FILE:true,
   do_save_results:true*/
@@ -47,8 +47,7 @@ function do_stoneridge() {
     run_test();
 
     // Pump the event loop until we're told to stop
-    var thread = Cc["@mozilla.org/thread-manager;1"].
-                 getService().currentThread;
+    var thread = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
     while (!STONERIDGE_FINISHED) {
         thread.processNextEvent(true);
     }

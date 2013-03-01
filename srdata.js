@@ -7,7 +7,7 @@
  * test suite. This must be run under xpcshell running in JS v1.8 mode.
  */
 
-/*jshint curly:true, indent:4, latedef:true, undef:true, unused:true,
+/*jshint curly:true, indent:4, latedef:true, undef:true,
   trailing:true, es5:true, esnext:true*/
 /*global Components:true*/
 
@@ -54,8 +54,8 @@ function do_save_results(output_file) {
     ofile.initWithPath(output_file);
 
     // Now get an output stream for our file
-    var ostream = cc["@mozilla.org/network/file-output-stream;1"].
-                  createInstance(ci.nsIFileOutputStream);
+    var ostream = cc["@mozilla.org/network/file-output-stream;1"]
+        .createInstance(ci.nsIFileOutputStream);
     ostream.init(ofile, -1, -1, 0);
 
     var jstring = JSON.stringify(STONERIDGE_RESULTS);
