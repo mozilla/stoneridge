@@ -48,9 +48,9 @@ class StoneRidgeUnpacker(object):
         self.testzip = os.path.join(downloaddir, 'tests.zip')
         logging.debug('test zip file: %s' % (self.testzip,))
 
-    def _copy_tree(self, unzipdir, name):
-        logging.debug('_copy_tree(%s, %s)' % (unzipdir, name))
-        srcdir = os.path.join(unzipdir, 'bin', name)
+    def _copy_tree(self, srcdir, name):
+        logging.debug('_copy_tree(%s, %s)' % (srcdir, name))
+        srcdir = os.path.join(srcdir, name)
         files = os.listdir(srcdir)
         dstdir = os.path.join(self.bindir, name)
         logging.debug('srcdir: %s' % (srcdir,))
@@ -85,8 +85,9 @@ class StoneRidgeUnpacker(object):
         z.extractall(unzipdir, members)
 
         # Put the xpcshell binary where it belongs
+        unzipbin = os.path.join(unzipdir, 'bin')
         xpcshell_bin = stoneridge.get_config('machine', 'xpcshell')
-        xpcshell = os.path.join(unzipdir, 'bin', xpcshell_bin)
+        xpcshell = os.path.join(unzipbin, xpcshell_bin)
         logging.debug('xpcshell: %s' % (xpcshell,))
 
         # Apparently xpcshell stopped being executable in the tests zip at some
@@ -99,11 +100,26 @@ class StoneRidgeUnpacker(object):
 
         # Put our components into place
         logging.debug('copying components')
-        self._copy_tree(unzipdir, 'components')
+        self._copy_tree(unzipbin, 'components')
 
         # Put the plugins in place, in case we need them
         logging.debug('copying plugins')
-        self._copy_tree(unzipdir, 'plugins')
+        self._copy_tree(unzipbin, 'plugins')
+
+        # Put the pageloader components into place
+        srhome = stoneridge.get_config('stoneridge', 'home')
+        pageloader = os.path.join(srhome, 'pageloader')
+        self._copy_tree(pageloader, 'components')
+        self._copy_tree(pageloader, 'chrome')
+
+        # Now we need to put srdata.js into the appropriate place for it to be
+        # picked up by the pageloader
+        components = os.path.join(self.bindir, 'components')
+        srdatasrc = os.path.join(srhome, 'srdata.js')
+        srdatadst = os.path.join(components, 'srdata.js')
+        if os.path.exists(srdatadst):
+            os.unlink(srdatadst)
+        shutil.copyfile(srdatasrc, srdatadst)
 
     def unpack_firefox(self):
         logging.critical('Base unpack_firefox called!')
