@@ -17,8 +17,20 @@ var STONERIDGE_RESULTS = null;
  * Store some results for writing once we're all done
  */
 function do_write_result(key, start, stop) {
-    var startms = start.valueOf();
-    var stopms = stop.valueOf();
+    var startms;
+    var stopms;
+
+    if (start instanceof Date) {
+        startms = start.valueOf();
+    } else {
+        startms = start;
+    }
+
+    if (stop instanceof Date) {
+        stopms = stop.valueOf();
+    } else {
+        stopms = stop;
+    }
 
     var val = {'start': startms, 'stop': stopms, 'total': stopms - startms};
 

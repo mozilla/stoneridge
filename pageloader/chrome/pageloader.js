@@ -230,31 +230,8 @@ function plNextPage() {
   }
 }
 
-function plRecordTime(time) {
-  var pageName = pages[pageIndex].url.spec;
-  var i = pageIndex;
-  if (i < pages.length-1) {
-    i++;
-  } else {
-    i = 0;
-  }
-  var nextName = pages[i].url.spec;
-  if (!recordedName) {
-    recordedName = pageUrls[pageIndex];
-  }
-  if (typeof(time) == "string") {
-    var times = time.split(',');
-    var names = recordedName.split(',');
-    for (var t = 0; t < times.length; t++) {
-      if (names.length == 1) {
-        // TODO: report time for names, times[t] here
-      } else {
-        // TODO: report time for names[t], times[t] here
-      }
-    }
-  } else {
-    // TODO: report time for recordedName, time here
-  }
+function plRecordTime(start, end) {
+  do_write_result(pageUrls[pageIndex], start, end);
 }
 
 // the onload handler
@@ -307,9 +284,8 @@ function _loadHandler() {
   }
 
   var end_time = Date.now();
-  var time = (end_time - start_time);
 
-  plRecordTime(time);
+  plRecordTime(start_time, end_time);
 
   plNextPage();
 }
@@ -330,12 +306,10 @@ function _loadHandlerMessage() {
     clearTimeout(timeoutEvent);
   }
 
-  var time = -1;
   var end_time = Date.now();
-  time = (end_time - start_time);
 
-  if (time >= 0) {
-    plRecordTime(time);
+  if ((end_time - start_time) >= 0) {
+    plRecordTime(start_time, end_time);
 
     plNextPage();
   }
@@ -355,7 +329,7 @@ function plStop(force) {
     if (force === false) {
       pageIndex = 0;
 
-      // TODO: write output to file here
+      do_save_results(args.outputfile);
     }
   } catch (e) {
     dumpLine(e);
