@@ -37,11 +37,17 @@ class StoneRidgeRunner(object):
             logging.debug('searching for all tests in %s' %
                           (self.testroot,))
             if stoneridge.get_config('test', 'enabled'):
-                tests = ['fake.js']
+                tests = []
+                if os.path.exists(os.path.join(self.testroot, 'fake.js')):
+                    tests.append('fake.js')
             else:
                 jstests = [os.path.basename(f) for f in
                            glob.glob(os.path.join(self.testroot, '*.js'))]
-                jstests.remove('fake.js')
+                try:
+                    jstests.remove('fake.js')
+                except ValueError:
+                    # Don't care if fake.js isn't in the list
+                    pass
                 pagetests = [os.path.basename(f) for f in
                              glob.glob(os.path.join(self.testroot, '*.page'))]
                 tests = jstests + pagetests
