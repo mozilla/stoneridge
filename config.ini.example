@@ -80,6 +80,11 @@ keep = 50
 # corresponds to 15 minutes
 timeout = 900
 
+[firefox]
+# How long to wait for firefox before killing it, in seconds. The value below
+# corresponds to 15 minutes
+timeout = 900
+
 [mqproxy]
 # Where to keep the proxy database for windows queue entries
 db = /Users/hurley/src/stoneridge/testroot/mqproxy.db
@@ -105,6 +110,10 @@ download_suffix = dmg
 # The path in the exploded firefox package of the firefox binary. This is
 # firefox for win and linux, and FirefoxNightly.app/Contents/MacOS for mac
 firefox_path = FirefoxNightly.app/Contents/MacOS
+
+# The name of the firefox binary, firefox for mac and linux, firefox.exe
+# for windows
+firefox = firefox
 
 # The name of the xpcshell binary, xpcshell for mac and linux, xpcshell.exe
 # for windows
