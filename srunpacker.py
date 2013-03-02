@@ -107,24 +107,26 @@ class StoneRidgeUnpacker(object):
         self._copy_tree(unzipbin, 'plugins')
 
         # Put the pageloader components into place
-        srhome = stoneridge.get_config('stoneridge', 'home')
-        pageloader = os.path.join(srhome, 'pageloader')
+        srroot = stoneridge.get_config('stoneridge', 'root')
+        pageloader = os.path.join(srroot, 'pageloader')
         self._copy_tree(pageloader, 'components')
         self._copy_tree(pageloader, 'chrome')
 
         # Now we need to put srdata.js into the appropriate place for it to be
         # picked up by the pageloader
-        components = os.path.join(self.bindir, 'components')
-        srdatasrc = os.path.join(srhome, 'srdata.js')
-        srdatadst = os.path.join(components, 'srdata.js')
+        chrome = os.path.join(self.bindir, 'chrome')
+        srdatasrc = os.path.join(srroot, 'srdata.js')
+        srdatadst = os.path.join(chrome, 'srdata.js')
         if os.path.exists(srdatadst):
             os.unlink(srdatadst)
+        logging.debug('copy srdata.js %s -> %s' % (srdatasrc, srdatadst))
         shutil.copyfile(srdatasrc, srdatadst)
 
         # Finally, we need to update chrome.manifest with the appropriate bits
         # from our local pageloader
         plmanifest = os.path.join(pageloader, 'chrome.manifest')
         fxmanifest = os.path.join(self.bindir, 'chrome.manifest')
+        logging.debug('append %s to %s' % (plmanifest, fxmanifest))
         with file(fxmanifest, 'rb') as f:
             lines = f.readlines()
         with file(plmanifest, 'rb') as f:
