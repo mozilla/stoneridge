@@ -17,6 +17,10 @@ class PcapAlreadyRunning(Exception):
     pass
 
 
+class PcapAlreadyStopped(Exception):
+    pass
+
+
 class StoneRidgePcapper(object):
     def __init__(self):
         self.pcaps = {}
@@ -53,7 +57,8 @@ class StoneRidgePcapper(object):
             raise Exception('Not running a PCAP for %s' % (macaddr,))
 
         if self.pcaps[macaddr]['process'] is None:
-            raise Exception('PCAP for %s already stopped' % (macaddr,))
+            raise PcapAlreadyStopped('PCAP for %s already stopped' %
+                                     (macaddr,))
 
         p = self.pcaps[macaddr]['process']
         self.pcaps[macaddr]['process'] = None
@@ -122,6 +127,8 @@ def retrieve(macaddr=None):
 def stop(macaddr=None):
     try:
         pcapper.stop(macaddr)
+    except PcapAlreadyStopped as e:
+        return ok(str(e))
     except Exception as e:
         logging.exception('Error trying to stop for %s' % (macaddr,))
         return error(str(e))
