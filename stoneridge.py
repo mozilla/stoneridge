@@ -122,6 +122,26 @@ class Process(subprocess.Popen):
                                   **kwargs)
 
 
+class StreamLogger(object):
+    """Redirect a stream to a logger
+    """
+    def __init__(self, logger):
+        self.logger = logger
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(logging.DEBUG, line.rstrip())
+
+    @staticmethod
+    def bottle_inject():
+        """Do some nasty hackery to make sure everything bottle prints goes to
+        our log, too."""
+        import bottle
+        streamlogger = StreamLogger(logging.getLogger())
+        sys.stdout = sys.stderr = streamlogger
+        bottle._stdout = bottle._stderr = streamlogger.write
+
+
 _cp = None
 _srconf = None
 _runconf = None
