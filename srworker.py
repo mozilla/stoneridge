@@ -188,6 +188,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.run_process('infogatherer')
 
+        self.run_process('arpfixer')
+
         self.run_process('dnsupdater')
 
         self.need_dns_reset = True
