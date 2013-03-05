@@ -33,7 +33,7 @@ class StoneRidgePcap(object):
     def start_pcap(self):
         url = 'http://%s/start/%s' % (self.host, self.macaddr)
         response = requests.post(url)
-        res = json.loads(response)
+        res = json.loads(response.text)
         if res['status'] != 'ok':
             logging.error('Error starting pcap: %s' % (res['message'],))
         else:
