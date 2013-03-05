@@ -10,10 +10,10 @@ import stoneridge
 
 @bottle.post('/email')
 def email():
-    r = bottle.request
-    to = r.forms.get('to')
-    subject = r.forms.get('subject')
-    msg = r.forms.get('message')
+    r = bottle.request.forms
+    to = r.get('to')
+    subject = r.get('subject')
+    msg = r.get('message')
 
     stoneridge.sendmail(to, subject, msg)
 
