@@ -42,14 +42,14 @@ class StoneRidgePcap(object):
     def stop_pcap(self):
         url = 'http://%s/stop/%s' % (self.host, self.macaddr)
         response = requests.post(url)
-        res = json.loads(response)
+        res = json.loads(response.text)
         if res['status'] != 'ok':
             logging.error('Error stopping pcap: %s' % (res['message'],))
             return
 
         url = 'http://%s/retrieve/%s' % (self.host, self.macaddr)
         response = requests.post(url)
-        res = json.loads(response)
+        res = json.loads(response.text)
         if res['status'] != 'ok':
             logging.error('Error retrieving pcap: %s' % (res['message'],))
             return
