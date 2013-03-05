@@ -95,9 +95,18 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                                   (response.status, srid))
 
                 try:
-                    result = json.load(response)
+                    response_text = response.read()
                 except:
-                    result = ''
+                    logging.exception('Error reading response')
+                    continue
+
+                try:
+                    result = json.loads(response_text)
+                except:
+                    logging.exception('Error loading resposne %s' %
+                                      (response_text,))
+                    continue
+
                 logging.debug('got result %s' % (result,))
                 if result['status'] != 'well-formed JSON stored':
                     logging.error('bad status for %s: %s' %
