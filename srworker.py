@@ -194,6 +194,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.run_process('dnsupdater')
 
+        self.run_process('dnscheck')
+
         self.need_dns_reset = True
 
         self.run_process('runner')
