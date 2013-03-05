@@ -74,8 +74,8 @@ class StoneRidgePcap(object):
 def main():
     parser = stoneridge.TestRunArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--start', dest='start')
-    group.add_argument('--stop', dest='stop')
+    group.add_argument('--start', dest='start', action='store_true')
+    group.add_argument('--stop', dest='stop', action='store_true')
     args = parser.parse_args()
 
     pcap = StoneRidgePcap(args.stop)
