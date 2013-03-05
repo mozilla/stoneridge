@@ -54,8 +54,8 @@ class StoneRidgePcap(object):
             logging.error('Error retrieving pcap: %s' % (res['message'],))
             return
 
-        stdout = base64.b64decode(res['stdout'])
-        pcap = base64.b64decode(res['pcap'])
+        stdout = base64.b64decode(res['data']['stdout'])
+        pcap = base64.b64decode(res['data']['pcap'])
 
         with file(self.stdout, 'wb') as f:
             f.write(stdout)
