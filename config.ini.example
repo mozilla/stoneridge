@@ -2,6 +2,9 @@
 # The directory where stone ridge is installed
 root = /Users/hurley/src/stoneridge
 
+# Where pid files and such should go
+run = /Users/hurley/src/stoneridge/testroot/run
+
 # Where processes should store their logs
 logs = /Users/hurley/src/stoneridge/testroot/logs
 

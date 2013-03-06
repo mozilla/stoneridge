@@ -63,8 +63,8 @@ class StoneRidgeReporter(stoneridge.QueueListener):
             f.write(metadata)
 
         if ldap is not None:
-            msg_text =  EMAIL_MESSAGE % (ldap, srid, operating_system,
-                                         netconfig)
+            msg_text = EMAIL_MESSAGE % (ldap, srid, operating_system,
+                                        netconfig)
             stoneridge.sendmail(ldap, 'Stone Ridge Complete',
                                 msg_text, (metadata_file, 'results.zip'))
 
@@ -95,9 +95,18 @@ class StoneRidgeReporter(stoneridge.QueueListener):
                                   (response.status, srid))
 
                 try:
-                    result = json.load(response)
+                    response_text = response.read()
                 except:
-                    result = ''
+                    logging.exception('Error reading response')
+                    continue
+
+                try:
+                    result = json.loads(response_text)
+                except:
+                    logging.exception('Error loading resposne %s' %
+                                      (response_text,))
+                    continue
+
                 logging.debug('got result %s' % (result,))
                 if result['status'] != 'well-formed JSON stored':
                     logging.error('bad status for %s: %s' %
