@@ -4,7 +4,6 @@ import logging
 import socket
 import sys
 import time
-import traceback
 
 from dnsproxy import DnsProxyServer, UdpDnsHandler, DnsProxyException
 
@@ -72,18 +71,20 @@ def necko_passthrough(host):
 
 
 def daemon():
+    logging.debug('about to start proxy server')
     try:
         with(DnsProxyServer(False, handler=NeckoDnsHandler,
                             passthrough_filter=necko_passthrough)):
+            logging.debug('proxy server started')
             while True:
                 time.sleep(1)
     except KeyboardInterrupt:
         logging.info('Shutting down.')
-    except DnsProxyException as e:
-        logging.critical(e)
+    except DnsProxyException:
+        logging.exception('DNS Proxy Exception')
         sys.exit(1)
     except:
-        print traceback.format_exc()
+        logging.exception('Unexpected exception')
         sys.exit(2)
     sys.exit(0)
 
