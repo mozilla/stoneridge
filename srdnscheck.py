@@ -23,7 +23,7 @@ def send_email():
         SRID: %s
     ''' % (myos, netconfig, srid)
 
-    stoneridge.sendmail(to, subject, msg)
+    stoneridge.mail(to, subject, msg)
 
 
 @stoneridge.main

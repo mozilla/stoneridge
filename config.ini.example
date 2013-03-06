@@ -17,6 +17,9 @@ archives = /Users/hurley/src/stoneridge/testroot/archives
 # The host running RabbitMQ for us
 mqhost = localhost
 
+# The URL for clients to post emails to for sending
+mailurl = http://stone-ridge-linux1.dmz.scl3.mozilla.com:2255/email
+
 # True if we're running in unit test mode, missing or false otherwise
 unittest = true
 
