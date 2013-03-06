@@ -23,6 +23,9 @@ SR_HOSTS = {
     'stone-ridge-linux1.dmz.scl3.mozilla.com': '172.17.0.1',
     'stone-ridge-linux2.dmz.scl3.mozilla.com': '172.18.0.1',
     'stone-ridge-linux3.dmz.scl3.mozilla.com': '172.19.0.1',
+    'stone-ridge-linux4.dmz.scl3.mozilla.com': '172.16.1.1',
+    'stone-ridge-win1.dmz.scl3.mozilla.com': '172.16.1.2',
+    'stone-ridge-mac1.dmz.scl3.mozilla.com': '172.16.1.3',
 }
 
 
@@ -52,7 +55,9 @@ class NeckoDnsHandler(UdpDnsHandler):
 
 
 def necko_passthrough(host):
+    logging.debug('passthrough: checking %s' % (host,))
     if host in IGNORE_HOSTS:
+        logging.debug('attempting to ignore %s' % (host,))
         try:
             return socket.gethostbyname(host)
         except:
@@ -60,8 +65,10 @@ def necko_passthrough(host):
                           (host,))
 
     if host in SR_HOSTS:
+        logging.debug('stone ridge host detected: %s' % (host,))
         return SR_HOSTS[host]
 
+    logging.debug('host not found in our exception lists')
     return None
 
 
