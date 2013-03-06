@@ -1,5 +1,3 @@
-import argparse
-import daemonize
 import logging
 import socket
 import sys
@@ -91,13 +89,11 @@ def daemon():
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
+    parser = stoneridge.DaemonArgumentParser()
     parser.add_argument('--listen', dest='listen', required=True)
-    parser.add_argument('--pidfile', dest='pidfile', required=True)
-    parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
 
     global listen_ip
     listen_ip = args.listen
 
-    daemonize.start(daemon, args.pidfile, args.log)
+    parser.start_daemon(daemon)
