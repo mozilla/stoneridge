@@ -31,8 +31,14 @@ class StoneRidgePcap(object):
         logging.debug('packet capture: %s' % (self.pcap,))
 
     def start_pcap(self):
+        logging.debug('Starting pcap')
         url = 'http://%s/start/%s' % (self.host, self.macaddr)
         response = requests.post(url)
+        if response.status_code != 200:
+            logging.error('Non-200 response starting pcap: %s' %
+                          (response.status_code,))
+            return
+
         res = json.loads(response.text)
         if res['status'] != 'ok':
             logging.error('Error starting pcap: %s' % (res['message'],))
@@ -40,15 +46,28 @@ class StoneRidgePcap(object):
             logging.debug('Started pcap')
 
     def stop_pcap(self):
+        logging.debug('Stopping pcap')
         url = 'http://%s/stop/%s' % (self.host, self.macaddr)
         response = requests.post(url)
+        if response.status_code != 200:
+            logging.error('Non-200 response stopping pcap: %s' %
+                          (response.status_code,))
+            return
+
         res = json.loads(response.text)
         if res['status'] != 'ok':
             logging.error('Error stopping pcap: %s' % (res['message'],))
             return
 
+        logging.debug('Retrieving pcap')
+
         url = 'http://%s/retrieve/%s' % (self.host, self.macaddr)
         response = requests.post(url)
+        if response.status_code != 200:
+            logging.error('Non-200 response retrieving pcap: %s' %
+                          (response.status_code,))
+            return
+
         res = json.loads(response.text)
         if res['status'] != 'ok':
             logging.error('Error retrieving pcap: %s' % (res['message'],))
@@ -58,9 +77,11 @@ class StoneRidgePcap(object):
         pcap = base64.b64decode(res['data']['pcap'])
 
         with file(self.stdout, 'wb') as f:
+            logging.debug('Writing tcpdump stdout to %s' % (self.stdout,))
             f.write(stdout)
 
         with file(self.pcap, 'wb') as f:
+            logging.debug('Writing pcap to %s' % (self.pcap,))
             f.write(pcap)
 
     def run(self):
