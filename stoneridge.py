@@ -698,6 +698,12 @@ def mail(to, subject, message):
     if _mailurl is None:
         _mailurl = get_config('stoneridge', 'mailurl')
 
+    logging.debug('to: %s' % (to,))
+    logging.debug('subject: %s' % (subject,))
+    logging.debug('message: %s' % (message,))
+
     requests.post(_mailurl, data={'to': to,
                                   'subject': subject,
                                   'message': message})
+
+    logging.debug('mail sent')
