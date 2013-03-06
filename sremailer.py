@@ -4,16 +4,21 @@
 # obtain one at http://mozilla.org/MPL/2.0/.
 
 import bottle
+import logging
 
 import stoneridge
 
 
 @bottle.post('/email')
 def email():
+    logging.debug('handling email')
     r = bottle.request.forms
     to = r.get('to')
+    logging.debug('to: %s' % (to,))
     subject = r.get('subject')
+    logging.debug('subject: %s' % (subject,))
     msg = r.get('message')
+    logging.debug('message: %s' % (msg,))
 
     stoneridge.sendmail(to, subject, msg)
 
