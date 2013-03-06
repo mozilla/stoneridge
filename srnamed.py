@@ -1,13 +1,9 @@
-import argparse
-import daemonize
 import logging
-import subprocess
+import socket
 import sys
 import time
-import traceback
 
 from dnsproxy import DnsProxyServer, UdpDnsHandler, DnsProxyException
-from replay import configure_logging
 
 import stoneridge
 
@@ -15,30 +11,18 @@ import stoneridge
 listen_ip = None
 
 
-class NeckoDnsProxyServer(DnsProxyServer):
-    def necko_get_ip(self, client):
-        try:
-            return self.necko_ips[client]
-        except (AttributeError, KeyError):
-            iproute = subprocess.Popen(['ip', 'route', 'get', client],
-                                       stdout=subprocess.PIPE)
-            res = iproute.stdout.read()
-            iproute.wait()
-            bits = res.split()
-            ip = None
-            for i, bit in enumerate(bits):
-                if bit == 'src':
-                    ip = bits[i + 1]
-                    break
-            if ip is None:
-                # Hail mary, full of something...
-                return '127.0.0.1'
-            try:
-                self.necko_ips[client] = ip
-            except AttributeError:
-                self.necko_ips = {}
-                self.necko_ips[client] = ip
-            return self.necko_ips[client]
+IGNORE_HOSTS = (
+    'puppet1.private.scl3.mozilla.com.',
+)
+
+SR_HOSTS = {
+    'stone-ridge-linux1.dmz.scl3.mozilla.com.': '172.17.0.1',
+    'stone-ridge-linux2.dmz.scl3.mozilla.com.': '172.18.0.1',
+    'stone-ridge-linux3.dmz.scl3.mozilla.com.': '172.19.0.1',
+    'stone-ridge-linux4.dmz.scl3.mozilla.com.': '172.16.1.1',
+    'stone-ridge-win1.dmz.scl3.mozilla.com.': '172.16.1.2',
+    'stone-ridge-mac1.dmz.scl3.mozilla.com.': '172.16.1.3',
+}
 
 
 class NeckoDnsHandler(UdpDnsHandler):
@@ -61,39 +45,55 @@ class NeckoDnsHandler(UdpDnsHandler):
             ip = real_ip
         else:
             message = 'handle'
-            ip = self.server.necko_get_ip(self.client_address[0])
-            # TODO - make the above work again
             ip = listen_ip
         logging.debug('dnsproxy: %s(%s) -> %s', message, self.domain, ip)
         self.reply(self.get_dns_reply(ip))
 
 
+def necko_passthrough(host):
+    logging.debug('passthrough: checking %s' % (host,))
+    if host in IGNORE_HOSTS:
+        logging.debug('attempting to ignore %s' % (host,))
+        try:
+            return socket.gethostbyname(host)
+        except:
+            logging.error('Could not get actual IP for %s, faking it!' %
+                          (host,))
+
+    if host in SR_HOSTS:
+        logging.debug('stone ridge host detected: %s' % (host,))
+        return SR_HOSTS[host]
+
+    logging.debug('host not found in our exception lists')
+    return None
+
+
 def daemon():
-    configure_logging('debug', None)
+    logging.debug('about to start proxy server')
     try:
-        with(NeckoDnsProxyServer(False, handler=NeckoDnsHandler)):
+        with(DnsProxyServer(False, handler=NeckoDnsHandler,
+                            passthrough_filter=necko_passthrough)):
+            logging.debug('proxy server started')
             while True:
                 time.sleep(1)
     except KeyboardInterrupt:
         logging.info('Shutting down.')
-    except DnsProxyException as e:
-        logging.critical(e)
+    except DnsProxyException:
+        logging.exception('DNS Proxy Exception')
         sys.exit(1)
     except:
-        print traceback.format_exc()
+        logging.exception('Unexpected exception')
         sys.exit(2)
     sys.exit(0)
 
 
 @stoneridge.main
 def main():
-    parser = argparse.ArgumentParser()
+    parser = stoneridge.DaemonArgumentParser()
     parser.add_argument('--listen', dest='listen', required=True)
-    parser.add_argument('--pidfile', dest='pidfile', required=True)
-    parser.add_argument('--log', dest='log', required=True)
     args = parser.parse_args()
 
     global listen_ip
     listen_ip = args.listen
 
-    daemonize.start(daemon, args.pidfile, args.log)
+    parser.start_daemon(daemon)

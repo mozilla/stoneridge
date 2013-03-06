@@ -21,7 +21,7 @@ PID=$SRHOME/srnamed.pid
 LOG=$SRHOME/srnamed.log
 
 start() {
-    python $SRRUN $SRROOT/srnamed.py --listen $MYIP --pidfile $PID --log $LOG
+    python $SRRUN $SRROOT/srnamed.py --listen $MYIP --pidfile $PID --log $LOG --config $CONFFILE
 }
 
 stop() {

@@ -14,6 +14,8 @@ def send_email():
     myos = stoneridge.get_config('machine', 'os')
     netconfig = stoneridge.get_config('run', 'netconfig')
     srid = stoneridge.get_config('run', 'srid')
+    logging.debug('sending email: os=%s, netconfig=%s, srid=%s' %
+                  (myos, netconfig, srid))
 
     to = 'hurley@mozilla.com'
     subject = 'DNS Update Failed'
@@ -26,10 +28,30 @@ def send_email():
     stoneridge.mail(to, subject, msg)
 
 
+def check_private(bits):
+    if bits[0] != '172':
+        logging.error('IP is not in 172/8')
+        send_email()
+        sys.exit(1)
+
+    if not (16 <= int(bits[1]) <= 31):
+        logging.error('IP is not in 172.16/12')
+        send_email()
+        sys.exit(1)
+
+
+def check_public(bits):
+    if bits[0] == '172' and (16 <= int(bits[1]) <= 31):
+        logging.error('IP is in 172.16/12')
+        send_email()
+        sys.exit(1)
+
+
 @stoneridge.main
 def main():
     parser = stoneridge.ArgumentParser()
-    parser.parse_args()
+    parser.add_argument('--public', dest='public', action='store_true')
+    args = parser.parse_args()
 
     logging.debug('Checking dns for example.com')
     try:
@@ -42,12 +64,10 @@ def main():
     logging.debug('ip = %s' % (ip,))
 
     bits = ip.split('.')
-    if bits[0] != '172':
-        logging.error('IP is not in 172/8')
-        send_email()
-        sys.exit(1)
 
-    if not (16 <= int(bits[1]) <= 31):
-        logging.error('IP is not in 172.16/12')
-        send_email()
-        sys.exit(1)
+    if args.public:
+        logging.debug('Checking for a public result')
+        check_public(bits)
+    else:
+        logging.debug('Checking for a private result')
+        check_private(bits)
