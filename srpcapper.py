@@ -55,15 +55,21 @@ class StoneRidgePcapper(object):
             raise Exception('PCAP for %s still running' % (macaddr,))
 
         with file(self.pcaps[macaddr]['stdout']) as f:
+            logging.debug('Reading tcpdump stdout from %s' %
+                          (self.pcaps[macaddr]['stdout'],))
             stdout = f.read()
 
         with file(self.pcaps[macaddr]['pcap']) as f:
+            logging.debug('Reading pcap from %s' %
+                          (self.pcaps[macaddr]['pcap']))
             pcap = f.read()
 
         # Be nice, clean up after ourself
+        logging.debug('Cleaning up pcap work directory')
         shutil.rmtree(self.pcaps[macaddr]['outdir'])
 
         # This marks us as no longer running a PCAP for <macaddr>
+        logging.debug('Removing pcap metadata')
         del self.pcaps[macaddr]
 
         # Return everything base64-encoded, so it's json friendly
@@ -84,12 +90,14 @@ class StoneRidgePcapper(object):
                                      (macaddr,))
 
         # Kill the process, and mark it as done
+        logging.debug('Killing tcpdump process')
         p = self.pcaps[macaddr]['process']
         self.pcaps[macaddr]['process'] = None
         p.terminate()
         p.wait()
 
         # Make sure the output from tcpdump is saved to disk
+        logging.debug('Closing stdout to flush')
         self.pcaps[macaddr]['stdout_fd'].close()
         self.pcaps[macaddr]['stdout_fd'] = None
 
@@ -111,17 +119,23 @@ class StoneRidgePcapper(object):
         stdout_filename = os.path.join(outdir, 'tcpdump.out')
         pcap_filename = os.path.join(outdir, 'tcpdump.pcap')
         stdout_fd = file(stdout_filename, 'wb')
+        logging.debug('Starting pcap for %s' % (macaddr,))
+        logging.debug('Working directory: %s' % (outdir,))
+        logging.debug('Stdout file: %s' % (stdout_filename,))
+        logging.debug('Pcap file: %s' % (pcap_filename,))
+
+        args = [self.tcpdump,
+                '-i', self.interface,
+                '-s', '2000',
+                '-w', pcap_filename,
+                '-U',
+                'ether', 'host', macaddr,
+                'and',
+                'ether', 'host', self.macaddr]
 
         # Start the pcap process
-        p = stoneridge.Process([self.tcpdump,
-                                '-i', self.interface,
-                                '-s', '2000',
-                                '-w', pcap_filename,
-                                '-U',
-                                'ether', 'host', macaddr,
-                                'and',
-                                'ether', 'host', self.macaddr],
-                               stdout=stdout_fd)
+        logging.debug('Spawning tcpdump: %s' % (' '.join(args),))
+        p = stoneridge.Process(args, stdout=stdout_fd)
 
         # Save off all the metadata about this process so we can get at it
         # later.
