@@ -6,23 +6,11 @@
 import bottle
 import logging
 import sqlite3
-import sys
 
 import stoneridge
 
 
 conn = None  # Persistent connection for sqlite file
-
-
-class StreamLogger(object):
-    """Redirect a stream to a logger
-    """
-    def __init__(self, logger):
-        self.logger = logger
-
-    def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            self.logger.log(logging.DEBUG, line.rstrip())
 
 
 @bottle.route('/get_next')
@@ -49,11 +37,7 @@ def daemon():
     dbfile = stoneridge.get_config('mqproxy', 'db')
     conn = sqlite3.connect(dbfile)
 
-    # Do some nasty hackery to make sure everything bottle prints goes to our
-    # log, too
-    streamlogger = StreamLogger(logging.getLogger())
-    sys.stdout = sys.stderr = streamlogger
-    bottle._stdout = bottle._stderr = streamlogger.write
+    stoneridge.StreamLogger.bottle_inject()
 
     port = stoneridge.get_config_int('mqproxy', 'port')
     bottle.run(host='0.0.0.0', port=port)

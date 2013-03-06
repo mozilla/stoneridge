@@ -123,6 +123,35 @@ class Process(subprocess.Popen):
                                   **kwargs)
 
 
+class StreamLogger(object):
+    """Redirect a stream to a logger
+    """
+    def __init__(self, logger):
+        self.logger = logger
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(logging.DEBUG, line.rstrip())
+
+    @staticmethod
+    def bottle_inject():
+        """Do some nasty hackery to make sure everything bottle prints goes to
+        our log, too.
+        """
+        # We do the import here, because we don't want to import bottle into
+        # the stoneridge namespace unless the process is already using bottle,
+        # which will be evident by the fact that it's asking us to inject this
+        # stream logger into bottle!
+        import bottle
+        streamlogger = StreamLogger(logging.getLogger())
+
+        # Redirecting sys.stdout and sys.stderr is ok, because anything that
+        # calls this is a daemon process that shouldn't be printing anything
+        # to the console, anyway.
+        sys.stdout = sys.stderr = streamlogger
+        bottle._stdout = bottle._stderr = streamlogger.write
+
+
 _cp = None
 _srconf = None
 _runconf = None
