@@ -1,7 +1,7 @@
 import argparse
 import daemonize
 import logging
-import subprocess
+import socket
 import sys
 import time
 import traceback
@@ -15,30 +15,15 @@ import stoneridge
 listen_ip = None
 
 
-class NeckoDnsProxyServer(DnsProxyServer):
-    def necko_get_ip(self, client):
-        try:
-            return self.necko_ips[client]
-        except (AttributeError, KeyError):
-            iproute = subprocess.Popen(['ip', 'route', 'get', client],
-                                       stdout=subprocess.PIPE)
-            res = iproute.stdout.read()
-            iproute.wait()
-            bits = res.split()
-            ip = None
-            for i, bit in enumerate(bits):
-                if bit == 'src':
-                    ip = bits[i + 1]
-                    break
-            if ip is None:
-                # Hail mary, full of something...
-                return '127.0.0.1'
-            try:
-                self.necko_ips[client] = ip
-            except AttributeError:
-                self.necko_ips = {}
-                self.necko_ips[client] = ip
-            return self.necko_ips[client]
+IGNORE_HOSTS = (
+    'puppet1.private.scl3.mozilla.com',
+)
+
+SR_HOSTS = {
+    'stone-ridge-linux1.dmz.scl3.mozilla.com': '172.17.0.1',
+    'stone-ridge-linux2.dmz.scl3.mozilla.com': '172.18.0.1',
+    'stone-ridge-linux3.dmz.scl3.mozilla.com': '172.19.0.1',
+}
 
 
 class NeckoDnsHandler(UdpDnsHandler):
@@ -61,17 +46,30 @@ class NeckoDnsHandler(UdpDnsHandler):
             ip = real_ip
         else:
             message = 'handle'
-            ip = self.server.necko_get_ip(self.client_address[0])
-            # TODO - make the above work again
             ip = listen_ip
         logging.debug('dnsproxy: %s(%s) -> %s', message, self.domain, ip)
         self.reply(self.get_dns_reply(ip))
 
 
+def necko_passthrough(host):
+    if host in IGNORE_HOSTS:
+        try:
+            return socket.gethostbyname(host)
+        except:
+            logging.error('Could not get actual IP for %s, faking it!' %
+                          (host,))
+
+    if host in SR_HOSTS:
+        return SR_HOSTS[host]
+
+    return None
+
+
 def daemon():
     configure_logging('debug', None)
     try:
-        with(NeckoDnsProxyServer(False, handler=NeckoDnsHandler)):
+        with(DnsProxyServer(False, handler=NeckoDnsHandler,
+                            passthrough_filter=necko_passthrough)):
             while True:
                 time.sleep(1)
     except KeyboardInterrupt:
