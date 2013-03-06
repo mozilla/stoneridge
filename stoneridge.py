@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import platform
+import requests
 import signal
 import smtplib
 import subprocess
@@ -120,6 +121,35 @@ class Process(subprocess.Popen):
         kwargs['universal_newlines'] = True
         subprocess.Popen.__init__(self, args, stdout=stdout, stderr=stderr,
                                   **kwargs)
+
+
+class StreamLogger(object):
+    """Redirect a stream to a logger
+    """
+    def __init__(self, logger):
+        self.logger = logger
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(logging.DEBUG, line.rstrip())
+
+    @staticmethod
+    def bottle_inject():
+        """Do some nasty hackery to make sure everything bottle prints goes to
+        our log, too.
+        """
+        # We do the import here, because we don't want to import bottle into
+        # the stoneridge namespace unless the process is already using bottle,
+        # which will be evident by the fact that it's asking us to inject this
+        # stream logger into bottle!
+        import bottle
+        streamlogger = StreamLogger(logging.getLogger())
+
+        # Redirecting sys.stdout and sys.stderr is ok, because anything that
+        # calls this is a daemon process that shouldn't be printing anything
+        # to the console, anyway.
+        sys.stdout = sys.stderr = streamlogger
+        bottle._stdout = bottle._stderr = streamlogger.write
 
 
 _cp = None
@@ -655,3 +685,25 @@ def sendmail(to, subject, message, *attachments):
     smtp.sendmail('stoneridge@noreply.mozilla.com', [to],
                   msg.as_string())
     smtp.close()
+
+
+_mailurl = None
+
+
+def mail(to, subject, message):
+    """Like sendmail, but for clients (which don't run an smtpd) to use.
+    """
+    global _mailurl
+
+    if _mailurl is None:
+        _mailurl = get_config('stoneridge', 'mailurl')
+
+    logging.debug('to: %s' % (to,))
+    logging.debug('subject: %s' % (subject,))
+    logging.debug('message: %s' % (message,))
+
+    requests.post(_mailurl, data={'to': to,
+                                  'subject': subject,
+                                  'message': message})
+
+    logging.debug('mail sent')
