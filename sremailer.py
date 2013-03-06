@@ -20,7 +20,7 @@ def email():
 
 def daemon():
     stoneridge.StreamLogger.bottle_inject()
-    bottle.run('0.0.0.0', port=2255)
+    bottle.run(host='0.0.0.0', port=2255)
 
 
 @stoneridge.main
