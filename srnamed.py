@@ -7,7 +7,6 @@ import time
 import traceback
 
 from dnsproxy import DnsProxyServer, UdpDnsHandler, DnsProxyException
-from replay import configure_logging
 
 import stoneridge
 
@@ -73,7 +72,6 @@ def necko_passthrough(host):
 
 
 def daemon():
-    configure_logging('debug', None)
     try:
         with(DnsProxyServer(False, handler=NeckoDnsHandler,
                             passthrough_filter=necko_passthrough)):
