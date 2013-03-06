@@ -25,10 +25,7 @@ def send_email():
         SRID: %s
     ''' % (myos, netconfig, srid)
 
-    #stoneridge.sendmail(to, subject, msg)
-    logging.debug('to=%s' % (to,))
-    logging.debug('subject=%s' % (subject,))
-    logging.debug('message=%s' % (msg,))
+    stoneridge.mail(to, subject, msg)
 
 
 def check_private(bits):

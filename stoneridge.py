@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import platform
+import requests
 import signal
 import smtplib
 import subprocess
@@ -684,3 +685,25 @@ def sendmail(to, subject, message, *attachments):
     smtp.sendmail('stoneridge@noreply.mozilla.com', [to],
                   msg.as_string())
     smtp.close()
+
+
+_mailurl = None
+
+
+def mail(to, subject, message):
+    """Like sendmail, but for clients (which don't run an smtpd) to use.
+    """
+    global _mailurl
+
+    if _mailurl is None:
+        _mailurl = get_config('stoneridge', 'mailurl')
+
+    logging.debug('to: %s' % (to,))
+    logging.debug('subject: %s' % (subject,))
+    logging.debug('message: %s' % (message,))
+
+    requests.post(_mailurl, data={'to': to,
+                                  'subject': subject,
+                                  'message': message})
+
+    logging.debug('mail sent')
