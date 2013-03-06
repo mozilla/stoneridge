@@ -21,7 +21,7 @@ PID=$SRHOME/sremailer.pid
 LOG=$SRHOME/sremailer.log
 
 start() {
-    python $SRRUN $SRROOT/windows/sremailer.py --config $CONFFILE --pidfile $PID --log $LOG
+    python $SRRUN $SRROOT/sremailer.py --config $CONFFILE --pidfile $PID --log $LOG
 }
 
 stop() {
