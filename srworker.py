@@ -188,13 +188,15 @@ class StoneRidgeWorker(stoneridge.QueueListener):
 
         self.run_process('infogatherer')
 
-        self.run_process('arpfixer')
+        self.run_process('pcap', '--start')
 
         self.run_process('dnsupdater')
 
         self.need_dns_reset = True
 
         self.run_process('dnscheck')
+
+        self.run_process('arpfixer')
 
         self.run_process('runner')
 
@@ -203,6 +205,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.run_process('dnsupdater', '--restore')
 
         self.run_process('dnscheck', '--public')
+
+        self.run_process('pcap', '--stop')
 
         self.run_process('collator')
 
