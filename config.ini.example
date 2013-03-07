@@ -125,6 +125,9 @@ firefox = firefox
 # for windows
 xpcshell = xpcshell
 
+# The MAC address of the interface that we want to dump traffic on
+macaddr = 00:00:00:00:00:00
+
 [tcpdump]
 # The full path to the tcpdump executable
 exe = /usr/sbin/tcpdump
@@ -132,3 +135,8 @@ exe = /usr/sbin/tcpdump
 # The network inteface to tcpdump on (this is the network interface that is
 # connected to the test network)
 interface = lo0
+
+# These are the hosts that take care of running tcpdump for the clients
+broadband = stone-ridge-linux1.dmz.scl3.mozilla.com:7227
+umts = stone-ridge-linux2.dmz.scl3.mozilla.com:7227
+gsm = stone-ridge-linux3.dmz.scl3.mozilla.com:7227

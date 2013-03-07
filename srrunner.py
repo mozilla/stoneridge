@@ -119,26 +119,9 @@ class StoneRidgeRunner(object):
                 ]
                 runner = stoneridge.run_firefox
 
-            tcpdump_output = os.path.join(outdir, 'traffic.pcap')
-            logging.debug('tcpdump capture at %s' % (tcpdump_output,))
-            tcpdump_exe = stoneridge.get_config('tcpdump', 'exe')
-            logging.debug('tcpdump exe %s' % (tcpdump_exe,))
-            tcpdump_if = stoneridge.get_config('tcpdump', 'interface')
-            logging.debug('tcpdump interface %s' % (tcpdump_if,))
-            tcpdump = None
             if self.unittest:
                 logging.debug('Not running processes: in unit test mode')
             else:
-                if tcpdump_exe and tcpdump_if:
-                    tcpdump_out_file = '%s.tcpdump.out' % (test,)
-                    tcpdump_out_file = os.path.join(outdir, tcpdump_out_file)
-                    logging.debug('tcpdump output at %s' % (tcpdump_out_file,))
-                    tcpdump_out = file(tcpdump_out_file, 'wb')
-                    tcpdump = stoneridge.Process([tcpdump_exe, '-s', '2000',
-                                                  '-U', '-p',
-                                                  '-w', tcpdump_output,
-                                                  '-i', tcpdump_if],
-                                                 stdout=tcpdump_out)
                 process_out_file = '%s.process.out' % (test,)
                 process_out_file = os.path.join(outdir, process_out_file)
                 logging.debug('process output at %s' % (process_out_file,))
@@ -150,9 +133,6 @@ class StoneRidgeRunner(object):
                         logging.exception('test process timed out!')
                         timed_out = True
                         res = None
-                if tcpdump:
-                    tcpdump.terminate()
-                    tcpdump_out.close()
                 if res or timed_out:
                     logging.error('TEST FAILED: %s' % (test,))
                 else:
