@@ -49,7 +49,7 @@ def check_public(bits):
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
     parser.add_argument('--public', dest='public', action='store_true')
     args = parser.parse_args()
 
