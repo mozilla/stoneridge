@@ -26,9 +26,9 @@ class StoneRidgeUploader(object):
         pattern = os.path.join(outdir, 'upload_*.json')
         files = glob.glob(pattern)
         if not files:
-            # Nothing to do, so forget it!
-            logging.debug('no file to upload')
-            return
+            # No results, but we still want to upload metadata for centralized
+            # debugging information.
+            logging.warning('no results to upload!')
 
         results = {}
         for filename in files:
