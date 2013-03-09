@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# srscheduler	Stone Ridge pcap runner
+# srpcapper	Stone Ridge pcap runner
 #
 # chkconfig: 2345 98 09
 # description: srpcapper is responsible for running pcaps between the server \

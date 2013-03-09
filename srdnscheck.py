@@ -10,12 +10,14 @@ import sys
 import stoneridge
 
 
-def send_email():
+def send_email(check):
+    """Send an email to me so I know when the dns update failed.
+    """
     myos = stoneridge.get_config('machine', 'os')
     netconfig = stoneridge.get_config('run', 'netconfig')
     srid = stoneridge.get_config('run', 'srid')
-    logging.debug('sending email: os=%s, netconfig=%s, srid=%s' %
-                  (myos, netconfig, srid))
+    logging.debug('sending email: os=%s, netconfig=%s, srid=%s, check=%s' %
+                  (myos, netconfig, srid, check))
 
     to = 'hurley@mozilla.com'
     subject = 'DNS Update Failed'
@@ -23,33 +25,42 @@ def send_email():
         OS: %s
         Netconfig: %s
         SRID: %s
-    ''' % (myos, netconfig, srid)
+        Check failed: %s
+    ''' % (myos, netconfig, srid, check)
 
     stoneridge.mail(to, subject, msg)
 
 
-def check_private(bits):
-    if bits[0] != '172':
-        logging.error('IP is not in 172/8')
-        send_email()
-        sys.exit(1)
+def in_private(ip):
+    """Determine if an IP is in our private (172.16/12) network.
+    """
+    bits = map(int, ip.split('.'))
+    return (bits[0] == 172 and (16 <= bits[1] <= 31))
 
-    if not (16 <= int(bits[1]) <= 31):
+
+def check_private(ip):
+    """Check to make sure the host name resolved to an IP in our private
+    stone ridge network.
+    """
+    if not in_private(ip):
         logging.error('IP is not in 172.16/12')
-        send_email()
+        send_email('private')
         sys.exit(1)
 
 
-def check_public(bits):
-    if bits[0] == '172' and (16 <= int(bits[1]) <= 31):
+def check_public(ip):
+    """Check to make sure the host name resolved to an IP on the public
+    internet.
+    """
+    if in_private(ip):
         logging.error('IP is in 172.16/12')
-        send_email()
+        send_email('public')
         sys.exit(1)
 
 
 @stoneridge.main
 def main():
-    parser = stoneridge.ArgumentParser()
+    parser = stoneridge.TestRunArgumentParser()
     parser.add_argument('--public', dest='public', action='store_true')
     args = parser.parse_args()
 
@@ -58,16 +69,14 @@ def main():
         ip = socket.gethostbyname('example.com')
     except:
         logging.exception('Error retrieving IP')
-        send_email()
+        send_email('gethostbyname')
         sys.exit(1)
 
     logging.debug('ip = %s' % (ip,))
 
-    bits = ip.split('.')
-
     if args.public:
         logging.debug('Checking for a public result')
-        check_public(bits)
+        check_public(ip)
     else:
         logging.debug('Checking for a private result')
-        check_private(bits)
+        check_private(ip)
