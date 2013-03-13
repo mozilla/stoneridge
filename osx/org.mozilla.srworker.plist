@@ -6,16 +6,11 @@
     <string>org.mozilla.srworker</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/python</string>
-        <string>/Users/hurley/srhome/stoneridge/srworker.py</string>
-        <string>--config</string>
-        <string>/Users/hurley/srhome/stoneridge.ini</string>
-        <string>--nodaemon</string>
-        <string>--log</string>
-        <string>/Users/hurley/srhome/srworker.log</string>
+        <string>/usr/bin/open</string>
+        <string>/Users/hurley/srhome/stoneridge/osx/srworker.command</string>
     </array>
     <key>KeepAlive</key>
-    <true/>
+    <false/>
     <key>WorkingDirectory</key>
     <string>/Users/hurley/srhome/stoneridge</string>
     <key>EnvironmentVariables</key>
