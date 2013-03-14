@@ -1,0 +1,4 @@
+[console_scripts]
+httparchive = httparchive:main
+replay = replay:main
+

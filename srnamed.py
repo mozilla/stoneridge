@@ -3,13 +3,13 @@ import socket
 import sys
 import time
 
-from dnsproxy import DnsProxyServer, UdpDnsHandler, DnsProxyException
+from dnsproxy import DnsProxyServer, DnsProxyException
 
 import stoneridge
 
 
 listen_ip = None
-
+dnssrv = None
 
 IGNORE_HOSTS = (
     'puppet1.private.scl3.mozilla.com.',
@@ -25,54 +25,31 @@ SR_HOSTS = {
 }
 
 
-class NeckoDnsHandler(UdpDnsHandler):
-    def handle(self):
-        self.data = self.rfile.read()
-        self.transaction_id = self.data[0]
-        self.flags = self.data[1]
-        self.qa_counts = self.data[4:6]
-        self.domain = ''
-        operation_code = (ord(self.data[2]) >> 3) & 15
-        if operation_code == self.STANDARD_QUERY_OPERATION_CODE:
-            self.wire_domain = self.data[12:]
-            self.domain = self._domain(self.wire_domain)
-        else:
-            logging.debug("DNS request with non-zero operation code: %s",
-                          operation_code)
-        real_ip = self.server.passthrough_filter(self.domain)
-        if real_ip:
-            message = 'passthrough'
-            ip = real_ip
-        else:
-            message = 'handle'
-            ip = listen_ip
-        logging.debug('dnsproxy: %s(%s) -> %s', message, self.domain, ip)
-        self.reply(self.get_dns_reply(ip))
-
-
-def necko_passthrough(host):
-    logging.debug('passthrough: checking %s' % (host,))
+def srlookup(host):
+    logging.debug('srlookup: checking %s' % (host,))
     if host in IGNORE_HOSTS:
         logging.debug('attempting to ignore %s' % (host,))
         try:
             return socket.gethostbyname(host)
         except:
-            logging.error('Could not get actual IP for %s, faking it!' %
-                          (host,))
+            logging.error('Could not get actual IP for %s' % (host,))
+            # This should result in NXDOMAIN
+            return None
 
     if host in SR_HOSTS:
         logging.debug('stone ridge host detected: %s' % (host,))
         return SR_HOSTS[host]
 
     logging.debug('host not found in our exception lists')
-    return None
+
+    return dnssrv.server_address[0]
 
 
 def daemon():
+    global dnssrv
     logging.debug('about to start proxy server')
     try:
-        with(DnsProxyServer(False, handler=NeckoDnsHandler,
-                            passthrough_filter=necko_passthrough)):
+        with DnsProxyServer(srlookup, listen_ip) as dnssrv:
             logging.debug('proxy server started')
             while True:
                 time.sleep(1)

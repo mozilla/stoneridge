@@ -15,9 +15,71 @@
 
 """Retrieve web resources over http."""
 
+import copy
 import httparchive
 import httplib
 import logging
+import os
+import platformsettings
+import re
+import util
+
+
+HTML_RE = re.compile(r'^.{,256}?<html.*?>', re.IGNORECASE | re.DOTALL)
+HEAD_RE = re.compile(r'^.{,256}?<head.*?>', re.IGNORECASE | re.DOTALL)
+TIMER = platformsettings.get_platform_settings().timer
+
+
+class HttpClientException(Exception):
+  """Base class for all exceptions in httpclient."""
+  pass
+
+
+def GetInjectScript(scripts):
+  """Loads |scripts| from disk and returns a string of their content."""
+  lines = []
+  for script in scripts:
+    if os.path.exists(script):
+      lines += open(script).read()
+    elif util.resource_exists(script):
+      lines += util.resource_string(script)
+    else:
+      raise HttpClientException('Script does not exist: %s', script)
+  return ''.join(lines)
+
+
+def _InjectScripts(response, inject_script):
+  """Injects |inject_script| immediately after <head> or <html>.
+
+  Copies |response| if it is modified.
+
+  Args:
+    response: an ArchivedHttpResponse
+    inject_script: JavaScript string (e.g. "Math.random = function(){...}")
+  Returns:
+    an ArchivedHttpResponse
+  """
+  if type(response) == tuple:
+    logging.warn('tuple response: %s', response)
+  content_type = response.get_header('content-type')
+  if content_type and content_type.startswith('text/html'):
+    text = response.get_data_as_text()
+
+    def InsertScriptAfter(matchobj):
+      return '%s<script>%s</script>' % (matchobj.group(0), inject_script)
+
+    if text and not inject_script in text:
+      text, is_injected = HEAD_RE.subn(InsertScriptAfter, text, 1)
+      if not is_injected:
+        text, is_injected = HTML_RE.subn(InsertScriptAfter, text, 1)
+      if not is_injected:
+        logging.warning('Failed to inject scripts.')
+        logging.debug('Response content: %s', text)
+      else:
+        response = copy.deepcopy(response)
+        response.set_data(text)
+  return response
+
 
 class DetailedHTTPResponse(httplib.HTTPResponse):
   """Preserve details relevant to replaying responses.
@@ -27,21 +89,31 @@ class DetailedHTTPResponse(httplib.HTTPResponse):
   """
 
   def read_chunks(self):
-    """Return an array of data.
+    """Return the response body content and timing data.
 
-    The returned chunked have the chunk size and CRLFs stripped off.
+    The returned chunks have the chunk size and CRLFs stripped off.
     If the response was compressed, the returned data is still compressed.
 
     Returns:
-      [response_body]  # non-chunked responses
-      [response_body_chunk_1, response_body_chunk_2, ...]  # chunked responses
+      (chunks, delays)
+        chunks:
+          [response_body]                  # non-chunked responses
+          [chunk_1, chunk_2, ...]          # chunked responses
+        delays:
+          [0]                              # non-chunked responses
+          [chunk_1_first_byte_delay, ...]  # chunked responses
+
+      The delay for the first body item should be recorded by the caller.
     """
     buf = []
+    chunks = []
+    delays = []
     if not self.chunked:
-      chunks = [self.read()]
+      chunks.append(self.read())
+      delays.append(0)
     else:
+      start = TIMER()
       try:
-        chunks = []
         while True:
           line = self.fp.readline()
           chunk_size = self._read_chunk_size(line)
@@ -49,8 +121,10 @@ class DetailedHTTPResponse(httplib.HTTPResponse):
             raise httplib.IncompleteRead(''.join(chunks))
           if chunk_size == 0:
             break
+          delays.append(TIMER() - start)
           chunks.append(self._safe_read(chunk_size))
           self._safe_read(2)  # skip the CRLF at the end of the chunk
+          start = TIMER()
 
         # Ignore any trailers.
         while True:
@@ -59,7 +133,7 @@ class DetailedHTTPResponse(httplib.HTTPResponse):
             break
       finally:
         self.close()
-    return chunks
+    return chunks, delays
 
   @classmethod
   def _read_chunk_size(cls, line):
@@ -78,118 +152,223 @@ class DetailedHTTPConnection(httplib.HTTPConnection):
   response_class = DetailedHTTPResponse
 
 
-class RealHttpFetch(object):
-  def __init__(self, real_dns_lookup):
-    self._real_dns_lookup = real_dns_lookup
+class DetailedHTTPSResponse(DetailedHTTPResponse):
+  """Preserve details relevant to replaying SSL responses."""
+  pass
 
-  def __call__(self, request, headers):
-    """Fetch an HTTP request and return the response and response_body.
+class DetailedHTTPSConnection(httplib.HTTPSConnection):
+  """Preserve details relevant to replaying SSL connections."""
+  response_class = DetailedHTTPSResponse
+
+
+class RealHttpFetch(object):
+  def __init__(self, real_dns_lookup, get_server_rtt):
+    """Initialize RealHttpFetch.
 
     Args:
-      request: an instance of an ArchivedHttpRequest
-      headers: a dict of HTTP headers
-    Returns:
-      (instance of httplib.HTTPResponse,
-       [response_body_chunk_1, response_body_chunk_2, ...])
-      # If the response did not use chunked encoding, there is only one chunk.
+      real_dns_lookup: a function that resolves a host to an IP.
+      get_server_rtt: a function that returns the round-trip time of a host.
     """
-    # TODO(tonyg): Strip sdch from the request headers because we can't
-    # guarantee that the dictionary will be recorded, so replay may not work.
-    if 'accept-encoding' in headers:
-      headers['accept-encoding'] = headers['accept-encoding'].replace(
-          'sdch', '')
+    self._real_dns_lookup = real_dns_lookup
+    self._get_server_rtt = get_server_rtt
 
-    logging.debug('RealHttpRequest: %s %s', request.host, request.path)
+  def __call__(self, request):
+    """Fetch an HTTP request.
+
+    Args:
+      request: an ArchivedHttpRequest
+    Returns:
+      an ArchivedHttpResponse
+    """
+    logging.debug('RealHttpFetch: %s %s', request.host, request.path)
     host_ip = self._real_dns_lookup(request.host)
     if not host_ip:
       logging.critical('Unable to find host ip for name: %s', request.host)
-      return None, None
-    try:
-      connection = DetailedHTTPConnection(host_ip)
-      connection.request(
-          request.command,
-          request.path,
-          request.request_body,
-          headers)
-      response = connection.getresponse()
-      chunks = response.read_chunks()
-      return response, chunks
-    except Exception, e:
-      logging.critical('Could not fetch %s: %s', request, e)
-      import traceback
-      logging.critical(traceback.format_exc())
-      return None, None
+      return None
+    retries = 3
+    while True:
+      try:
+        if request.is_ssl:
+          connection = DetailedHTTPSConnection(host_ip)
+        else:
+          connection = DetailedHTTPConnection(host_ip)
+        start = TIMER()
+        connection.request(
+            request.command,
+            request.path,
+            request.request_body,
+            request.headers)
+        response = connection.getresponse()
+        headers_delay = int((TIMER() - start) * 1000)
+        headers_delay -= self._get_server_rtt(request.host)
+
+        chunks, chunk_delays = response.read_chunks()
+        delays = {
+            'headers': headers_delay,
+            'data': chunk_delays
+            }
+        archived_http_response = httparchive.ArchivedHttpResponse(
+            response.version,
+            response.status,
+            response.reason,
+            response.getheaders(),
+            chunks,
+            delays)
+        return archived_http_response
+      except Exception, e:
+        if retries:
+          retries -= 1
+          logging.warning('Retrying fetch %s: %s', request, e)
+          continue
+        logging.critical('Could not fetch %s: %s', request, e)
+        return None
 
 
 class RecordHttpArchiveFetch(object):
   """Make real HTTP fetches and save responses in the given HttpArchive."""
 
-  def __init__(self, http_archive, real_dns_lookup, use_deterministic_script):
+  def __init__(self, http_archive, real_dns_lookup, inject_script,
+               cache_misses=None):
     """Initialize RecordHttpArchiveFetch.
 
     Args:
-      http_archve: an instance of a HttpArchive
+      http_archive: an instance of a HttpArchive
       real_dns_lookup: a function that resolves a host to an IP.
-      use_deterministic_script: If True, attempt to inject a script,
-        when appropriate, to make JavaScript more deterministic.
+      inject_script: script string to inject in all pages
+      cache_misses: instance of CacheMissArchive
     """
     self.http_archive = http_archive
-    self.real_http_fetch = RealHttpFetch(real_dns_lookup)
-    self.use_deterministic_script = use_deterministic_script
+    self.real_http_fetch = RealHttpFetch(real_dns_lookup,
+                                         http_archive.get_server_rtt)
+    self.inject_script = inject_script
+    self.cache_misses = cache_misses
 
-  def __call__(self, request, request_headers):
+  def __call__(self, request):
     """Fetch the request and return the response.
 
     Args:
-      request: an instance of an ArchivedHttpRequest.
-      request_headers: a dict of HTTP headers.
+      request: an ArchivedHttpRequest.
+    Returns:
+      an ArchivedHttpResponse
     """
-    response, response_chunks = self.real_http_fetch(request, request_headers)
-    if response is None:
-      return None
-    archived_http_response = httparchive.ArchivedHttpResponse(
-        response.version,
-        response.status,
-        response.reason,
-        response.getheaders(),
-        response_chunks)
-    if self.use_deterministic_script:
-      try:
-        archived_http_response.inject_deterministic_script()
-      except httparchive.InjectionFailedException as err:
-        logging.error('Failed to inject deterministic script for %s', request)
-        logging.debug('Request content: %s', err.text)
+    if self.cache_misses:
+      self.cache_misses.record_request(
+          request, is_record_mode=True, is_cache_miss=False)
+
+    # If request is already in the archive, return the archived response.
+    if request in self.http_archive:
+      logging.debug('Repeated request found: %s', request)
+      response = self.http_archive[request]
+    else:
+      response = self.real_http_fetch(request)
+      if response is None:
+        return None
+      self.http_archive[request] = response
+    if self.inject_script:
+      response = _InjectScripts(response, self.inject_script)
     logging.debug('Recorded: %s', request)
-    self.http_archive[request] = archived_http_response
-    return archived_http_response
+    return response
 
 
 class ReplayHttpArchiveFetch(object):
   """Serve responses from the given HttpArchive."""
 
-  def __init__(self, http_archive, use_diff_on_unknown_requests=False):
+  def __init__(self, http_archive, inject_script,
+               use_diff_on_unknown_requests=False, cache_misses=None,
+               use_closest_match=False):
     """Initialize ReplayHttpArchiveFetch.
 
     Args:
-      http_archve: an instance of a HttpArchive
+      http_archive: an instance of a HttpArchive
+      inject_script: script string to inject in all pages
       use_diff_on_unknown_requests: If True, log unknown requests
         with a diff to requests that look similar.
+      cache_misses: Instance of CacheMissArchive.
+        Callback updates archive on cache misses
+      use_closest_match: If True, on replay mode, serve the closest match
+        in the archive instead of giving a 404.
     """
     self.http_archive = http_archive
+    self.inject_script = inject_script
     self.use_diff_on_unknown_requests = use_diff_on_unknown_requests
+    self.cache_misses = cache_misses
+    self.use_closest_match = use_closest_match
 
-  def __call__(self, request, request_headers=None):
+  def __call__(self, request):
     """Fetch the request and return the response.
 
     Args:
       request: an instance of an ArchivedHttpRequest.
-      request_headers: a dict of HTTP headers.
+    Returns:
+      Instance of ArchivedHttpResponse (if found) or None
     """
     response = self.http_archive.get(request)
+
+    if self.use_closest_match and not response:
+      closest_request = self.http_archive.find_closest_request(
+          request, use_path=True)
+      if closest_request:
+        response = self.http_archive.get(closest_request)
+        if response:
+          logging.info('Request not found: %s\nUsing closest match: %s',
+                       request, closest_request)
+
+    if self.cache_misses:
+      self.cache_misses.record_request(
+          request, is_record_mode=False, is_cache_miss=not response)
+
     if not response:
+      reason = str(request)
       if self.use_diff_on_unknown_requests:
-        reason = self.http_archive.diff(request) or request
-      else:
-        reason = request
+        diff = self.http_archive.diff(request)
+        if diff:
+          reason += (
+              "\nNearest request diff "
+              "('-' for archived request, '+' for current request):\n%s" % diff)
       logging.warning('Could not replay: %s', reason)
+    else:
+      response = _InjectScripts(response, self.inject_script)
     return response
+
+
+class ControllableHttpArchiveFetch(object):
+  """Controllable fetch function that can swap between record and replay."""
+
+  def __init__(self, http_archive, real_dns_lookup,
+               inject_script, use_diff_on_unknown_requests,
+               use_record_mode, cache_misses, use_closest_match):
+    """Initialize HttpArchiveFetch.
+
+    Args:
+      http_archive: an instance of a HttpArchive
+      real_dns_lookup: a function that resolves a host to an IP.
+      inject_script: script string to inject in all pages.
+      use_diff_on_unknown_requests: If True, log unknown requests
+        with a diff to requests that look similar.
+      use_record_mode: If True, start in server in record mode.
+      cache_misses: Instance of CacheMissArchive.
+      use_closest_match: If True, on replay mode, serve the closest match
+        in the archive instead of giving a 404.
+    """
+    self.record_fetch = RecordHttpArchiveFetch(
+        http_archive, real_dns_lookup, inject_script,
+        cache_misses)
+    self.replay_fetch = ReplayHttpArchiveFetch(
+        http_archive, inject_script, use_diff_on_unknown_requests, cache_misses,
+        use_closest_match)
+    if use_record_mode:
+      self.SetRecordMode()
+    else:
+      self.SetReplayMode()
+
+  def SetRecordMode(self):
+    self.fetch = self.record_fetch
+    self.is_record_mode = True
+
+  def SetReplayMode(self):
+    self.fetch = self.replay_fetch
+    self.is_record_mode = False
+
+  def __call__(self, *args, **kwargs):
+    """Forward calls to Replay/Record fetch functions depending on mode."""
+    return self.fetch(*args, **kwargs)

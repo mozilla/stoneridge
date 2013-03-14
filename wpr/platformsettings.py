@@ -21,7 +21,9 @@ import platform
 import re
 import socket
 import subprocess
+import sys
 import tempfile
+import time
 
 
 class PlatformSettingsError(Exception):
@@ -39,6 +41,22 @@ class DnsUpdateError(PlatformSettingsError):
   pass
 
 
+class NotAdministratorError(PlatformSettingsError):
+  """Raised when not running as administrator."""
+  pass
+
+
+class CalledProcessError(PlatformSettingsError):
+    """Raised when a _check_output() process returns a non-zero exit status."""
+    def __init__(self, returncode, cmd):
+        self.returncode = returncode
+        self.cmd = cmd
+
+    def __str__(self):
+        return 'Command "%s" returned non-zero exit status %d' % (
+            ' '.join(self.cmd), self.returncode)
+
+
 def _check_output(*args):
   """Run Popen(*args) and return its output as a byte string.
 
@@ -49,7 +67,7 @@ def _check_output(*args):
   Args:
     *args: sequence of program arguments
   Raises:
-    subprocess.CalledProcessError if the program returns non-zero exit status.
+    CalledProcessError if the program returns non-zero exit status.
   Returns:
     output as a byte string.
   """
@@ -60,31 +78,34 @@ def _check_output(*args):
   output = process.communicate()[0]
   retcode = process.poll()
   if retcode:
-    raise subprocess.CalledProcessError(retcode, command_args, output=output)
+    raise CalledProcessError(retcode, command_args)
   return output
 
 
 class PlatformSettings(object):
-  _IPFW_BIN = None
-  _IPFW_QUEUE_SLOTS = 100
+  _CERT_FILE = 'wpr_cert.pem'
 
   # Some platforms do not shape traffic with the loopback address.
   _USE_REAL_IP_FOR_TRAFFIC_SHAPING = False
 
   def __init__(self):
     self.original_primary_dns = None
+    self.original_cwnd = None  # original TCP congestion window
 
   def get_primary_dns(self):
-    raise NotImplementedError()
+    raise NotImplementedError
+
+  def _set_primary_dns(self):
+    raise NotImplementedError
 
   def get_original_primary_dns(self):
-    if not self.original_primary_dns:
+    if self.original_primary_dns is None:
       self.original_primary_dns = self.get_primary_dns()
+      logging.info('Saved original system DNS (%s)', self.original_primary_dns)
     return self.original_primary_dns
 
   def set_primary_dns(self, dns):
-    if not self.original_primary_dns:
-      self.original_primary_dns = self.get_primary_dns()
+    self.get_original_primary_dns()
     self._set_primary_dns(dns)
     if self.get_primary_dns() == dns:
       logging.info('Changed system DNS to %s', dns)
@@ -92,30 +113,40 @@ class PlatformSettings(object):
       raise self._get_dns_update_error()
 
   def restore_primary_dns(self):
-    if not self.original_primary_dns:
-      raise DnsUpdateError('Cannot restore because never set.')
-    self.set_primary_dns(self.original_primary_dns)
-    self.original_primary_dns = None
-
-  def ipfw(self, *args):
-    if self._IPFW_BIN:
-      ipfw_args = [self._IPFW_BIN] + [str(a) for a in args]
-      logging.debug(' '.join(ipfw_args))
-      subprocess.check_call(ipfw_args)
-    else:
-      raise NotImplementedError()
-
-  def is_cwnd_available(self):
-    return False
-
-  def set_cwnd(self, args):
-    logging.error("Platform does not support setting cwnd.")
+    if self.original_primary_dns is not None:
+      self.set_primary_dns(self.original_primary_dns)
+      self.original_primary_dns = None
 
   def get_cwnd(self):
-    logging.error("Platform does not support getting cwnd.")
+    return None
 
-  def get_ipfw_queue_slots(self):
-    return self._IPFW_QUEUE_SLOTS
+  def _set_cwnd(self, args):
+    pass
+
+  def get_original_cwnd(self):
+    if not self.original_cwnd:
+      self.original_cwnd = self.get_cwnd()
+    return self.original_cwnd
+
+  def set_cwnd(self, cwnd):
+    self.get_original_cwnd()
+    self._set_cwnd(cwnd)
+    if self.get_cwnd() == cwnd:
+      logging.info("Changed cwnd to %s", cwnd)
+    else:
+      logging.error("Unable to update cwnd to %s", cwnd)
+
+  def restore_cwnd(self):
+    if self.original_cwnd is not None:
+      self.set_cwnd(self.original_cwnd)
+      self.original_cwnd = None
+
+  def _ipfw_bin(self):
+    raise NotImplementedError
+
+  def ipfw(self, *args):
+    ipfw_args = [self._ipfw_bin()] + [str(a) for a in args]
+    return _check_output(*ipfw_args)
 
   def get_server_ip_address(self, is_server_mode=False):
     """Returns the IP address to use for dnsproxy, httpproxy, and ipfw."""
@@ -135,14 +166,54 @@ class PlatformSettings(object):
   def unconfigure_loopback(self):
     pass
 
+  def get_system_logging_handler(self):
+    """Return a handler for the logging module (optional)."""
+    return None
+
+  def ping(self, hostname):
+    """Pings the hostname by calling the OS system ping command.
+    Also stores the result internally.
+
+    Args:
+      hostname: hostname of the server to be pinged
+    Returns:
+      round trip time to the server in seconds, or 0 if unable to calculate RTT
+    """
+    raise NotImplementedError
+
+  def rerun_as_administrator(self):
+    """If needed, rerun the program with administrative privileges.
+
+    Raises NotAdministratorError if unable to rerun.
+    """
+    pass
+
+  def get_certfile_name(self):
+    """Get the file name for a temporary self-signed certificate."""
+    raise NotImplementedError
+
+  def create_certfile(self, certfile):
+    """Create a certfile for serving SSL traffic."""
+    raise NotImplementedError
+
+  def timer(self):
+    """Return the current time in seconds as a floating point number."""
+    return time.time()
+
 
 class PosixPlatformSettings(PlatformSettings):
-  _IPFW_BIN = 'ipfw'
+  PING_PATTERN = r'rtt min/avg/max/mdev = \d+\.\d+/(\d+\.\d+)/\d+\.\d+/\d+\.\d+'
+  PING_CMD = ('ping', '-c', '3', '-i', '0.2', '-W', '1')
+  # For OsX Lion non-root:
+  PING_RESTRICTED_CMD = ('ping', '-c', '1', '-i', '1', '-W', '1')
 
   def _get_dns_update_error(self):
     return DnsUpdateError('Did you run under sudo?')
 
   def _sysctl(self, *args):
+    sysctl = '/usr/sbin/sysctl'
+    if not os.path.exists(sysctl):
+      sysctl = '/sbin/sysctl'
     sysctl = subprocess.Popen(
         ['sysctl'] + [str(a) for a in args],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -150,7 +221,11 @@ class PosixPlatformSettings(PlatformSettings):
     return sysctl.returncode, stdout
 
   def has_sysctl(self, name):
-    return self._sysctl(name)[0] == 0
+    if not hasattr(self, 'has_sysctl_cache'):
+      self.has_sysctl_cache = {}
+    if name not in self.has_sysctl_cache:
+      self.has_sysctl_cache[name] = self._sysctl(name)[0] == 0
+    return self.has_sysctl_cache[name]
 
   def set_sysctl(self, name, value):
     rv = self._sysctl('%s=%s' % (name, value))[0]
@@ -165,17 +240,97 @@ class PosixPlatformSettings(PlatformSettings):
       logging.error("Unable to get sysctl %s: %s", name, rv)
       return None
 
+  def _check_output(self, *args):
+    """Allow tests to override this."""
+    return _check_output(*args)
+
+  def _ping(self, hostname):
+    """Return ping output or None if ping fails.
+
+    Initially pings 'localhost' to test for ping command that works.
+    If the tests fails, subsequent calls will return None without calling ping.
+
+    Args:
+      hostname: host to ping
+    Returns:
+      ping stdout string, or None if ping unavailable
+    Raises:
+      CalledProcessError if ping returns non-zero exit
+    """
+    if not hasattr(self, 'ping_cmd'):
+      test_host = 'localhost'
+      for self.ping_cmd in (self.PING_CMD, self.PING_RESTRICTED_CMD):
+        try:
+          if self._ping(test_host):
+            break
+        except (CalledProcessError, OSError) as e:
+          last_ping_error = e
+      else:
+        logging.critical('Ping configuration failed: %s', last_ping_error)
+        self.ping_cmd = None
+    if self.ping_cmd:
+      cmd = list(self.ping_cmd) + [hostname]
+      return self._check_output(*cmd)
+    return None
+
+  def ping(self, hostname):
+    """Pings the hostname by calling the OS system ping command.
+
+    Args:
+      hostname: hostname of the server to be pinged
+    Returns:
+      round trip time to the server in milliseconds, or 0 if unavailable
+    """
+    rtt = 0
+    output = None
+    try:
+      output = self._ping(hostname)
+    except CalledProcessError as e:
+      logging.critical('Ping failed: %s', e)
+    if output:
+      match = re.search(self.PING_PATTERN, output)
+      if match:
+        rtt = float(match.groups()[0])
+      else:
+        logging.warning('Unable to ping %s: %s', hostname, output)
+    return rtt
+
+  def rerun_as_administrator(self):
+    """If needed, rerun the program with administrative privileges.
+
+    Raises NotAdministratorError if unable to rerun.
+    """
+    if os.geteuid() != 0:
+      logging.warn("Rerunning with sudo: %s", sys.argv)
+      os.execv('/usr/bin/sudo', ['--'] + sys.argv)
+
+  def get_certfile_name(self):
+    """Get the file name for a temporary self-signed certificate."""
+    return os.path.join(tempfile.gettempdir(), self._CERT_FILE)
+
+  def create_certfile(self, certfile):
+    """Create a certfile for serving SSL traffic."""
+    if not os.path.exists(certfile):
+      _check_output(
+          '/usr/bin/openssl', 'req', '-batch', '-new', '-x509', '-days', '365',
+          '-nodes', '-out', certfile, '-keyout', certfile)
+
+  def _ipfw_bin(self):
+    for ipfw in ['/usr/local/sbin/ipfw', '/sbin/ipfw']:
+      if os.path.exists(ipfw):
+        return ipfw
+    raise PlatformSettingsError("ipfw not found.")
 
 class OsxPlatformSettings(PosixPlatformSettings):
   LOCAL_SLOWSTART_MIB_NAME = 'net.inet.tcp.local_slowstart_flightsize'
 
   def _scutil(self, cmd):
     scutil = subprocess.Popen(
-        ['scutil'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        ['/usr/sbin/scutil'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     return scutil.communicate(cmd)[0]
 
   def _ifconfig(self, *args):
-    return _check_output('ifconfig', *args)
+    return _check_output('/sbin/ifconfig', *args)
 
   def set_sysctl(self, name, value):
     rv = self._sysctl('-w', '%s=%s' % (name, value))[0]
@@ -194,7 +349,7 @@ class OsxPlatformSettings(PosixPlatformSettings):
       key_value = line.split(' : ')
       if key_value[0] == '  PrimaryService':
         return 'State:/Network/Service/%s/DNS' % key_value[1]
-    raise self._get_dns_update_error()
+    raise DnsReadError('Unable to find DNS service key: %s', output)
 
   def get_primary_dns(self):
     # <dictionary> {
@@ -205,9 +360,14 @@ class OsxPlatformSettings(PosixPlatformSettings):
     #   DomainName : apple.co.uk
     # }
     output = self._scutil('show %s' % self._get_dns_service_key())
-    primary_line = output.split('\n')[2]
-    line_parts = primary_line.split(' ')
-    return line_parts[-1]
+    match = re.search(
+        br'ServerAddresses\s+:\s+<array>\s+{\s+0\s+:\s+((\d{1,3}\.){3}\d{1,3})',
+        output)
+    if match:
+      return match.group(1)
+    else:
+      raise DnsReadError('Unable to find primary DNS server: %s', output)
+
 
   def _set_primary_dns(self, dns):
     command = '\n'.join([
@@ -217,22 +377,18 @@ class OsxPlatformSettings(PosixPlatformSettings):
     ])
     self._scutil(command)
 
+  def get_cwnd(self):
+    return int(self.get_sysctl(self.LOCAL_SLOWSTART_MIB_NAME))
+
+  def _set_cwnd(self, size):
+    self.set_sysctl(self.LOCAL_SLOWSTART_MIB_NAME, size)
+
   def get_loopback_mtu(self):
     config = self._ifconfig('lo0')
     match = re.search(r'\smtu\s+(\d+)', config)
     if match:
       return int(match.group(1))
-    else:
-      return None
-
-  def is_cwnd_available(self):
-    return True
-
-  def set_cwnd(self, size):
-    self.set_sysctl(self.LOCAL_SLOWSTART_MIB_NAME, size)
-
-  def get_cwnd(self):
-    return int(self.get_sysctl(self.LOCAL_SLOWSTART_MIB_NAME))
+    return None
 
   def configure_loopback(self):
     """Configure loopback to use reasonably sized frames.
@@ -240,19 +396,20 @@ class OsxPlatformSettings(PosixPlatformSettings):
     OS X uses jumbo frames by default (16KB).
     """
     TARGET_LOOPBACK_MTU = 1500
-    loopback_mtu = self.get_loopback_mtu()
-    if loopback_mtu and loopback_mtu != TARGET_LOOPBACK_MTU:
-      self.saved_loopback_mtu = loopback_mtu
+    self.original_loopback_mtu = self.get_loopback_mtu()
+    if self.original_loopback_mtu == TARGET_LOOPBACK_MTU:
+      self.original_loopback_mtu = None
+    if self.original_loopback_mtu is not None:
       self._ifconfig('lo0', 'mtu', TARGET_LOOPBACK_MTU)
       logging.debug('Set loopback MTU to %d (was %d)',
-                    TARGET_LOOPBACK_MTU, loopback_mtu)
+                    TARGET_LOOPBACK_MTU, self.original_loopback_mtu)
     else:
       logging.error('Unable to read loopback mtu. Setting left unchanged.')
 
   def unconfigure_loopback(self):
-    if hasattr(self, 'saved_loopback_mtu') and self.saved_loopback_mtu:
-      self._ifconfig('lo0', 'mtu', self.saved_loopback_mtu)
-      logging.debug('Restore loopback MTU to %d', self.saved_loopback_mtu)
+    if self.original_loopback_mtu is not None:
+      self._ifconfig('lo0', 'mtu', self.original_loopback_mtu)
+      logging.debug('Restore loopback MTU to %d', self.original_loopback_mtu)
 
 
 class LinuxPlatformSettings(PosixPlatformSettings):
@@ -280,7 +437,6 @@ class LinuxPlatformSettings(PosixPlatformSettings):
   TCP_INIT_CWND = 'net.ipv4.tcp_init_cwnd'
   TCP_BASE_MSS = 'net.ipv4.tcp_base_mss'
   TCP_MTU_PROBING = 'net.ipv4.tcp_mtu_probing'
-  _IPFW_QUEUE_SLOTS = 500
 
   def get_primary_dns(self):
     try:
@@ -294,7 +450,12 @@ class LinuxPlatformSettings(PosixPlatformSettings):
 
   def _set_primary_dns(self, dns):
     """Replace the first nameserver entry with the one given."""
-    self._write_resolve_conf(dns)
+    try:
+      self._write_resolve_conf(dns)
+    except OSError, e:
+      if 'Permission denied' in e:
+        raise self._get_dns_update_error()
+      raise
 
   def _write_resolve_conf(self, dns):
     is_first_nameserver_replaced = False
@@ -306,17 +467,19 @@ class LinuxPlatformSettings(PosixPlatformSettings):
       else:
         print line,
     if not is_first_nameserver_replaced:
-      raise DnsUpdateError('Could not find a suitable namserver entry in %s' %
+      raise DnsUpdateError('Could not find a suitable nameserver entry in %s' %
                            self.RESOLV_CONF)
 
-  def is_cwnd_available(self):
-    return self.has_sysctl(self.TCP_INIT_CWND)
-
-  def set_cwnd(self, args):
-    self.set_sysctl(self.TCP_INIT_CWND, str(args))
-
   def get_cwnd(self):
-    return self.get_sysctl(self.TCP_INIT_CWND)
+    if self.has_sysctl(self.TCP_INIT_CWND):
+      return self.get_sysctl(self.TCP_INIT_CWND)
+    else:
+      return None
+
+  def _set_cwnd(self, args):
+    if self.has_sysctl(self.TCP_INIT_CWND):
+      self.set_sysctl(self.TCP_INIT_CWND, str(args))
+
 
   def configure_loopback(self):
     """
@@ -351,27 +514,26 @@ class WindowsPlatformSettings(PlatformSettings):
     """Return DNS information:
 
     Example output:
+        Configuration for interface "Local Area Connection 3"
+        DNS servers configured through DHCP:  None
+        Register with which suffix:           Primary only
 
-    Configuration for interface "Local Area Connection 3"
-    DNS servers configured through DHCP:  None
-    Register with which suffix:           Primary only
-
-    Configuration for interface "Wireless Network Connection 2"
-    DNS servers configured through DHCP:  192.168.1.1
-    Register with which suffix:           Primary only
+        Configuration for interface "Wireless Network Connection 2"
+        DNS servers configured through DHCP:  192.168.1.1
+        Register with which suffix:           Primary only
     """
     return _check_output('netsh', 'interface', 'ip', 'show', 'dns')
-
-  def _netsh_get_interface_names(self):
-    return re.findall(r'"(.+?)"', self._netsh_show_dns())
 
   def get_primary_dns(self):
     match = re.search(r':\s+(\d+\.\d+\.\d+\.\d+)', self._netsh_show_dns())
     return match and match.group(1) or None
 
   def _set_primary_dns(self, dns):
-    vbs = """Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\\\.\\root\\cimv2")
-Set colNetCards = objWMIService.ExecQuery("Select * From Win32_NetworkAdapterConfiguration Where IPEnabled = True")
+    vbs = """
+Set objWMIService = GetObject( _
+   "winmgmts:{impersonationLevel=impersonate}!\\\\.\\root\\cimv2")
+Set colNetCards = objWMIService.ExecQuery( _
+    "Select * From Win32_NetworkAdapterConfiguration Where IPEnabled = True")
 For Each objNetCard in colNetCards
   arrDNSServers = Array("%s")
   objNetCard.SetDNSServerSearchOrder(arrDNSServers)
@@ -394,14 +556,16 @@ Next
 
   def get_mac_address(self, ip):
     """Return the MAC address for the given ip."""
+    ip_re = re.compile(r'^\s*IP(?:v4)? Address[ .]+:\s+([0-9.]+)')
     for line in self._ipconfig('/all').splitlines():
       if line[:1].isalnum():
         current_ip = None
         current_mac = None
       elif ':' in line:
         line = line.strip()
-        if line.startswith('IP Address'):
-          current_ip = line.split(':', 1)[1].lstrip()
+        ip_match = ip_re.match(line)
+        if ip_match:
+          current_ip = ip_match.group(1)
         elif line.startswith('Physical Address'):
           current_mac = line.split(':', 1)[1].lstrip()
         if current_ip == ip and current_mac:
@@ -409,7 +573,6 @@ Next
     return None
 
   def configure_loopback(self):
-    # TODO(slamm): use/set ip address that is compat with replay.py
     self.ip = self.get_server_ip_address()
     self.mac_address = self.get_mac_address(self.ip)
     if self.mac_address:
@@ -424,8 +587,56 @@ Next
       self._arp('-d', self.ip)
       self._route('delete', self.ip, self.ip, 'mask', '255.255.255.255')
 
+  def get_system_logging_handler(self):
+    """Return a handler for the logging module (optional).
+
+    For Windows, output can be viewed with DebugView.
+    http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx
+    """
+    import ctypes
+    output_debug_string = ctypes.windll.kernel32.OutputDebugStringA
+    output_debug_string.argtypes = [ctypes.c_char_p]
+    class DebugViewHandler(logging.Handler):
+      def emit(self, record):
+        output_debug_string("[wpr] " + self.format(record))
+    return DebugViewHandler()
+
+  def rerun_as_administrator(self):
+    """If needed, rerun the program with administrative privileges.
+
+    Raises NotAdministratorError if unable to rerun.
+    """
+    import ctypes
+    if ctypes.windll.shell32.IsUserAnAdmin():
+      raise NotAdministratorError('Rerun with administrator privileges.')
+      #os.execv('runas', sys.argv)  # TODO: replace needed Windows magic
+
+  def get_certfile_name(self):
+    """Get the file name for a temporary self-signed certificate."""
+    raise PlatformSettingsError('Certificate file does not exist.')
+
+  def create_certfile(self, certfile):
+    """Create a certfile for serving SSL traffic and return its name.
+
+    TODO: Check for Windows SDK makecert.exe tool.
+    """
+    raise PlatformSettingsError('Certificate file does not exist.')
+
+  def timer(self):
+    """Return the current time in seconds as a floating point number.
+
+    From time module documentation:
+       On Windows, this function [time.clock()] returns wall-clock
+       seconds elapsed since the first call to this function, as a
+       floating point number, based on the Win32 function
+       QueryPerformanceCounter(). The resolution is typically better
+       than one microsecond.
+    """
+    return time.clock()
+
 class WindowsXpPlatformSettings(WindowsPlatformSettings):
-  _IPFW_BIN = r'third_party\ipfw_win32\ipfw.exe'
+  def _ipfw_bin(self):
+    return r'third_party\ipfw_win32\ipfw.exe'
 
 
 def _new_platform_settings():
