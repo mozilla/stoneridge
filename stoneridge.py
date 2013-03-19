@@ -218,62 +218,130 @@ def get_config_bool(section, option):
     return value
 
 
-class XpcshellTimeout(Exception):
-    def __init__(self, timeout_secs, xpcshell_stdout):
-        self.timeout_secs = timeout_secs
-        self.xpcshell_output_fd = xpcshell_stdout
-        Exception.__init__(self,
-                           'Killed xpcshell after %s seconds' %
-                           (timeout_secs,))
+# Supporting variables for running test processes (xpcshell & firefox in
+# pageloader mode)
+_test_process_environ = None
+_bindir = None
+_binaries = {
+    'firefox': None,
+    'xpcshell': None
+}
+_timeouts = {
+    'firefox': None,
+    'xpcshell': None
+}
 
 
-_xpcshell = None
-_xpcshell_environ = None
-
-
-def run_xpcshell(args, stdout=subprocess.PIPE):
-    """Run xpcshell with the appropriate args.
+class TestProcessTimeout(Exception):
+    """Exception type for when we manually time out the test process
     """
-    global _xpcshell
-    global _xpcshell_environ
+    def __init__(self, process_type, timeout_secs, process_stdout):
+        self.process_type = process_type
+        self.timeout_secs = timeout_secs
+        self.process_output_fd = process_stdout
+        Exception.__init__(self,
+                           'Killed test process %s after %s seconds' %
+                           (process_type, timeout_secs))
 
-    bindir = get_config('run', 'bin')
-    if bindir is None:
-        return (None, [])
 
-    if not os.path.exists(bindir):
-        return (None, [])
+def _ensure_bindir():
+    """Make sure our bindir for the tests exists.
+    """
+    global _bindir
 
-    if _xpcshell_environ is None:
-        _xpcshell_environ = copy.copy(os.environ)
-        ldlibpath = _xpcshell_environ.get('LD_LIBRARY_PATH')
+    if _bindir is None:
+        _bindir = get_config('run', 'bin')
+        if _bindir is None:
+            raise Exception('Missing bindir for tests!')
+        if not os.path.exists(_bindir):
+            raise Exception('Missing bindir for tests!')
+
+
+def _ensure_test_process_environ():
+    """Make sure we have an environment for our test process containing the
+    appropriate LD_LIBRARY_PATH.
+    """
+    global _test_process_environ
+
+    if _test_process_environ is None:
+        _test_process_environ = copy.copy(os.environ)
+        ldlibpath = _test_process_environ.get('LD_LIBRARY_PATH')
         if ldlibpath:
-            ldlibpath = os.path.pathsep.join([bindir, ldlibpath])
+            ldlibpath = os.path.pathsep.join([_bindir, ldlibpath])
         else:
-            ldlibpath = bindir
-        _xpcshell_environ['LD_LIBRARY_PATH'] = ldlibpath
+            ldlibpath = _bindir
+        _test_process_environ['LD_LIBRARY_PATH'] = ldlibpath
 
-    if _xpcshell is None:
-        xpcshell_bin = get_config('machine', 'xpcshell')
-        _xpcshell = os.path.join(bindir, xpcshell_bin)
 
-    xpcargs = [_xpcshell] + args
-    logging.debug('Running xpcshell: %s' % (xpcargs,))
+def _ensure_binary(proctype):
+    """Make sure we know where the binary for our test lives.
 
-    xpcshell_timeout = get_config_int('xpcshell', 'timeout')
-    xpcshell_start = int(time.time())
+    proctype - one of 'xpcshell' or 'firefox'
+    """
+    if _binaries[proctype] is None:
+        binary = get_config('machine', proctype)
+        _binaries[proctype] = os.path.join(_bindir, binary)
+        if not os.path.exists(_binaries[proctype]):
+            _binaries[proctype] = None
+            raise Exception('Missing binary for %s' % (proctype,))
 
-    proc = Process(xpcargs, stdout=stdout, cwd=bindir, env=_xpcshell_environ)
 
-    while (int(time.time()) - xpcshell_start) < xpcshell_timeout:
+def _ensure_timeout(proctype):
+    """Make sure we know how long to wait before timing out the test process.
+    We default to 15 minutes (900 seconds)
+
+    proctype - one of 'xpcshell' or 'firefox'
+    """
+    if _timeouts[proctype] is None:
+        _timeouts[proctype] = get_config_int(proctype, 'timeout', 900)
+
+
+def _run_test_process(proctype, args, stdout):
+    """Run a test process, either xpcshell or firefox.
+
+    proctype - one of 'xpcshell' or 'firefox'
+    args - list of arguments to be passed to the process
+    stdout - where to shove the stdout data from the process
+    """
+    start = int(time.time())
+
+    procargs = [_binaries[proctype]] + args
+
+    proc = Process(procargs, stdout=stdout, cwd=_bindir,
+                   env=_test_process_environ)
+
+    timeout = _timeouts[proctype]
+    while (int(time.time()) - start) < timeout:
         time.sleep(5)
 
         if proc.poll() is not None:
-            return (proc.returncode, proc.stdout)
+            return proc.returncode
 
     # If we get here, that means we hit the timeout
     proc.kill()
-    raise XpcshellTimeout(xpcshell_timeout, proc.stdout)
+    raise TestProcessTimeout(proctype, timeout, proc.stdout)
+
+
+def run_firefox(args, stdout):
+    """Run firefox with the appropriate args
+    """
+    _ensure_bindir()
+    _ensure_test_process_environ()
+    _ensure_binary('firefox')
+    _ensure_timeout('firefox')
+
+    return _run_test_process('firefox', args, stdout)
+
+
+def run_xpcshell(args, stdout):
+    """Run xpcshell with the appropriate args.
+    """
+    _ensure_bindir()
+    _ensure_test_process_environ()
+    _ensure_binary('xpcshell')
+    _ensure_timeout('xpcshell')
+
+    return _run_test_process('xpcshell', args, stdout)
 
 
 _os_version = None

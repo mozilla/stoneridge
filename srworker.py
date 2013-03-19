@@ -219,17 +219,17 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.run_process('uploader')
 
 
-def daemon():
+@stoneridge.main
+def main():
+    parser = stoneridge.ArgumentParser()
+    parser.parse_args()
+
     osname = stoneridge.get_config('machine', 'os')
     queue = stoneridge.CLIENT_QUEUES[osname]
 
-    worker = StoneRidgeWorker(queue)
-    worker.run()
-
-
-@stoneridge.main
-def main():
-    parser = stoneridge.DaemonArgumentParser()
-    parser.parse_args()
-
-    parser.start_daemon(daemon)
+    while True:
+        try:
+            worker = StoneRidgeWorker(queue)
+            worker.run()
+        except:
+            logging.exception('Worker failed')

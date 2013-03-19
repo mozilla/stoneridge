@@ -48,9 +48,9 @@ class StoneRidgeUnpacker(object):
         self.testzip = os.path.join(downloaddir, 'tests.zip')
         logging.debug('test zip file: %s' % (self.testzip,))
 
-    def _copy_tree(self, unzipdir, name):
-        logging.debug('_copy_tree(%s, %s)' % (unzipdir, name))
-        srcdir = os.path.join(unzipdir, 'bin', name)
+    def _copy_tree(self, srcdir, name):
+        logging.debug('_copy_tree(%s, %s)' % (srcdir, name))
+        srcdir = os.path.join(srcdir, name)
         files = os.listdir(srcdir)
         dstdir = os.path.join(self.bindir, name)
         logging.debug('srcdir: %s' % (srcdir,))
@@ -85,8 +85,9 @@ class StoneRidgeUnpacker(object):
         z.extractall(unzipdir, members)
 
         # Put the xpcshell binary where it belongs
+        unzipbin = os.path.join(unzipdir, 'bin')
         xpcshell_bin = stoneridge.get_config('machine', 'xpcshell')
-        xpcshell = os.path.join(unzipdir, 'bin', xpcshell_bin)
+        xpcshell = os.path.join(unzipbin, xpcshell_bin)
         logging.debug('xpcshell: %s' % (xpcshell,))
 
         # Apparently xpcshell stopped being executable in the tests zip at some
@@ -99,11 +100,39 @@ class StoneRidgeUnpacker(object):
 
         # Put our components into place
         logging.debug('copying components')
-        self._copy_tree(unzipdir, 'components')
+        self._copy_tree(unzipbin, 'components')
 
         # Put the plugins in place, in case we need them
         logging.debug('copying plugins')
-        self._copy_tree(unzipdir, 'plugins')
+        self._copy_tree(unzipbin, 'plugins')
+
+        # Put the pageloader components into place
+        srroot = stoneridge.get_config('stoneridge', 'root')
+        pageloader = os.path.join(srroot, 'pageloader')
+        self._copy_tree(pageloader, 'components')
+        self._copy_tree(pageloader, 'chrome')
+
+        # Now we need to put srdata.js into the appropriate place for it to be
+        # picked up by the pageloader
+        chrome = os.path.join(self.bindir, 'chrome')
+        srdatasrc = os.path.join(srroot, 'srdata.js')
+        srdatadst = os.path.join(chrome, 'srdata.js')
+        if os.path.exists(srdatadst):
+            os.unlink(srdatadst)
+        logging.debug('copy srdata.js %s -> %s' % (srdatasrc, srdatadst))
+        shutil.copyfile(srdatasrc, srdatadst)
+
+        # Finally, we need to update chrome.manifest with the appropriate bits
+        # from our local pageloader
+        plmanifest = os.path.join(pageloader, 'chrome.manifest')
+        fxmanifest = os.path.join(self.bindir, 'chrome.manifest')
+        logging.debug('append %s to %s' % (plmanifest, fxmanifest))
+        with file(fxmanifest, 'rb') as f:
+            lines = f.readlines()
+        with file(plmanifest, 'rb') as f:
+            lines.extend(f.readlines())
+        with file(fxmanifest, 'wb') as f:
+            f.writelines(lines)
 
     def unpack_firefox(self):
         logging.critical('Base unpack_firefox called!')

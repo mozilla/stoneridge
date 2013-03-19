@@ -37,30 +37,37 @@ class BandwidthValueError(TrafficShaperException):
 
 
 class TrafficShaper(object):
+  """Manages network traffic shaping."""
 
-  _UPLOAD_PIPE = '1'     # Enforces overall upload bandwidth.
-  _UPLOAD_QUEUE = '2'    # Shares upload bandwidth among source ports.
-  _DOWNLOAD_PIPE = '3'   # Enforces overall download bandwidth.
-  _DOWNLOAD_QUEUE = '4'  # Shares download bandwidth among destination ports.
+  # Pick webpagetest-compatible values (details: http://goo.gl/oghTg).
+  _UPLOAD_PIPE = '10'      # Enforces overall upload bandwidth.
+  _UPLOAD_QUEUE = '10'     # Shares upload bandwidth among source ports.
+  _UPLOAD_RULE = '5000'    # Specifies when the upload queue is used.
+  _DOWNLOAD_PIPE = '11'    # Enforces overall download bandwidth.
+  _DOWNLOAD_QUEUE = '11'   # Shares download bandwidth among destination ports.
+  _DOWNLOAD_RULE = '5100'  # Specifies when the download queue is used.
+  _QUEUE_SLOTS = 100       # Number of packets to queue.
 
   _BANDWIDTH_RE = re.compile(BANDWIDTH_PATTERN)
 
-  """Manages network traffic shaping."""
   def __init__(self,
                dont_use=None,
                host='127.0.0.1',
                port='80',
+               ssl_port='443',
                dns_port='53',
                up_bandwidth='0',
                down_bandwidth='0',
                delay_ms='0',
                packet_loss_rate='0',
-               init_cwnd='0'):
+               init_cwnd='0',
+               use_loopback=True):
     """Start shaping traffic.
 
     Args:
       host: a host string (name or IP) for the web proxy.
       port: a port string (e.g. '80') for the web proxy.
+      ssl_port: a port string (e.g. '443') for the SSL web proxy.
       dns_port: a port string for the dns proxy (for unit testing).
       up_bandwidth: Upload bandwidth
       down_bandwidth: Download bandwidth
@@ -68,43 +75,47 @@ class TrafficShaper(object):
       delay_ms: Propagation delay in milliseconds. '0' means no delay.
       packet_loss_rate: Packet loss rate in range [0..1]. '0' means no loss.
       init_cwnd: the initial cwnd setting. '0' means no change.
+      use_loopback: True iff shaping is done on the loopback (or equiv) adapter.
     """
     assert dont_use is None  # Force args to be named.
     self.platformsettings = platformsettings.get_platform_settings()
     self.host = host
     self.port = port
+    self.ssl_port = ssl_port
     self.dns_port = dns_port
     self.up_bandwidth = up_bandwidth
     self.down_bandwidth = down_bandwidth
     self.delay_ms = delay_ms
     self.packet_loss_rate = packet_loss_rate
     self.init_cwnd = init_cwnd
+    self.use_loopback = use_loopback
     if not self._BANDWIDTH_RE.match(self.up_bandwidth):
       raise BandwidthValueError(self.up_bandwidth)
     if not self._BANDWIDTH_RE.match(self.down_bandwidth):
       raise BandwidthValueError(self.down_bandwidth)
-
+    self.is_shaping = False
 
   def __enter__(self):
-    self.platformsettings.configure_loopback()
+    if self.use_loopback:
+      self.platformsettings.configure_loopback()
     if self.init_cwnd != '0':
-      if self.platformsettings.is_cwnd_available():
-        self.original_cwnd = self.platformsettings.get_cwnd()
-        self.platformsettings.set_cwnd(self.init_cwnd)
-      else:
-        logging.error('Platform does not support setting cwnd.')
+      self.platformsettings.set_cwnd(self.init_cwnd)
     try:
-      self.platformsettings.ipfw('-q', 'flush')
+      ipfw_list = self.platformsettings.ipfw('list')
+      if not ipfw_list.startswith('65535 '):
+        logging.warn('ipfw has existing rules:\n%s', ipfw_list)
+        self._delete_rules(ipfw_list)
     except:
       pass
     if (self.up_bandwidth == '0' and self.down_bandwidth == '0' and
         self.delay_ms == '0' and self.packet_loss_rate == '0'):
+      logging.info('Skipped shaping traffic.')
       return
     if not self.dns_port and not self.port:
       raise TrafficShaperException('No ports on which to shape traffic.')
 
-    ports = ','.join(str(p) for p in (self.port, self.dns_port) if p)
-    queue_size = self.platformsettings.get_ipfw_queue_slots()
+    ports = ','.join(
+        str(p) for p in (self.port, self.ssl_port, self.dns_port) if p)
     half_delay_ms = int(self.delay_ms) / 2  # split over up/down links
 
     try:
@@ -120,18 +131,19 @@ class TrafficShaper(object):
           'config',
           'pipe', self._UPLOAD_PIPE,
           'plr', self.packet_loss_rate,
-          'queue', queue_size,
+          'queue', self._QUEUE_SLOTS,
           'mask', 'src-port', '0xffff',
           )
       self.platformsettings.ipfw(
-          'add',
+          'add', self._UPLOAD_RULE,
           'queue', self._UPLOAD_QUEUE,
           'ip',
           'from', 'any',
           'to', self.host,
-          'out',
+          self.use_loopback and 'out' or 'in',
           'dst-port', ports,
           )
+      self.is_shaping = True
 
       # Configure download shaping.
       self.platformsettings.ipfw(
@@ -145,11 +157,11 @@ class TrafficShaper(object):
           'config',
           'pipe', self._DOWNLOAD_PIPE,
           'plr', self.packet_loss_rate,
-          'queue', queue_size,
+          'queue', self._QUEUE_SLOTS,
           'mask', 'dst-port', '0xffff',
           )
       self.platformsettings.ipfw(
-          'add',
+          'add', self._DOWNLOAD_RULE,
           'queue', self._DOWNLOAD_QUEUE,
           'ip',
           'from', self.host,
@@ -162,12 +174,22 @@ class TrafficShaper(object):
       raise TrafficShaperException('Unable to shape traffic: %s' % e)
 
   def __exit__(self, unused_exc_type, unused_exc_val, unused_exc_tb):
-    self.platformsettings.unconfigure_loopback()
-    if (self.init_cwnd != '0' and
-        self.platformsettings.is_cwnd_available()):
-      self.platformsettings.set_cwnd(self.original_cwnd)
-    try:
-      self.platformsettings.ipfw('-q', 'flush')
-      logging.info('Stopped shaping traffic')
-    except Exception, e:
-      raise TrafficShaperException('Unable to stop shaping traffic: %s' % e)
+    if self.use_loopback:
+      self.platformsettings.unconfigure_loopback()
+    self.platformsettings.restore_cwnd()
+    if self.is_shaping:
+      try:
+          self._delete_rules()
+          logging.info('Stopped shaping traffic')
+      except Exception, e:
+        raise TrafficShaperException('Unable to stop shaping traffic: %s' % e)
+
+  def _delete_rules(self, ipfw_list=None):
+    if ipfw_list is None:
+      ipfw_list = self.platformsettings.ipfw('list')
+    existing_rules = set(
+        r.split()[0].lstrip('0') for r in ipfw_list.splitlines())
+    delete_rules = [r for r in (self._DOWNLOAD_RULE, self._UPLOAD_RULE)
+                    if r in existing_rules]
+    if delete_rules:
+      self.platformsettings.ipfw('delete', *delete_rules)

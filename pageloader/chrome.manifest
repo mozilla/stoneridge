@@ -1,0 +1,4 @@
+content srpl chrome/
+component {E17FB86D-1CEB-4B67-8A6C-5B97AD068A7F} components/sr-cmdline.js
+contract @mozilla.org/commandlinehandler/general-startup;1?type=sr {E17FB86D-1CEB-4B67-8A6C-5B97AD068A7F}
+category command-line-handler m-sr @mozilla.org/commandlinehandler/general-startup;1?type=sr

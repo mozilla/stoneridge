@@ -16,13 +16,16 @@
 import daemonserver
 import errno
 import logging
-import platformsettings
 import socket
 import SocketServer
 import threading
 
 import third_party
+import dns.flags
+import dns.message
+import dns.rcode
 import dns.resolver
+import dns.rdatatype
 import ipaddr
 
 
@@ -31,18 +34,21 @@ class DnsProxyException(Exception):
 
 
 class RealDnsLookup(object):
-  def __init__(self, name_servers=None):
+  def __init__(self, name_servers):
+    if '127.0.0.1' in name_servers:
+      raise DnsProxyException(
+          'Invalid nameserver: 127.0.0.1 (causes an infinte loop)')
     self.resolver = dns.resolver.get_default_resolver()
-    self.resolver.nameservers = [
-        platformsettings.get_platform_settings().get_original_primary_dns()]
+    self.resolver.nameservers = name_servers
     self.dns_cache_lock = threading.Lock()
     self.dns_cache = {}
 
-  def __call__(self, hostname):
+  def __call__(self, hostname, rdtype=dns.rdatatype.A):
     """Return real IP for a host.
 
     Args:
       host: a hostname ending with a period (e.g. "www.google.com.")
+      rdtype: the query type (1 for 'A', 28 for 'AAAA')
     Returns:
       the IP address as a string (e.g. "192.168.25.2")
     """
@@ -50,54 +56,72 @@ class RealDnsLookup(object):
     ip = self.dns_cache.get(hostname)
     self.dns_cache_lock.release()
     if ip:
-      logging.debug('_real_dns_lookup(%s) cache hit! -> %s', hostname, ip)
       return ip
     try:
-      answers = self.resolver.query(hostname, 'A')
-    except (dns.resolver.NoAnswer,
-            dns.resolver.NXDOMAIN,
-            dns.resolver.Timeout) as ex:
+      answers = self.resolver.query(hostname, rdtype)
+    except dns.resolver.NXDOMAIN:
+      return None
+    except (dns.resolver.NoAnswer, dns.resolver.Timeout) as ex:
       logging.debug('_real_dns_lookup(%s) -> None (%s)',
                     hostname, ex.__class__.__name__)
       return None
     if answers:
       ip = str(answers[0])
-    logging.debug('_real_dns_lookup(%s) -> %s', hostname, ip)
     self.dns_cache_lock.acquire()
     self.dns_cache[hostname] = ip
     self.dns_cache_lock.release()
     return ip
 
+  def ClearCache(self):
+    """Clearn the dns cache."""
+    self.dns_cache_lock.acquire()
+    self.dns_cache.clear()
+    self.dns_cache_lock.release()
 
-class DnsPrivatePassthroughFilter:
-  """Allow private hosts to resolve to their real IPs."""
-  def __init__(self, real_dns_lookup, skip_passthrough_hosts=()):
-    """Initialize DnsPrivatePassthroughFilter.
+
+class PrivateIpDnsLookup(object):
+  """Resolve private hosts to their real IPs and others to the Web proxy IP.
+
+  Hosts in the given http_archive will resolve to the Web proxy IP without
+  checking the real IP.
+
+  This only supports IPv4 lookups.
+  """
+  def __init__(self, web_proxy_ip, real_dns_lookup, http_archive):
+    """Initialize PrivateIpDnsLookup.
 
     Args:
+      web_proxy_ip: the IP address returned by __call__ for non-private hosts.
       real_dns_lookup: a function that resolves a host to an IP.
-      skip_passthrough_hosts: an iterable of hosts that skip
-        the private determination (i.e. avoids a real dns lookup
-        for them).
+      http_archive: an instance of a HttpArchive
+        Hosts is in the archive will always resolve to the web_proxy_ip
     """
+    self.web_proxy_ip = web_proxy_ip
     self.real_dns_lookup = real_dns_lookup
-    self.skip_passthrough_hosts = set(
-        host + '.' for host in skip_passthrough_hosts)
+    self.http_archive = http_archive
+    self.InitializeArchiveHosts()
 
   def __call__(self, host):
-    """Return real IP for host if private.
+    """Return real IPv4 for private hosts and Web proxy IP otherwise.
 
     Args:
       host: a hostname ending with a period (e.g. "www.google.com.")
     Returns:
-      If private, the real IP address as a string (e.g. 192.168.25.2)
-      Otherwise, None.
+      IP address as a string or None (if lookup fails)
     """
-    if host not in self.skip_passthrough_hosts:
+    ip = self.web_proxy_ip
+    if host not in self.archive_hosts:
       real_ip = self.real_dns_lookup(host)
-      if real_ip and ipaddr.IPv4Address(real_ip).is_private:
-        return real_ip
-    return None
+      if real_ip:
+        if ipaddr.IPAddress(real_ip).is_private:
+          ip = real_ip
+      else:
+        ip = None
+    return ip
+
+  def InitializeArchiveHosts(self):
+    """Recompute the archive_hosts from the http_archive."""
+    self.archive_hosts = set('%s.' % req.host for req in self.http_archive)
 
 
 class UdpDnsHandler(SocketServer.DatagramRequestHandler):
@@ -110,6 +134,13 @@ class UdpDnsHandler(SocketServer.DatagramRequestHandler):
   STANDARD_QUERY_OPERATION_CODE = 0
 
   def handle(self):
+    """Handle a DNS query.
+
+    IPv6 requests (with rdtype AAAA) receive mismatched IPv4 responses
+    (with rdtype A). To properly support IPv6, the http proxy would
+    need both types of addresses. By default, Windows XP does not
+    support IPv6.
+    """
     self.data = self.rfile.read()
     self.transaction_id = self.data[0]
     self.flags = self.data[1]
@@ -122,15 +153,17 @@ class UdpDnsHandler(SocketServer.DatagramRequestHandler):
     else:
       logging.debug("DNS request with non-zero operation code: %s",
                     operation_code)
-    real_ip = self.server.passthrough_filter(self.domain)
-    if real_ip:
-      message = 'passthrough'
-      ip = real_ip
+    ip = self.server.dns_lookup(self.domain)
+    if ip is None:
+      logging.debug('dnsproxy: %s -> NXDOMAIN', self.domain)
+      response = self.get_dns_no_such_name_response()
     else:
-      message = 'handle'
-      ip = self.server.server_address[0]
-    logging.debug('dnsproxy: %s(%s) -> %s', message, self.domain, ip)
-    self.reply(self.get_dns_reply(ip))
+      if ip == self.server.server_address[0]:
+        logging.debug('dnsproxy: %s -> %s (replay web proxy)', self.domain, ip)
+      else:
+        logging.debug('dnsproxy: %s -> %s', self.domain, ip)
+      response = self.get_dns_response(ip)
+    self.wfile.write(response)
 
   @classmethod
   def _domain(cls, wire_domain):
@@ -143,10 +176,7 @@ class UdpDnsHandler(SocketServer.DatagramRequestHandler):
       length = ord(wire_domain[index])
     return domain
 
-  def reply(self, buf):
-    self.wfile.write(buf)
-
-  def get_dns_reply(self, ip):
+  def get_dns_response(self, ip):
     packet = ''
     if self.domain:
       packet = (
@@ -164,48 +194,35 @@ class UdpDnsHandler(SocketServer.DatagramRequestHandler):
           )
     return packet
 
+  def get_dns_no_such_name_response(self):
+    query_message = dns.message.from_wire(self.data)
+    response_message = dns.message.make_response(query_message)
+    response_message.flags |= dns.flags.AA | dns.flags.RA
+    response_message.set_rcode(dns.rcode.NXDOMAIN)
+    return response_message.to_wire()
 
 class DnsProxyServer(SocketServer.ThreadingUDPServer,
                      daemonserver.DaemonServer):
-  def __init__(self, use_forwarding, passthrough_filter=None, host='', port=53, handler=UdpDnsHandler):
+  def __init__(self, dns_lookup=None, host='', port=53):
     """Initialize DnsProxyServer.
 
     Args:
-      use_forwarding: a boolean that if true, changes primary DNS to host.
-      passthrough_filter: a function that resolves a host to its real IP,
-        or None, if it should resolve to the dnsproxy's address.
+      dns_lookup: a function that resolves a host to an IP address.
       host: a host string (name or IP) to bind the dns proxy and to which
         DNS requests will be resolved.
       port: an integer port on which to bind the proxy.
     """
-    self.use_forwarding = use_forwarding
-    self.passthrough_filter = passthrough_filter or (lambda host: None)
-    self.platform_settings = platformsettings.get_platform_settings()
     try:
       SocketServer.ThreadingUDPServer.__init__(
-          self, (host, port), handler)
+          self, (host, port), UdpDnsHandler)
     except socket.error, (error_number, msg):
       if error_number == errno.EACCES:
         raise DnsProxyException(
             'Unable to bind DNS server on (%s:%s)' % (host, port))
       raise
+    self.dns_lookup = dns_lookup or (lambda host: self.server_address[0])
     logging.info('Started DNS server on %s...', self.server_address)
-    if self.use_forwarding:
-      self.platform_settings.set_primary_dns(host)
 
   def cleanup(self):
-    if self.use_forwarding:
-      self.platform_settings.restore_primary_dns()
     self.shutdown()
     logging.info('Shutdown DNS server')
-
-
-class DummyDnsServer():
-  def __init__(self, use_forwarding, passthrough_filter=None, host='', port=53):
-    pass
-
-  def __enter__(self):
-    pass
-
-  def __exit__(self, unused_exc_type, unused_exc_val, unused_exc_tb):
-    pass

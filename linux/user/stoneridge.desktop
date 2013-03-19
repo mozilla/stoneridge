@@ -1,0 +1,10 @@
+
+[Desktop Entry]
+Type=Application
+Exec=/home/hurley/srhome/stoneridge/linux/user/srterm.py
+Hidden=false
+X-GNOME-Autostart-enabled=true
+Name[en_US]=Stone Ridge
+Name=Stone Ridge
+Comment[en_US]=Start a terminal running the stone ridge worker
+Comment=Start a terminal running the stone ridge worker

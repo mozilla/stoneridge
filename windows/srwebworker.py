@@ -6,6 +6,7 @@
 import json
 import logging
 import requests
+import time
 
 import srworker
 import stoneridge
@@ -17,26 +18,47 @@ class StoneRidgeWebWorker(srworker.StoneRidgeWorker):
         self.setup()
 
     def run(self):
-        res = requests.get(self.url)
+        handled = True
 
-        if res.status_code != 200:
-            logging.error('Got non-200 response: %s %s (text %s)' %
-                          (res.status_code, res.reason, res.text))
-            return
+        while True:
+            if not handled:
+                time.sleep(5)
 
-        logging.debug('Got response %s' % (res.text,))
+            handled = False
 
-        if not res.text:
-            logging.debug('No entries waiting!')
-            return
+            try:
+                res = requests.get(self.url)
+            except:
+                logging.exception('Error getting events')
+                continue
 
-        args = json.loads(res.text)
+            if res.status_code != 200:
+                logging.error('Got non-200 response: %s %s (text %s)' %
+                              (res.status_code, res.reason, res.text))
+                continue
 
-        logging.debug('Handling request')
+            logging.debug('Got response %s' % (res.text,))
 
-        self.handle(**args)
+            if not res.text:
+                logging.debug('No entries waiting!')
+                continue
 
-        logging.debug('Done')
+            try:
+                args = json.loads(res.text)
+            except:
+                logging.exception('Error loading result as json')
+                continue
+
+            logging.debug('Handling request')
+
+            handled = True
+            try:
+                self.handle(**args)
+            except:
+                logging.exception('Error handling request')
+                continue
+
+            logging.debug('Done')
 
 
 @stoneridge.main
@@ -45,7 +67,4 @@ def main():
     parser.parse_args()
 
     worker = StoneRidgeWebWorker()
-    try:
-        worker.run()
-    except:
-        logging.exception('Error running this time')
+    worker.run()

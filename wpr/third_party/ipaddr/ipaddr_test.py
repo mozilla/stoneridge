@@ -23,10 +23,10 @@ import time
 import ipaddr
 
 # Compatibility function to cast str to bytes objects
-if ipaddr._compat_has_real_bytes:
-    _cb = lambda bytestr: bytes(bytestr, 'charmap')
+if issubclass(ipaddr.Bytes, str):
+    _cb = ipaddr.Bytes
 else:
-    _cb = str
+    _cb = lambda bytestr: bytes(bytestr, 'charmap')
 
 class IpaddrUnitTest(unittest.TestCase):
 
@@ -68,25 +68,72 @@ class IpaddrUnitTest(unittest.TestCase):
                          ipaddr.IPv6Address('::1'))
 
     def testInvalidStrings(self):
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, 'www.google.com')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1.2.3')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1.2.3.4.5')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '301.2.2.2')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1:2:3:4:5:6:7')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1:2:3:4:5:6:7:')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, ':2:3:4:5:6:7:8')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1:2:3:4:5:6:7:8:9')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1:2:3:4:5:6:7:8:')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1::3:4:5:6::8')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, 'a:')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, ':')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, ':::')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '::a:')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1ffff::')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '0xa::')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1:2:3:4:5:6:1a.2.3.4')
-        self.assertRaises(ValueError, ipaddr.IPNetwork, '1:2:3:4:5:1.2.3.4:8')
+        def AssertInvalidIP(ip_str):
+            self.assertRaises(ValueError, ipaddr.IPAddress, ip_str)
+        AssertInvalidIP("")
+        AssertInvalidIP("016.016.016.016")
+        AssertInvalidIP("016.016.016")
+        AssertInvalidIP("016.016")
+        AssertInvalidIP("016")
+        AssertInvalidIP("000.000.000.000")
+        AssertInvalidIP("000")
+        AssertInvalidIP("0x0a.0x0a.0x0a.0x0a")
+        AssertInvalidIP("0x0a.0x0a.0x0a")
+        AssertInvalidIP("0x0a.0x0a")
+        AssertInvalidIP("0x0a")
+        AssertInvalidIP("42.42.42.42.42")
+        AssertInvalidIP("42.42.42")
+        AssertInvalidIP("42.42")
+        AssertInvalidIP("42")
+        AssertInvalidIP("42..42.42")
+        AssertInvalidIP("42..42.42.42")
+        AssertInvalidIP("42.42.42.42.")
+        AssertInvalidIP("42.42.42.42...")
+        AssertInvalidIP(".42.42.42.42")
+        AssertInvalidIP("...42.42.42.42")
+        AssertInvalidIP("42.42.42.-0")
+        AssertInvalidIP("42.42.42.+0")
+        AssertInvalidIP(".")
+        AssertInvalidIP("...")
+        AssertInvalidIP("bogus")
+        AssertInvalidIP("bogus.com")
+        AssertInvalidIP("192.168.0.1.com")
+        AssertInvalidIP("12345.67899.-54321.-98765")
+        AssertInvalidIP("257.0.0.0")
+        AssertInvalidIP("42.42.42.-42")
+        AssertInvalidIP("3ffe::1.net")
+        AssertInvalidIP("3ffe::1::1")
+        AssertInvalidIP("1::2::3::4:5")
+        AssertInvalidIP("::7:6:5:4:3:2:")
+        AssertInvalidIP(":6:5:4:3:2:1::")
+        AssertInvalidIP("2001::db:::1")
+        AssertInvalidIP("FEDC:9878")
+        AssertInvalidIP("+1.+2.+3.4")
+        AssertInvalidIP("1.2.3.4e0")
+        AssertInvalidIP("::7:6:5:4:3:2:1:0")
+        AssertInvalidIP("7:6:5:4:3:2:1:0::")
+        AssertInvalidIP("9:8:7:6:5:4:3::2:1")
+        AssertInvalidIP("0:1:2:3::4:5:6:7")
+        AssertInvalidIP("3ffe:0:0:0:0:0:0:0:1")
+        AssertInvalidIP("3ffe::10000")
+        AssertInvalidIP("3ffe::goog")
+        AssertInvalidIP("3ffe::-0")
+        AssertInvalidIP("3ffe::+0")
+        AssertInvalidIP("3ffe::-1")
+        AssertInvalidIP(":")
+        AssertInvalidIP(":::")
+        AssertInvalidIP("::1.2.3")
+        AssertInvalidIP("::1.2.3.4.5")
+        AssertInvalidIP("::1.2.3.4:")
+        AssertInvalidIP("1.2.3.4::")
+        AssertInvalidIP("2001:db8::1:")
+        AssertInvalidIP(":2001:db8::1")
+        AssertInvalidIP(":1:2:3:4:5:6:7")
+        AssertInvalidIP("1:2:3:4:5:6:7:")
+        AssertInvalidIP(":1:2:3:4:5:6:")
+        AssertInvalidIP("192.0.2.1/32")
+        AssertInvalidIP("2001:db8::1/128")
+
         self.assertRaises(ipaddr.AddressValueError, ipaddr.IPv4Network, '')
         self.assertRaises(ipaddr.AddressValueError, ipaddr.IPv4Network,
                           'google.com')
@@ -188,26 +235,25 @@ class IpaddrUnitTest(unittest.TestCase):
         self.assertEqual(ipaddr.IPNetwork(self.ipv4.ip).version, 4)
         self.assertEqual(ipaddr.IPNetwork(self.ipv6.ip).version, 6)
 
-    if ipaddr._compat_has_real_bytes: # on python3+
-        def testIpFromPacked(self):
-            ip = ipaddr.IPNetwork
+    def testIpFromPacked(self):
+        ip = ipaddr.IPNetwork
 
-            self.assertEqual(self.ipv4.ip,
-                             ip(_cb('\x01\x02\x03\x04')).ip)
-            self.assertEqual(ip('255.254.253.252'),
-                             ip(_cb('\xff\xfe\xfd\xfc')))
-            self.assertRaises(ValueError, ipaddr.IPNetwork, _cb('\x00' * 3))
-            self.assertRaises(ValueError, ipaddr.IPNetwork, _cb('\x00' * 5))
-            self.assertEqual(self.ipv6.ip,
-                             ip(_cb('\x20\x01\x06\x58\x02\x2a\xca\xfe'
-                               '\x02\x00\x00\x00\x00\x00\x00\x01')).ip)
-            self.assertEqual(ip('ffff:2:3:4:ffff::'),
-                             ip(_cb('\xff\xff\x00\x02\x00\x03\x00\x04' +
-                                   '\xff\xff' + '\x00' * 6)))
-            self.assertEqual(ip('::'),
-                             ip(_cb('\x00' * 16)))
-            self.assertRaises(ValueError, ip, _cb('\x00' * 15))
-            self.assertRaises(ValueError, ip, _cb('\x00' * 17))
+        self.assertEqual(self.ipv4.ip,
+                         ip(_cb('\x01\x02\x03\x04')).ip)
+        self.assertEqual(ip('255.254.253.252'),
+                         ip(_cb('\xff\xfe\xfd\xfc')))
+        self.assertRaises(ValueError, ipaddr.IPNetwork, _cb('\x00' * 3))
+        self.assertRaises(ValueError, ipaddr.IPNetwork, _cb('\x00' * 5))
+        self.assertEqual(self.ipv6.ip,
+                         ip(_cb('\x20\x01\x06\x58\x02\x2a\xca\xfe'
+                           '\x02\x00\x00\x00\x00\x00\x00\x01')).ip)
+        self.assertEqual(ip('ffff:2:3:4:ffff::'),
+                         ip(_cb('\xff\xff\x00\x02\x00\x03\x00\x04' +
+                               '\xff\xff' + '\x00' * 6)))
+        self.assertEqual(ip('::'),
+                         ip(_cb('\x00' * 16)))
+        self.assertRaises(ValueError, ip, _cb('\x00' * 15))
+        self.assertRaises(ValueError, ip, _cb('\x00' * 17))
 
     def testGetIp(self):
         self.assertEqual(int(self.ipv4.ip), 16909060)
@@ -286,6 +332,11 @@ class IpaddrUnitTest(unittest.TestCase):
     def testIterSubnets(self):
         self.assertEqual(self.ipv4.subnet(), list(self.ipv4.iter_subnets()))
         self.assertEqual(self.ipv6.subnet(), list(self.ipv6.iter_subnets()))
+
+    def testIterHosts(self):
+        self.assertEqual([ipaddr.IPv4Address('2.0.0.0'),
+                          ipaddr.IPv4Address('2.0.0.1')],
+                         list(ipaddr.IPNetwork('2.0.0.0/31').iterhosts()))
 
     def testFancySubnetting(self):
         self.assertEqual(sorted(self.ipv4.subnet(prefixlen_diff=3)),
@@ -893,7 +944,7 @@ class IpaddrUnitTest(unittest.TestCase):
             '2001:0:0:4:0:0:0:8': '2001:0:0:4::8/128',
             '2001:0:0:4:5:6:7:8': '2001::4:5:6:7:8/128',
             '2001:0:3:4:5:6:7:8': '2001:0:3:4:5:6:7:8/128',
-            '2001:0::3:4:5:6:7:8': '2001:0:3:4:5:6:7:8/128',
+            '2001:0:3:4:5:6:7:8': '2001:0:3:4:5:6:7:8/128',
             '0:0:3:0:0:0:0:ffff': '0:0:3::ffff/128',
             '0:0:0:4:0:0:0:ffff': '::4:0:0:0:ffff/128',
             '0:0:0:0:5:0:0:ffff': '::5:0:0:ffff/128',
@@ -903,6 +954,12 @@ class IpaddrUnitTest(unittest.TestCase):
             '0:0:0:0:0:0:0:1': '::1/128',
             '2001:0658:022a:cafe:0000:0000:0000:0000/66':
             '2001:658:22a:cafe::/66',
+            '::1.2.3.4': '::102:304/128',
+            '1:2:3:4:5:ffff:1.2.3.4': '1:2:3:4:5:ffff:102:304/128',
+            '::7:6:5:4:3:2:1': '0:7:6:5:4:3:2:1/128',
+            '::7:6:5:4:3:2:0': '0:7:6:5:4:3:2:0/128',
+            '7:6:5:4:3:2:1::': '7:6:5:4:3:2:1:0/128',
+            '0:6:5:4:3:2:1::': '0:6:5:4:3:2:1:0/128',
             }
         for uncompressed, compressed in test_addresses.items():
             self.assertEqual(compressed, str(ipaddr.IPv6Network(uncompressed)))
@@ -910,9 +967,9 @@ class IpaddrUnitTest(unittest.TestCase):
     def testExplodeShortHandIpStr(self):
         addr1 = ipaddr.IPv6Network('2001::1')
         addr2 = ipaddr.IPv6Address('2001:0:5ef5:79fd:0:59d:a0e5:ba1')
-        self.assertEqual('2001:0000:0000:0000:0000:0000:0000:0001',
-                         addr1._explode_shorthand_ip_string(str(addr1.ip)))
-        self.assertEqual('0000:0000:0000:0000:0000:0000:0000:0001',
+        self.assertEqual('2001:0000:0000:0000:0000:0000:0000:0001/128',
+                         addr1.exploded)
+        self.assertEqual('0000:0000:0000:0000:0000:0000:0000:0001/128',
                          ipaddr.IPv6Network('::1/128').exploded)
         # issue 77
         self.assertEqual('2001:0000:5ef5:79fd:0000:059d:a0e5:0ba1',
@@ -957,7 +1014,7 @@ class IpaddrUnitTest(unittest.TestCase):
         self.assertEqual(ipaddr.IPNetwork('::/121').Supernet(),
                          ipaddr.IPNetwork('::/120'))
 
-        self.assertEqual(ipaddr.IPNetwork('10.0.0.02').IsRFC1918(), True)
+        self.assertEqual(ipaddr.IPNetwork('10.0.0.2').IsRFC1918(), True)
         self.assertEqual(ipaddr.IPNetwork('10.0.0.0').IsMulticast(), False)
         self.assertEqual(ipaddr.IPNetwork('127.255.255.255').IsLoopback(), True)
         self.assertEqual(ipaddr.IPNetwork('169.255.255.255').IsLinkLocal(),
@@ -1017,19 +1074,6 @@ class IpaddrUnitTest(unittest.TestCase):
         self.assertTrue(self.ipv6._cache.has_key('broadcast'))
         self.assertTrue(self.ipv6._cache.has_key('hostmask'))
 
-    def testIsValidIp(self):
-        ip = ipaddr.IPv6Address('::')
-        self.assertTrue(ip._is_valid_ip('2001:658:22a:cafe:200::1'))
-        self.assertTrue(ip._is_valid_ip('::ffff:10.10.0.0'))
-        self.assertTrue(ip._is_valid_ip('::ffff:192.168.0.0'))
-        self.assertFalse(ip._is_valid_ip('2001:658:22a::::1'))
-        self.assertFalse(ip._is_valid_ip(':658:22a:cafe:200::1'))
-        self.assertFalse(ip._is_valid_ip('2001:658:22a:cafe:200:'))
-        self.assertFalse(ip._is_valid_ip('2001:658:22a:cafe:200:127.0.0.1::1'))
-        self.assertFalse(ip._is_valid_ip('2001:658:22a:cafe:200::127.0.1'))
-        self.assertFalse(ip._is_valid_ip('2001:658:22a:zzzz:200::1'))
-        self.assertFalse(ip._is_valid_ip('2001:658:22a:cafe1:200::1'))
-
     def testTeredo(self):
         # stolen from wikipedia
         server = ipaddr.IPv4Address('65.54.227.120')
@@ -1038,6 +1082,8 @@ class IpaddrUnitTest(unittest.TestCase):
         self.assertEqual((server, client),
                          ipaddr.IPAddress(teredo_addr).teredo)
         bad_addr = '2000::4136:e378:8000:63bf:3fff:fdd2'
+        self.assertFalse(ipaddr.IPAddress(bad_addr).teredo)
+        bad_addr = '2001:0001:4136:e378:8000:63bf:3fff:fdd2'
         self.assertFalse(ipaddr.IPAddress(bad_addr).teredo)
 
         # i77

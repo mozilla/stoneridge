@@ -32,125 +32,185 @@ To edit a particular URL:
 """
 
 import difflib
+import email.utils
+import httplib
 import httpzlib
+import json
 import logging
 import optparse
 import os
 import persistentmixin
-import re
 import StringIO
 import subprocess
+import sys
 import tempfile
+import urlparse
 
-
-HTML_RE = re.compile(r'<html[^>]*>', re.IGNORECASE)
-HEAD_RE = re.compile(r'<head[^>]*>', re.IGNORECASE)
-DETERMINISTIC_SCRIPT = """
-<script>
-  (function () {
-    var orig_date = Date;
-    var x = 0;
-    var time_seed = 1204251968254;
-    Math.random = function() {
-      x += .1;
-      return (x % 1);
-    };
-    Date = function() {
-      if (this instanceof Date) {
-        switch (arguments.length) {
-        case 0: return new orig_date(time_seed += 50);
-        case 1: return new orig_date(arguments[0]);
-        default: return new orig_date(arguments[0], arguments[1],
-           arguments.length >= 3 ? arguments[2] : 1,
-           arguments.length >= 4 ? arguments[3] : 0,
-           arguments.length >= 5 ? arguments[4] : 0,
-           arguments.length >= 6 ? arguments[5] : 0,
-           arguments.length >= 7 ? arguments[6] : 0);
-        }
-      }
-      return new Date().toString();
-    };
-    Date.__proto__ = orig_date;
-    Date.prototype.constructor = Date;
-    orig_date.now = function() {
-      return new Date().getTime();
-    };
-    neckonetRecordTime = function() {
-        var start;
-        var end;
-        try {
-            start = window.performance.timing.navigationStart;
-            end = window.performance.timing.responseEnd;
-        } catch (e) {
-            // Use a sentinel value that we'll recognize
-            start = 0;
-            end = 1;
-        }
-        try {
-            tpRecordTime(end - start);
-        } catch (e) {
-            // Ignore this, there's nothing we can do
-        }
-    };
-    window.addEventListener('load', neckonetRecordTime, false);
-  })();
-</script>
-"""
+import platformsettings
 
 
 class HttpArchiveException(Exception):
+  """Base class for all exceptions in httparchive."""
   pass
-
-class InjectionFailedException(HttpArchiveException):
-  def __init__(self, text):
-    self.text = text
-
-  def __str__(self):
-    return repr(text)
-
-def _InsertScriptAfter(matchobj):
-  return matchobj.group(0) + DETERMINISTIC_SCRIPT
 
 
 class HttpArchive(dict, persistentmixin.PersistentMixin):
   """Dict with ArchivedHttpRequest keys and ArchivedHttpResponse values.
 
   PersistentMixin adds CreateNew(filename), Load(filename), and Persist().
+
+  Attributes:
+    server_rtt: dict of {hostname, server rtt in milliseconds}
   """
 
-  def get_requests(self, command=None, host=None, path=None):
-    """Retruns a list of all requests matching giving params."""
-    return [r for r in self if r.matches(command, host, path)]
+  def __init__(self):
+    self.server_rtt = {}
+
+  def get_server_rtt(self, server):
+    """Retrieves the round trip time (rtt) to the server
+
+    Args:
+      server: the hostname of the server
+
+    Returns:
+      round trip time to the server in seconds, or 0 if unavailable
+    """
+    if server not in self.server_rtt:
+      platform_settings = platformsettings.get_platform_settings()
+      self.server_rtt[server] = platform_settings.ping(server)
+    return self.server_rtt[server]
+
+  def get(self, request, default=None):
+    """Return the archived response for a given request.
+
+    Does extra checking for handling some HTTP request headers.
+
+    Args:
+      request: instance of ArchivedHttpRequest
+      default: default value to return if request is not found
+
+    Returns:
+      Instance of ArchivedHttpResponse or default if no matching
+      response is found
+    """
+    if request in self:
+      return self[request]
+    return self.get_conditional_response(request, default)
+
+  def get_conditional_response(self, request, default):
+    """Get the response based on the conditional HTTP request headers.
+
+    Args:
+      request: an ArchivedHttpRequest representing the original request.
+      default: default ArchivedHttpResponse
+          original request with matched headers removed.
+
+    Returns:
+      an ArchivedHttpResponse with a status of 200, 302 (not modified), or
+          412 (precondition failed)
+    """
+    response = default
+    if request.is_conditional():
+      stripped_request = request.create_request_without_conditions()
+      if stripped_request in self:
+        response = self[stripped_request]
+        if response.status == 200:
+          status = self.get_conditional_status(request, response)
+          if status != 200:
+            response = create_response(status)
+    return response
+
+  def get_conditional_status(self, request, response):
+    status = 200
+    last_modified = email.utils.parsedate(
+        response.get_header_case_insensitive('last-modified'))
+    response_etag = response.get_header_case_insensitive('etag')
+    is_get_or_head = request.command.upper() in ('GET', 'HEAD')
+
+    match_value = request.headers.get('if-match', None)
+    if match_value:
+      if self.is_etag_match(match_value, response_etag):
+        status = 200
+      else:
+        status = 412  # precondition failed
+    none_match_value = request.headers.get('if-none-match', None)
+    if none_match_value:
+      if self.is_etag_match(none_match_value, response_etag):
+        status = 304
+      elif is_get_or_head:
+        status = 200
+      else:
+        status = 412
+    if is_get_or_head and last_modified:
+      for header in ('if-modified-since', 'if-unmodified-since'):
+        date = email.utils.parsedate(request.headers.get(header, None))
+        if date:
+          if ((header == 'if-modified-since' and last_modified > date) or
+              (header == 'if-unmodified-since' and last_modified < date)):
+            if status != 412:
+              status = 200
+          else:
+            status = 304  # not modified
+    return status
+
+  def is_etag_match(self, request_etag, response_etag):
+    """Determines whether the entity tags of the request/response matches.
+
+    Args:
+      request_etag: the value string of the "if-(none)-match:"
+                    portion of the request header
+      response_etag: the etag value of the response
+
+    Returns:
+      True on match, False otherwise
+    """
+    response_etag = response_etag.strip('" ')
+    for etag in request_etag.split(','):
+      etag = etag.strip('" ')
+      if etag in ('*', response_etag):
+        return True
+    return False
+
+  def get_requests(self, command=None, host=None, path=None, use_query=True):
+    """Return a list of requests that match the given args."""
+    return [r for r in self if r.matches(command, host, path,
+                                         use_query=use_query)]
 
   def ls(self, command=None, host=None, path=None):
     """List all URLs that match given params."""
-    out = StringIO.StringIO()
-    for request in self.get_requests(command, host, path):
-      print >>out, '%s %s%s %s' % (request.command, request.host, request.path,
-                                   request.headers)
-    return out.getvalue()
+    return ''.join(sorted(
+        '%s\n' % r for r in self.get_requests(command, host, path)))
 
   def cat(self, command=None, host=None, path=None):
     """Print the contents of all URLs that match given params."""
     out = StringIO.StringIO()
     for request in self.get_requests(command, host, path):
-      print >>out, '%s %s %s\nrequest headers:\n' % (
-          request.command, request.host, request.path)
-      for k, v in sorted(request.headers):
-        print >>out, "    %s: %s" % (k, v)
+      print >>out, str(request)
+      print >>out, 'Untrimmed request headers:'
+      for k in request.headers:
+        print >>out, '    %s: %s' % (k, request.headers[k])
       if request.request_body:
         print >>out, request.request_body
-      print >>out, '-' * 70
+      print >>out, '---- Response Info', '-' * 51
       response = self[request]
-      print >>out, 'Status: %s\nReason: %s\nheaders:\n' % (
-          response.status, response.reason)
-      for k, v in sorted(response.headers):
-        print >>out, "    %s: %s" % (k, v)
-      headers = dict(response.headers)
+      chunk_lengths = [len(x) for x in response.response_data]
+      print >>out, ('Status: %s\n'
+                    'Reason: %s\n'
+                    'Headers delay: %s\n'
+                    'Response headers:') % (
+          response.status, response.reason, response.delays['headers'])
+      for k, v in response.headers:
+        print >>out, '    %s: %s' % (k, v)
+      print >>out, ('Chunk count: %s\n'
+                    'Chunk lengths: %s\n'
+                    'Chunk delays: %s') % (
+          len(chunk_lengths), chunk_lengths, response.delays['data'])
       body = response.get_data_as_text()
+      print >>out, '---- Response Data', '-' * 51
       if body:
-        print >>out, '-' * 70
         print >>out, body
+      else:
+        print >>out, '[binary data]'
       print >>out, '=' * 70
     return out.getvalue()
 
@@ -172,76 +232,209 @@ class HttpArchive(dict, persistentmixin.PersistentMixin):
 
     response = self[matching_requests[0]]
     tmp_file = tempfile.NamedTemporaryFile(delete=False)
-    tmp_file.write(response.get_data_as_text())
+    tmp_file.write(response.get_response_as_text())
     tmp_file.close()
     subprocess.check_call([editor, tmp_file.name])
-    response.set_data(''.join(open(tmp_file.name).readlines()))
+    response.set_response_from_text(''.join(open(tmp_file.name).readlines()))
     os.remove(tmp_file.name)
 
-  def diff(self, request):
-    request_repr = request.verbose_repr()
-    best_similarity = None
-    best_candidate_repr = None
-    for candidate in self.get_requests(request.command, request.host):
-      candidate_repr = candidate.verbose_repr()
-      similarity = difflib.SequenceMatcher(a=request_repr,
-                                           b=candidate_repr).ratio()
-      if best_similarity is None or similarity > best_similarity:
-        best_similarity = similarity
-        best_candidate_repr = candidate_repr
+  def _format_request_lines(self, req):
+    """Format request to make diffs easier to read.
 
-    delta = None
-    if best_candidate_repr:
-      delta = ''.join(difflib.ndiff(best_candidate_repr.splitlines(1),
-                                    request_repr.splitlines(1)))
-    return delta
+    Args:
+      req: an ArchivedHttpRequest
+    Returns:
+      Example:
+      ['GET www.example.com/path\n', 'Header-Key: header value\n', ...]
+    """
+    parts = ['%s %s%s\n' % (req.command, req.host, req.path)]
+    if req.request_body:
+      parts.append('%s\n' % req.request_body)
+    for k, v in req.trimmed_headers:
+      k = '-'.join(x.capitalize() for x in k.split('-'))
+      parts.append('%s: %s\n' % (k, v))
+    return parts
+
+  def find_closest_request(self, request, use_path=False):
+    """Find the closest matching request in the archive to the given request.
+
+    Args:
+      request: an ArchivedHttpRequest
+      use_path: If True, closest matching request's path component must match.
+        (Note: this refers to the 'path' component within the URL, not the
+         query string component.)
+        If use_path=False, candidate will NOT match in example below
+        e.g. request   = GET www.test.com/path?aaa
+             candidate = GET www.test.com/diffpath?aaa
+    Returns:
+      If a close match is found, return the instance of ArchivedHttpRequest.
+      Otherwise, return None.
+    """
+    best_match = None
+    request_lines = self._format_request_lines(request)
+    matcher = difflib.SequenceMatcher(b=''.join(request_lines))
+    path = None
+    if use_path:
+      path = request.path
+    for candidate in self.get_requests(request.command, request.host, path,
+                                       use_query=not use_path):
+      candidate_lines = self._format_request_lines(candidate)
+      matcher.set_seq1(''.join(candidate_lines))
+      best_match = max(best_match, (matcher.ratio(), candidate))
+    if best_match:
+      return best_match[1]
+    return None
+
+  def diff(self, request):
+    """Diff the given request to the closest matching request in the archive.
+
+    Args:
+      request: an ArchivedHttpRequest
+    Returns:
+      If a close match is found, return a textual diff between the requests.
+      Otherwise, return None.
+    """
+    request_lines = self._format_request_lines(request)
+    closest_request = self.find_closest_request(request)
+    if closest_request:
+      closest_request_lines = self._format_request_lines(closest_request)
+      return ''.join(difflib.ndiff(closest_request_lines, request_lines))
+    return None
 
 
 class ArchivedHttpRequest(object):
-  def __init__(self, command, host, path, request_body, headers):
+  """Record all the state that goes into a request.
+
+  ArchivedHttpRequest instances are considered immutable so they can
+  serve as keys for HttpArchive instances.
+  (The immutability is not enforced.)
+
+  Upon creation, the headers are "trimmed" (i.e. edited or dropped)
+  and saved to self.trimmed_headers to allow requests to match in a wider
+  variety of playback situations (e.g. using different user agents).
+
+  For unpickling, 'trimmed_headers' is recreated from 'headers'. That
+  allows for changes to the trim function and can help with debugging.
+  """
+  CONDITIONAL_HEADERS = [
+      'if-none-match', 'if-match',
+      'if-modified-since', 'if-unmodified-since']
+
+  def __init__(self, command, host, path, request_body, headers, is_ssl=False):
+    """Initialize an ArchivedHttpRequest.
+
+    Args:
+      command: a string (e.g. 'GET' or 'POST').
+      host: a host name (e.g. 'www.google.com').
+      path: a request path (e.g. '/search?q=dogs').
+      request_body: a request body string for a POST or None.
+      headers: {key: value, ...} where key and value are strings.
+      is_ssl: a boolean which is True iff request is make via SSL.
+    """
     self.command = command
     self.host = host
     self.path = path
     self.request_body = request_body
-    self.headers = self._FuzzHeaders(headers)
+    self.headers = headers
+    self.is_ssl = is_ssl
+    self.trimmed_headers = self._TrimHeaders(headers)
+
+  def __str__(self):
+    scheme = 'https' if self.is_ssl else 'http'
+    return '%s %s://%s%s %s' % (
+        self.command, scheme, self.host, self.path, self.trimmed_headers)
 
   def __repr__(self):
     return repr((self.command, self.host, self.path, self.request_body,
-                 self.headers))
+                 self.trimmed_headers, self.is_ssl))
 
   def __hash__(self):
-    return hash(self.__repr__())
+    """Return a integer hash to use for hashed collections including dict."""
+    return hash(repr(self))
 
   def __eq__(self, other):
-    return self.__repr__() == other.__repr__()
+    """Define the __eq__ method to match the hash behavior."""
+    return repr(self) == repr(other)
 
   def __setstate__(self, state):
-    if 'headers' not in state:
-      error_msg = ('Archived HTTP requests are missing headers. Your HTTP '
-                   'archive is likely from a previous version and must be '
-                   'recorded again.')
-      raise Exception(error_msg)
-    self.__dict__ = state
+    """Influence how to unpickle.
 
-  def matches(self, command=None, host=None, path=None):
-    """Returns true iff the request matches all parameters."""
+    "headers" are the original request headers.
+    "trimmed_headers" are the trimmed headers used for matching requests
+    during replay.
+
+    Args:
+      state: a dictionary for __dict__
+    """
+    if 'full_headers' in state:
+      # Fix older version of archive.
+      state['headers'] = state['full_headers']
+      del state['full_headers']
+    if 'headers' not in state:
+      raise HttpArchiveException(
+          'Archived HTTP request is missing "headers". The HTTP archive is'
+          ' likely from a previous version and must be re-recorded.')
+    state['trimmed_headers'] = self._TrimHeaders(dict(state['headers']))
+    if 'is_ssl' not in state:
+      state['is_ssl'] = False
+    self.__dict__.update(state)
+
+  def __getstate__(self):
+    """Influence how to pickle.
+
+    Returns:
+      a dict to use for pickling
+    """
+    state = self.__dict__.copy()
+    del state['trimmed_headers']
+    return state
+
+  def matches(self, command=None, host=None, path_with_query=None,
+              use_query=True):
+    """Returns true iff the request matches all parameters.
+
+    Args:
+      command: a string (e.g. 'GET' or 'POST').
+      host: a host name (e.g. 'www.google.com').
+      path_with_query: a request path with query string (e.g. '/search?q=dogs')
+      use_query:
+        If use_query is True, request matching uses both the hierarchical path
+        and query string component.
+        If use_query is False, request matching only uses the hierarchical path
+
+        e.g. req1 = GET www.test.com/index?aaaa
+             req2 = GET www.test.com/index?bbbb
+
+        If use_query is True, req1.matches(req2) evaluates to False
+        If use_query is False, req1.matches(req2) evaluates to True
+
+    Returns:
+      True iff the request matches all parameters
+    """
+    path_match = path_with_query == self.path
+    if not use_query:
+      self_path = urlparse.urlparse('http://%s%s' % (
+          self.host or '', self.path or '')).path
+      other_path = urlparse.urlparse('http://%s%s' % (
+          host or '', path_with_query or '')).path
+      path_match = self_path == other_path
     return ((command is None or command == self.command) and
             (host is None or host == self.host) and
-            (path is None or path == self.path))
+            (path_with_query is None or path_match))
 
-  def verbose_repr(self):
-    return '\n'.join([str(x) for x in
-        [self.command, self.host, self.path, self.request_body] + self.headers])
-
-  def _FuzzHeaders(self, headers):
+  @classmethod
+  def _TrimHeaders(cls, headers):
     """Removes headers that are known to cause problems during replay.
 
     These headers are removed for the following reasons:
     - accept: Causes problems with www.bing.com. During record, CSS is fetched
               with *. During replay, it's text/css.
+    - accept-charset, accept-language, referer: vary between clients.
     - connection, method, scheme, url, version: Cause problems with spdy.
     - cookie: Extremely sensitive to request/response order.
+    - keep-alive: Not supported by Web Page Replay.
     - user-agent: Changes with every Chrome version.
+    - proxy-connection: Sent for proxy requests.
 
     Another variant to consider is dropping only the value from the header.
     However, this is particularly bad for the cookie header, because the
@@ -249,52 +442,130 @@ class ArchivedHttpRequest(object):
     is made.
 
     Args:
-      headers: Dictionary of String -> String headers to values.
+      headers: {header_key: header_value, ...}
 
     Returns:
-      Dictionary of headers, with undesirable headers removed.
+      [(header_key, header_value), ...]  # (with undesirable headers removed)
     """
-    fuzzed_headers = headers.copy()
-    undesirable_keys = ['accept', 'connection', 'cookie', 'method', 'scheme',
-                        'url', 'version', 'user-agent']
-    keys_to_delete = []
-    for key in fuzzed_headers:
-      if key.lower() in undesirable_keys:
-        keys_to_delete.append(key)
-    for key in keys_to_delete:
-      del fuzzed_headers[key]
-    return [(k, fuzzed_headers[k]) for k in sorted(fuzzed_headers.keys())]
+    # TODO(tonyg): Strip sdch from the request headers because we can't
+    # guarantee that the dictionary will be recorded, so replay may not work.
+    if 'accept-encoding' in headers:
+      headers['accept-encoding'] = headers['accept-encoding'].replace(
+          'sdch', '')
+      # A little clean-up
+      if headers['accept-encoding'].endswith(','):
+        headers['accept-encoding'] = headers['accept-encoding'][:-1]
+    undesirable_keys = [
+        'accept', 'accept-charset', 'accept-language',
+        'connection', 'cookie', 'keep-alive', 'method',
+        'referer', 'scheme', 'url', 'version', 'user-agent', 'proxy-connection']
+    return sorted([(k, v) for k, v in headers.items()
+                   if k.lower() not in undesirable_keys])
 
+  def is_conditional(self):
+    """Return list of headers that match conditional headers."""
+    for header in self.CONDITIONAL_HEADERS:
+      if header in self.headers:
+        return True
+    return False
+
+  def create_request_without_conditions(self):
+    stripped_headers = dict((k, v) for k, v in self.headers.iteritems()
+                            if k.lower() not in self.CONDITIONAL_HEADERS)
+    return ArchivedHttpRequest(
+        self.command, self.host, self.path, self.request_body,
+        stripped_headers, self.is_ssl)
 
 class ArchivedHttpResponse(object):
-  """HTTPResponse objects.
-
-  ArchivedHttpReponse instances have the following attributes:
-    version: HTTP protocol version used by server.
-        10 for HTTP/1.0, 11 for HTTP/1.1 (same as httplib).
-    status: Status code returned by server (e.g. 200).
-    reason: Reason phrase returned by server (e.g. "OK").
-    headers: list of (header, value) tuples.
-    response_data: list of content chunks. Concatenating all the content chunks
-        gives the complete contents (i.e. the chunks do not have any lengths or
-        delimiters).
-  """
+  """All the data needed to recreate all HTTP response."""
 
   # CHUNK_EDIT_SEPARATOR is used to edit and view text content.
   # It is not sent in responses. It is added by get_data_as_text()
   # and removed by set_data().
   CHUNK_EDIT_SEPARATOR = '[WEB_PAGE_REPLAY_CHUNK_BOUNDARY]'
 
-  def __init__(self, version, status, reason, headers, response_data):
+  # DELAY_EDIT_SEPARATOR is used to edit and view server delays.
+  DELAY_EDIT_SEPARATOR = ('\n[WEB_PAGE_REPLAY_EDIT_ARCHIVE --- '
+                          'Delays are above. Response content is below.]\n')
+
+  def __init__(self, version, status, reason, headers, response_data,
+               delays=None):
+    """Initialize an ArchivedHttpResponse.
+
+    Args:
+      version: HTTP protocol version used by server.
+          10 for HTTP/1.0, 11 for HTTP/1.1 (same as httplib).
+      status: Status code returned by server (e.g. 200).
+      reason: Reason phrase returned by server (e.g. "OK").
+      headers: list of (header, value) tuples.
+      response_data: list of content chunks.
+          Concatenating the chunks gives the complete contents
+          (i.e. the chunks do not have any lengths or delimiters).
+          Do not include the final, zero-length chunk that marks the end.
+      delays: dict of (ms) delays before "headers" and "data". For example,
+          {'headers': 50, 'data': [0, 10, 10]}
+    """
     self.version = version
     self.status = status
     self.reason = reason
     self.headers = headers
     self.response_data = response_data
+    self.delays = delays
+    self.fix_delays()
 
-  def get_header(self, key):
+  def fix_delays(self):
+    """Initialize delays, or check the number of data delays."""
+    expected_num_delays = len(self.response_data)
+    if not self.delays:
+      self.delays = {
+          'headers': 0,
+          'data': [0] * expected_num_delays
+          }
+    else:
+      num_delays = len(self.delays['data'])
+      if num_delays != expected_num_delays:
+        raise HttpArchiveException(
+            'Server delay length mismatch: %d (expected %d): %s',
+            num_delays, expected_num_delays, self.delays['data'])
+
+  def __repr__(self):
+    return repr((self.version, self.status, self.reason, sorted(self.headers),
+                 self.response_data))
+
+  def __hash__(self):
+    """Return a integer hash to use for hashed collections including dict."""
+    return hash(repr(self))
+
+  def __eq__(self, other):
+    """Define the __eq__ method to match the hash behavior."""
+    return repr(self) == repr(other)
+
+  def __setstate__(self, state):
+    """Influence how to unpickle.
+
+    Args:
+      state: a dictionary for __dict__
+    """
+    if 'server_delays' in state:
+      state['delays'] = {
+          'headers': 0,
+          'data': state['server_delays']
+          }
+      del state['server_delays']
+    elif 'delays' not in state:
+      state['delays'] = None
+    self.__dict__.update(state)
+    self.fix_delays()
+
+  def get_header(self, key, default=None):
     for k, v in self.headers:
       if key == k:
+        return v
+    return default
+
+  def get_header_case_insensitive(self, key):
+    for k, v in self.headers:
+      if key.lower() == k.lower():
         return v
     return None
 
@@ -317,6 +588,9 @@ class ArchivedHttpResponse(object):
   def is_compressed(self):
     return self.get_header('content-encoding') in ('gzip', 'deflate')
 
+  def is_chunked(self):
+    return self.get_header('transfer-encoding') == 'chunked'
+
   def get_data_as_text(self):
     """Return content as a single string.
 
@@ -334,8 +608,25 @@ class ArchivedHttpResponse(object):
       uncompressed_chunks = self.response_data
     return self.CHUNK_EDIT_SEPARATOR.join(uncompressed_chunks)
 
+  def get_delays_as_text(self):
+    """Return delays as editable text."""
+    return json.dumps(self.delays, indent=2)
+
+  def get_response_as_text(self):
+    """Returns response content as a single string.
+
+    Server delays are separated on a per-chunk basis. Delays are in seconds.
+    Response content begins after DELAY_EDIT_SEPARATOR
+    """
+    data = self.get_data_as_text()
+    if data is None:
+      logging.warning('Data can not be represented as text.')
+      data = ''
+    delays = self.get_delays_as_text()
+    return self.DELAY_EDIT_SEPARATOR.join((delays, data))
+
   def set_data(self, text):
-    """Inverse of set_data_as_text().
+    """Inverse of get_data_as_text().
 
     Split on CHUNK_EDIT_SEPARATOR and compress if needed.
     """
@@ -344,26 +635,55 @@ class ArchivedHttpResponse(object):
       self.response_data = httpzlib.compress_chunks(text_chunks, self.is_gzip())
     else:
       self.response_data = text_chunks
-    if not self.get_header('transfer-encoding'):
+    if not self.is_chunked():
       content_length = sum(len(c) for c in self.response_data)
       self.set_header('content-length', str(content_length))
 
-  def inject_deterministic_script(self):
-    """Inject deterministic script immediately after <head> or <html>."""
-    content_type = self.get_header('content-type')
-    if not content_type or not content_type.startswith('text/html'):
+  def set_delays(self, delays_text):
+    """Inverse of get_delays_as_text().
+
+    Args:
+      delays_text: JSON encoded text such as the following:
+          {
+            headers: 80,
+            data: [6, 55, 0]
+          }
+        Times are in milliseconds.
+        Each data delay corresponds with one response_data value.
+    """
+    try:
+      self.delays = json.loads(delays_text)
+    except (ValueError, KeyError) as e:
+      logging.critical('Unable to parse delays %s: %s', delays_text, e)
+    self.fix_delays()
+
+  def set_response_from_text(self, text):
+    """Inverse of get_response_as_text().
+
+    Modifies the state of the archive according to the textual representation.
+    """
+    try:
+      delays, data = text.split(self.DELAY_EDIT_SEPARATOR)
+    except ValueError:
+      logging.critical(
+          'Error parsing text representation. Skipping edits.')
       return
-    text = self.get_data_as_text()
-    if text:
-      text, is_injected = HEAD_RE.subn(_InsertScriptAfter, text, 1)
-      if not is_injected:
-        text, is_injected = HTML_RE.subn(_InsertScriptAfter, text, 1)
-        if not is_injected:
-          raise InjectionFailedException(text)
-      self.set_data(text)
+    self.set_delays(delays)
+    self.set_data(data)
 
 
-if __name__ == '__main__':
+def create_response(status, reason=None, headers=None, body=None):
+  """Convenience method for creating simple ArchivedHttpResponse objects."""
+  if reason is None:
+    reason = httplib.responses.get(status, 'Unknown')
+  if headers is None:
+    headers = [('content-type', 'text/plain')]
+  if body is None:
+    body = "%s %s" % (status, reason)
+  return ArchivedHttpResponse(11, status, reason, headers, [body])
+
+
+def main():
   class PlainHelpFormatter(optparse.IndentedHelpFormatter):
     def format_description(self, description):
       if description:
@@ -412,3 +732,8 @@ if __name__ == '__main__':
     http_archive.Persist(replay_file)
   else:
     option_parser.error('Unknown command "%s"' % command)
+  return 0
+
+
+if __name__ == '__main__':
+  sys.exit(main())

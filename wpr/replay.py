@@ -41,11 +41,11 @@ Network simulation examples:
 
 import logging
 import optparse
-import socket
+import os
 import sys
-import time
 import traceback
 
+import cachemissarchive
 import customhandlers
 import dnsproxy
 import httparchive
@@ -53,111 +53,15 @@ import httpclient
 import httpproxy
 import platformsettings
 import replayspdyserver
+import servermanager
 import trafficshaper
-
 
 if sys.version < '2.6':
   print 'Need Python 2.6 or greater.'
   sys.exit(1)
 
 
-def resolve_dns_to_remote_replay_server(platform_settings, dnsproxy_ip):
-  """Set the primary dns nameserver to the replay dnsproxy.
-
-  Restore the original primary dns nameserver on exit.
-
-  Args:
-    platform_settings: an instance of platformsettings.PlatformSettings
-    dnsproxy_ip: the ip address to use as the primary dns server.
-  """
-  try:
-    platform_settings.set_primary_dns(dnsproxy_ip)
-    while True:
-      time.sleep(1)
-  except KeyboardInterrupt:
-    logging.info('Shutting down.')
-  finally:
-    platform_settings.restore_primary_dns()
-
-
-def main(options, replay_filename):
-  exit_status = 0
-  platform_settings = platformsettings.get_platform_settings()
-  if options.server:
-    resolve_dns_to_remote_replay_server(platform_settings, options.server)
-    return exit_status
-  host = platform_settings.get_server_ip_address(options.server_mode)
-
-  web_server_class = httpproxy.HttpProxyServer
-  web_server_kwargs = {
-      'host': host,
-      'port': options.port,
-      }
-  if options.spdy:
-    assert not options.record, 'spdy cannot be used with --record.'
-    web_server_class = replayspdyserver.ReplaySpdyServer
-    web_server_kwargs['use_ssl'] = options.spdy != 'no-ssl'
-    web_server_kwargs['certfile'] = options.certfile
-    web_server_kwargs['keyfile'] = options.keyfile
-
-  if options.record:
-    http_archive = httparchive.HttpArchive()
-    http_archive.AssertWritable(replay_filename)
-  else:
-    http_archive = httparchive.HttpArchive.Load(replay_filename)
-    logging.info('Loaded %d responses from %s',
-                 len(http_archive), replay_filename)
-
-  custom_handlers = customhandlers.CustomHandlers(options.screenshot_dir)
-
-  real_dns_lookup = dnsproxy.RealDnsLookup()
-  if options.record:
-    http_archive_fetch = httpclient.RecordHttpArchiveFetch(
-        http_archive, real_dns_lookup, options.deterministic_script)
-  else:
-    http_archive_fetch = httpclient.ReplayHttpArchiveFetch(
-        http_archive, options.diff_unknown_requests)
-
-  dns_passthrough_filter = None
-  if options.dns_private_passthrough:
-    skip_passthrough_hosts = set(request.host for request in http_archive)
-    dns_passthrough_filter = dnsproxy.DnsPrivatePassthroughFilter(
-        real_dns_lookup, skip_passthrough_hosts)
-
-  dns_class = dnsproxy.DummyDnsServer
-  if options.dns_forwarding:
-    dns_class = dnsproxy.DnsProxyServer
-
-  try:
-    with dns_class(options.dns_forwarding, dns_passthrough_filter, host):
-      with web_server_class(http_archive_fetch, custom_handlers,
-                            **web_server_kwargs):
-        with trafficshaper.TrafficShaper(
-            host=host,
-            port=options.shaping_port,
-            up_bandwidth=options.up,
-            down_bandwidth=options.down,
-            delay_ms=options.delay_ms,
-            packet_loss_rate=options.packet_loss_rate,
-            init_cwnd=options.init_cwnd):
-          while True:
-            time.sleep(1)
-  except KeyboardInterrupt:
-    logging.info('Shutting down.')
-  except (dnsproxy.DnsProxyException,
-          trafficshaper.TrafficShaperException) as e:
-    logging.critical(e)
-    exit_status = 1
-  except:
-    print traceback.format_exc()
-    exit_status = 2
-  if options.record:
-    http_archive.Persist(replay_filename)
-    logging.info('Saved %d responses to %s', len(http_archive), replay_filename)
-  return exit_status
-
-
-def configure_logging(log_level_name, log_file_name=None):
+def configure_logging(platform_settings, log_level_name, log_file_name=None):
   """Configure logging level and format.
 
   Args:
@@ -170,14 +74,225 @@ def configure_logging(log_level_name, log_file_name=None):
   log_level = getattr(logging, log_level_name.upper())
   log_format = '%(asctime)s %(levelname)s %(message)s'
   logging.basicConfig(level=log_level, format=log_format)
+  logger = logging.getLogger()
   if log_file_name:
     fh = logging.FileHandler(log_file_name)
     fh.setLevel(log_level)
     fh.setFormatter(logging.Formatter(log_format))
-    logging.getLogger().addHandler(fh)
+    logger.addHandler(fh)
+  system_handler = platform_settings.get_system_logging_handler()
+  if system_handler:
+    logger.addHandler(system_handler)
 
 
-if __name__ == '__main__':
+def AddDnsForward(server_manager, platform_settings, host):
+  """Forward DNS traffic."""
+  server_manager.AppendStartStopFunctions(
+      [platform_settings.set_primary_dns, host],
+      [platform_settings.restore_primary_dns])
+
+def AddDnsProxy(server_manager, options, host, real_dns_lookup, http_archive):
+  dns_lookup = None
+  if options.dns_private_passthrough:
+    dns_lookup = dnsproxy.PrivateIpDnsLookup(
+        host, real_dns_lookup, http_archive)
+  server_manager.AppendRecordCallback(dns_lookup.InitializeArchiveHosts)
+  server_manager.AppendReplayCallback(dns_lookup.InitializeArchiveHosts)
+  server_manager.Append(dnsproxy.DnsProxyServer, dns_lookup, host)
+
+
+def AddWebProxy(server_manager, options, host, real_dns_lookup, http_archive,
+                cache_misses):
+  inject_script = httpclient.GetInjectScript(options.inject_scripts.split(','))
+  http_custom_handlers = customhandlers.CustomHandlers(options.screenshot_dir)
+  if options.spdy:
+    assert not options.record, 'spdy cannot be used with --record.'
+    http_archive_fetch = httpclient.ReplayHttpArchiveFetch(
+        http_archive,
+        inject_script,
+        options.diff_unknown_requests,
+        cache_misses=cache_misses,
+        use_closest_match=options.use_closest_match)
+    server_manager.Append(
+        replayspdyserver.ReplaySpdyServer, http_archive_fetch,
+        http_custom_handlers, host=host, port=options.port,
+        certfile=options.certfile)
+  else:
+    http_custom_handlers.add_server_manager_handler(server_manager)
+    http_archive_fetch = httpclient.ControllableHttpArchiveFetch(
+        http_archive, real_dns_lookup,
+        inject_script,
+        options.diff_unknown_requests, options.record,
+        cache_misses=cache_misses, use_closest_match=options.use_closest_match)
+    server_manager.AppendRecordCallback(http_archive_fetch.SetRecordMode)
+    server_manager.AppendReplayCallback(http_archive_fetch.SetReplayMode)
+    server_manager.Append(
+        httpproxy.HttpProxyServer, http_archive_fetch, http_custom_handlers,
+        host=host, port=options.port, use_delays=options.use_server_delay)
+    if options.ssl:
+      server_manager.Append(
+          httpproxy.HttpsProxyServer, http_archive_fetch,
+          http_custom_handlers, options.certfile,
+          host=host, port=options.ssl_port, use_delays=options.use_server_delay)
+
+
+def AddTrafficShaper(server_manager, options, host):
+  if options.HasTrafficShaping():
+    server_manager.Append(
+        trafficshaper.TrafficShaper, host=host, port=options.shaping_port,
+        ssl_port=(options.ssl_shaping_port if options.ssl else None),
+        up_bandwidth=options.up, down_bandwidth=options.down,
+        delay_ms=options.delay_ms, packet_loss_rate=options.packet_loss_rate,
+        init_cwnd=options.init_cwnd, use_loopback=not options.server_mode)
+
+
+class OptionsWrapper(object):
+  """Add checks, updates, and methods to option values.
+
+  Example:
+    options, args = option_parser.parse_args()
+    options = OptionsWrapper(options, option_parser)  # run checks and updates
+    if options.record and options.HasTrafficShaping():
+       [...]
+  """
+  _TRAFFICSHAPING_OPTIONS = set(
+      ['down', 'up', 'delay_ms', 'packet_loss_rate', 'init_cwnd', 'net'])
+  _CONFLICTING_OPTIONS = (
+      ('record', ('down', 'up', 'delay_ms', 'packet_loss_rate', 'net',
+                  'spdy', 'use_server_delay')),
+      ('net', ('down', 'up', 'delay_ms')),
+      ('server', ('server_mode',)),
+  )
+  # The --net values come from http://www.webpagetest.org/.
+  # https://sites.google.com/a/webpagetest.org/docs/other-resources/2011-fcc-broadband-data
+  _NET_CONFIGS = (
+      # key           --down         --up  --delay_ms
+      ('dsl',   ('1536Kbit/s', '384Kbit/s',       '50')),
+      ('cable', (   '5Mbit/s',   '1Mbit/s',       '28')),
+      ('fios',  (  '20Mbit/s',   '5Mbit/s',        '4')),
+  )
+  NET_CHOICES = [key for key, values in _NET_CONFIGS]
+
+  def __init__(self, options, parser):
+    self._options = options
+    self._parser = parser
+    self._nondefaults = set([
+        name for name, value in parser.defaults.items()
+        if getattr(options, name) != value])
+    self._CheckConflicts()
+    self._MassageValues()
+
+  def _CheckConflicts(self):
+    """Give an error if mutually exclusive options are used."""
+    for option, bad_options in self._CONFLICTING_OPTIONS:
+      if option in self._nondefaults:
+        for bad_option in bad_options:
+          if bad_option in self._nondefaults:
+            self._parser.error('Option --%s cannot be used with --%s.' %
+                                (bad_option, option))
+
+  def _MassageValues(self):
+    """Set options that depend on the values of other options."""
+    for net_choice, values in self._NET_CONFIGS:
+      if net_choice == self.net:
+        self._options.down, self._options.up, self._options.delay_ms = values
+    if not self.shaping_port:
+      self._options.shaping_port = self.port
+    if not self.ssl_shaping_port:
+      self._options.ssl_shaping_port = self.ssl_port
+    if not self.ssl:
+      self._options.certfile = None
+
+  def __getattr__(self, name):
+    """Make the original option values available."""
+    return getattr(self._options, name)
+
+  def HasTrafficShaping(self):
+    """Returns True iff the options require traffic shaping."""
+    return bool(self._TRAFFICSHAPING_OPTIONS & self._nondefaults)
+
+  def IsRootRequired(self):
+    """Returns True iff the options require root access."""
+    return (self.HasTrafficShaping() or
+            self.dns_forwarding or
+            self.port < 1024 or
+            self.ssl_port < 1024)
+
+
+def replay(options, replay_filename):
+  platform_settings = platformsettings.get_platform_settings()
+  if options.IsRootRequired():
+    platform_settings.rerun_as_administrator()
+  configure_logging(platform_settings, options.log_level, options.log_file)
+  server_manager = servermanager.ServerManager(options.record)
+  cache_misses = None
+  if options.cache_miss_file:
+    if os.path.exists(options.cache_miss_file):
+      logging.warning('Cache Miss Archive file %s already exists; '
+                      'replay will load and append entries to archive file',
+                      options.cache_miss_file)
+      cache_misses = cachemissarchive.CacheMissArchive.Load(
+          options.cache_miss_file)
+    else:
+      cache_misses = cachemissarchive.CacheMissArchive(
+          options.cache_miss_file)
+  if options.server:
+    AddDnsForward(server_manager, platform_settings, options.server)
+  else:
+    host = platform_settings.get_server_ip_address(options.server_mode)
+    real_dns_lookup = dnsproxy.RealDnsLookup(
+        name_servers=[platform_settings.get_original_primary_dns()])
+    if options.record:
+      http_archive = httparchive.HttpArchive()
+      http_archive.AssertWritable(replay_filename)
+    else:
+      http_archive = httparchive.HttpArchive.Load(replay_filename)
+      logging.info('Loaded %d responses from %s',
+                   len(http_archive), replay_filename)
+    server_manager.AppendRecordCallback(real_dns_lookup.ClearCache)
+    server_manager.AppendRecordCallback(http_archive.clear)
+
+    if options.dns_forwarding:
+      if not options.server_mode:
+        AddDnsForward(server_manager, platform_settings, host)
+      AddDnsProxy(server_manager, options, host, real_dns_lookup, http_archive)
+    if options.ssl and options.certfile is None:
+      options.certfile = platform_settings.get_certfile_name()
+      server_manager.AppendStartStopFunctions(
+          [platform_settings.create_certfile, options.certfile],
+          [os.unlink, options.certfile])
+    AddWebProxy(server_manager, options, host, real_dns_lookup,
+                http_archive, cache_misses)
+    AddTrafficShaper(server_manager, options, host)
+
+  exit_status = 0
+  try:
+    server_manager.Run()
+  except KeyboardInterrupt:
+    logging.info('Shutting down.')
+  except (dnsproxy.DnsProxyException,
+          trafficshaper.TrafficShaperException,
+          platformsettings.NotAdministratorError,
+          platformsettings.DnsUpdateError) as e:
+    logging.critical('%s: %s', e.__class__.__name__, e)
+    exit_status = 1
+  except:
+    logging.critical(traceback.format_exc())
+    exit_status = 2
+
+  if options.record:
+    http_archive.Persist(replay_filename)
+    logging.info('Saved %d responses to %s', len(http_archive), replay_filename)
+  if cache_misses:
+    cache_misses.Persist()
+    logging.info('Saved %d cache misses and %d requests to %s',
+                 cache_misses.get_total_cache_misses(),
+                 len(cache_misses.request_counts.keys()),
+                 options.cache_miss_file)
+  return exit_status
+
+
+def main():
   class PlainHelpFormatter(optparse.IndentedHelpFormatter):
     def format_description(self, description):
       if description:
@@ -190,10 +305,9 @@ if __name__ == '__main__':
       description=__doc__,
       epilog='http://code.google.com/p/web-page-replay/')
 
-  option_parser.add_option('-s', '--spdy', default=False,
-      action='store',
-      type='string',
-      help='Use spdy to replay relay_file.  --spdy="no-ssl" uses SPDY without SSL.')
+  option_parser.add_option('--spdy', default=False,
+      action='store_true',
+      help='Replay via SPDY. (Can be combined with --no-ssl).')
   option_parser.add_option('-r', '--record', default=False,
       action='store_true',
       help='Download real responses and record them to replay_file')
@@ -206,6 +320,12 @@ if __name__ == '__main__':
       action='store',
       type='string',
       help='Log file to use in addition to writting logs to stderr.')
+  option_parser.add_option('-e', '--cache_miss_file', default=None,
+      action='store',
+      dest='cache_miss_file',
+      type='string',
+      help='Archive file to record cache misses as pickled objects.'
+           'Cache misses occur when a request cannot be served in replay mode.')
 
   network_group = optparse.OptionGroup(option_parser,
       'Network Simulation Options',
@@ -230,6 +350,12 @@ if __name__ == '__main__':
       action='store',
       type='string',
       help='Set initial cwnd (linux only, requires kernel patch)')
+  network_group.add_option('--net', default=None,
+      action='store',
+      type='choice',
+      choices=OptionsWrapper.NET_CHOICES,
+      help='Select a set of network options: %s.' % ', '.join(
+          OptionsWrapper.NET_CHOICES))
   option_parser.add_option_group(network_group)
 
   harness_group = optparse.OptionGroup(option_parser,
@@ -246,17 +372,28 @@ if __name__ == '__main__':
            'without changing the primary DNS nameserver. '
            'Other hosts may connect to this using "replay.py --server" '
            'or by pointing their DNS to this server.')
-  harness_group.add_option('-n', '--no-deterministic_script', default=True,
+  harness_group.add_option('-i', '--inject_scripts', default='deterministic.js',
+      action='store',
+      dest='inject_scripts',
+      help='A comma separated list of JavaScript sources to inject in all '
+           'pages. By default a script is injected that eliminates sources '
+           'of entropy such as Date() and Math.random() deterministic. '
+           'CAUTION: Without deterministic.js, many pages will not replay.')
+  harness_group.add_option('-D', '--no-diff_unknown_requests', default=True,
       action='store_false',
-      dest='deterministic_script',
-      help='During a record, do not inject JavaScript to make sources of '
-           'entropy such as Date() and Math.random() deterministic. CAUTION: '
-           'With this option many web pages will not replay properly.')
-  harness_group.add_option('-D', '--diff_unknown_requests', default=False,
-      action='store_true',
       dest='diff_unknown_requests',
-      help='During replay, show a unified diff of any unknown requests against '
+      help='During replay, do not show a diff of unknown requests against '
            'their nearest match in the archive.')
+  harness_group.add_option('-C', '--use_closest_match', default=False,
+      action='store_true',
+      dest='use_closest_match',
+      help='During replay, if a request is not found, serve the closest match'
+           'in the archive instead of giving a 404.')
+  harness_group.add_option('-U', '--use_server_delay', default=False,
+      action='store_true',
+      dest='use_server_delay',
+      help='During replay, simulate server delay by delaying response time to'
+           'requests.')
   harness_group.add_option('-I', '--screenshot_dir', default=None,
       action='store',
       type='string',
@@ -270,33 +407,39 @@ if __name__ == '__main__':
   harness_group.add_option('-x', '--no-dns_forwarding', default=True,
       action='store_false',
       dest='dns_forwarding',
-      help='Don\'t forward DNS requests to the local replay server.'
+      help='Don\'t forward DNS requests to the local replay server. '
            'CAUTION: With this option an external mechanism must be used to '
            'forward traffic to the replay server.')
   harness_group.add_option('-o', '--port', default=80,
       action='store',
       type='int',
       help='Port number to listen on.')
-  harness_group.add_option('--shaping_port', default=0,
+  harness_group.add_option('--ssl_port', default=443,
       action='store',
       type='int',
-      help='Port to apply traffic shaping to.  \'0\' means use the same '
-           'port as the listen port (--port)')
-  harness_group.add_option('-c', '--certfile', default='',
+      help='SSL port number to listen on.')
+  harness_group.add_option('--shaping_port', default=None,
       action='store',
-      dest='certfile',
-      type='string',
-      help='Certificate file for use with SSL')
-  harness_group.add_option('-k', '--keyfile', default='',
+      type='int',
+      help='Port on which to apply traffic shaping.  Defaults to the '
+           'listen port (--port)')
+  harness_group.add_option('--ssl_shaping_port', default=None,
       action='store',
-      dest='keyfile',
+      type='int',
+      help='SSL port on which to apply traffic shaping.  Defaults to the '
+           'SSL listen port (--ssl_port)')
+  harness_group.add_option('-c', '--certfile', default=None,
+      action='store',
       type='string',
-      help='Key file for use with SSL')
+      help='Certificate file to use with SSL (gets auto-generated if needed).')
+  harness_group.add_option('--no-ssl', default=True,
+      action='store_false',
+      dest='ssl',
+      help='Do not setup an SSL proxy.')
   option_parser.add_option_group(harness_group)
 
   options, args = option_parser.parse_args()
-
-  configure_logging(options.log_level, options.log_file)
+  options = OptionsWrapper(options, option_parser)
 
   if options.server:
     replay_filename = None
@@ -305,23 +448,8 @@ if __name__ == '__main__':
   else:
     replay_filename = args[0]
 
-  if options.record:
-    if options.up != '0':
-      option_parser.error('Option --up cannot be used with --record.')
-    if options.down != '0':
-      option_parser.error('Option --down cannot be used with --record.')
-    if options.delay_ms != '0':
-      option_parser.error('Option --delay_ms cannot be used with --record.')
-    if options.packet_loss_rate != '0':
-      option_parser.error(
-          'Option --packet_loss_rate cannot be used with --record.')
-    if options.spdy:
-      option_parser.error('Option --spdy cannot be used with --record.')
+  return replay(options, replay_filename)
 
-  if options.server and options.server_mode:
-    option_parser.error('Cannot run with both --server and --server_mode')
 
-  if options.shaping_port == 0:
-    options.shaping_port = options.port
-
-  sys.exit(main(options, replay_filename))
+if __name__ == '__main__':
+  sys.exit(main())
