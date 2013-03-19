@@ -127,8 +127,11 @@ class StoneRidgeUnpacker(object):
         plmanifest = os.path.join(pageloader, 'chrome.manifest')
         fxmanifest = os.path.join(self.bindir, 'chrome.manifest')
         logging.debug('append %s to %s' % (plmanifest, fxmanifest))
-        with file(fxmanifest, 'rb') as f:
-            lines = f.readlines()
+        if os.path.exists(fxmanifest):
+            with file(fxmanifest, 'rb') as f:
+                lines = f.readlines()
+        else:
+            lines = []
         with file(plmanifest, 'rb') as f:
             lines.extend(f.readlines())
         with file(fxmanifest, 'wb') as f:
