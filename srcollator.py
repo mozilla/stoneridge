@@ -21,7 +21,8 @@ class StoneRidgeCollator(object):
     def run(self):
         logging.debug('collator running')
         outdir = stoneridge.get_config('run', 'out')
-        outfiles = glob.glob(os.path.join(outdir, '*.out'))
+        outfiles = glob.glob(os.path.join(outdir, '*.js.out'))
+        outfiles.extend(glob.glob(os.path.join(outdir, '*.page.out')))
         infofile = stoneridge.get_config('run', 'info')
         logging.debug('found outfiles %s' % (outfiles,))
         logging.debug('loading info from %s' % (infofile,))
