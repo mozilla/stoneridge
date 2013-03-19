@@ -53,11 +53,15 @@ def explode_archive(wprfile, archiveroot):
         if url.query:
             name = name + '?' + url.query
 
+        sys.stdout.write('Translating %s "%s" -> ' % (request.host, name))
+
         # Hash everything up
         name = hashlib.sha1(name).hexdigest()
 
         # Make apache recognize the file as an "asis" file
         name += '.asis'
+
+        sys.stdout.write('"%s"\n' % (name,))
 
         # Write our data out
         fname = os.path.join(hostdir, name)
