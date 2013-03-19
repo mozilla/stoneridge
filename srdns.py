@@ -288,8 +288,6 @@ def daemon():
     except KeyboardInterrupt:
         pass
 
-    shutil.rmtree(rundir)
-
 
 @stoneridge.main
 def main():
