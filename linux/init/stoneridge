@@ -18,22 +18,44 @@ MYDEV=eth1
 
 ### THESE ITEMS APPLY ONLY TO STONE RIDGE SERVERS
 # What data rate to shape the interface to
+# Broadband:
 RATE=10mbit
+# UMTS:
+#RATE=1mbit
+# GSM:
+#RATE=400kbit
 
 # MAXBURST and LIMIT help to smooth traffic out over a full bucket period,
-# to prevent things from being bursty. MAXBURST should be equal to RATE
-# while LIMIT should be MAXBURST*3
+# to prevent things from being bursty. MAXBURST should be the either the rate
+# reduced by an SI prefix (so 10mbit->10240) or 1600, whichever is larger.
+# LIMIT should be MAXBURST*3
+# Broadband:
 MAXBURST=10240
 LIMIT=30720
+# UMTS/GSM:
+#MAXBURST=1600
+#LIMIT=4800
 
 # What sort of latency to have on the interface.
+# Broadband:
 LATENCY=90ms
+# UMTS:
+#LATENCY=150ms
+# GSM:
+#LATENCY=300ms
 
 # JITTER and CORRELATION control jitter on the interface. JITTER is the
 # average number of ms of jitter, while CORRELATION is how similar a packet's
 # actual jitter will be to the previous packet's jitter
+# Broadband:
 JITTER=
 CORRELATION=
+# UMTS:
+#JITTER=20ms
+#CORRELATION="25%"
+# GSM:
+#JITTER=40ms
+#CORRELATION="25%"
 
 # What network configuration the above settings correspond to
 NETCONFIG=broadband
