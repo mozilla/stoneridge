@@ -54,6 +54,8 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         srbindir = os.path.join(srwork, firefox_path)
         metadata = os.path.join(srout, 'metadata.zip')
         info = os.path.join(srout, 'info.json')
+        profile = os.path.join(srout, 'profile')
+        os.mkdir(profile)
 
         self.srnetconfig = netconfig
         self.uploaded = False
@@ -70,6 +72,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
             f.write('download = %s\n' % (srdownload,))
             f.write('bin = %s\n' % (srbindir,))
             f.write('out = %s\n' % (srout,))
+            f.write('profile = %s\n' % (profile,))
             f.write('metadata = %s\n' % (metadata,))
             f.write('info = %s\n' % (info,))
             f.write('tstamp = %s\n' % (tstamp,))
@@ -86,6 +89,7 @@ class StoneRidgeWorker(stoneridge.QueueListener):
         self.logger.debug('logdir: %s' % (self.logdir,))
         self.logger.debug('runconfig: %s' % (self.runconfig,))
         self.logger.debug('ldap: %s' % (ldap,))
+        self.logger.debug('profile: %s' % (profile,))
 
         try:
             self.run_test()

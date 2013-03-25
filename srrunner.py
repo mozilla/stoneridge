@@ -90,6 +90,7 @@ class StoneRidgeRunner(object):
 
         # Ensure our output directory exists
         outdir = stoneridge.get_config('run', 'out')
+        profile = stoneridge.get_config('run', 'profile')
         installroot = stoneridge.get_config('stoneridge', 'root')
 
         for test in tests:
@@ -111,6 +112,7 @@ class StoneRidgeRunner(object):
                 args = [
                     '-sr', os.path.join(self.testroot, test),
                     '-sroutput', outfile,
+                    '-profile', profile,
                     # -srwidth, <some width value>,
                     # -srheight, <some height value>,
                     # -srtimeout, <some timeout value per page>,
