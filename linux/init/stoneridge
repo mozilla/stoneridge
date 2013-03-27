@@ -26,15 +26,12 @@ RATE=10mbit
 #RATE=400kbit
 
 # MAXBURST and LIMIT help to smooth traffic out over a full bucket period,
-# to prevent things from being bursty. MAXBURST should be the either the rate
-# reduced by an SI prefix (so 10mbit->10240) or 1600, whichever is larger.
-# LIMIT should be MAXBURST*3
-# Broadband:
-MAXBURST=10240
-LIMIT=30720
-# UMTS/GSM:
-#MAXBURST=1600
-#LIMIT=4800
+# to prevent things from being bursty. Right now, this is set for all network
+# configurations at the values below, because they seem to work. One thing to
+# note is that, according to the internet, LIMIT should be 3*MAXBURST, so if
+# these numbers get adjusted later on, that ratio should be kept in mind.
+MAXBURST=1600
+LIMIT=4800
 
 # What sort of latency to have on the interface.
 # Broadband:
@@ -48,6 +45,8 @@ LATENCY=90ms
 # average number of ms of jitter, while CORRELATION is how similar a packet's
 # actual jitter will be to the previous packet's jitter
 # Broadband:
+# NOTE: the init script on broadband requires that we completely delete these
+# arguments, otherwise the command fails.
 JITTER=
 CORRELATION=
 # UMTS:
