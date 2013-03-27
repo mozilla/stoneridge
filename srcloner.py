@@ -243,7 +243,7 @@ class StoneRidgeCloner(object):
             times.sort(key=lambda x: x[1])
 
             # Now we can figure out which directories to delete!
-            delete_us = times[:-self.keep]
+            delete_us = [t[0] for t in times[:-self.keep]]
             logging.debug('directories to delete: %s' % (delete_us,))
 
             for d in delete_us:
