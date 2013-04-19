@@ -11,14 +11,14 @@ We are able to test against each of these netconfigs on all of our Tier-1
 desktop platforms (Mac OS X 10.8, Windows 7, and Linux (CentOS 6)).
 
 The testbed is made up of 6 machines: 4 linux machines, 1 mac mini, and 1
-windows machine. These machines are:
+windows machine. They are all accessible via the MPT VPN. These machines are:
 
-stone-ridge-linux1.dmz.scl3.mozilla.com - Stone Ridge Master and server for broadband netconfig
-stone-ridge-linux2.dmz.scl3.mozilla.com - Server for umts netconfig
-stone-ridge-linux3.dmz.scl3.mozilla.com - Server for gsm netconfig
-stone-ridge-linux4.dmz.scl3.mozilla.com - Linux client machine
-stone-ridge-mac1.dmz.scl3.mozilla.com - Mac OS X client machine
-stone-ridge-win1.dmz.scl3.mozilla.com - Windows 7 client machine
+* stone-ridge-linux1.dmz.scl3.mozilla.com - Stone Ridge Master and server for broadband netconfig
+* stone-ridge-linux2.dmz.scl3.mozilla.com - Server for umts netconfig
+* stone-ridge-linux3.dmz.scl3.mozilla.com - Server for gsm netconfig
+* stone-ridge-linux4.dmz.scl3.mozilla.com - Linux client machine
+* stone-ridge-mac1.dmz.scl3.mozilla.com - Mac OS X client machine
+* stone-ridge-win1.dmz.scl3.mozilla.com - Windows 7 client machine NOTE: RDP runs on port 22 here instead of the default
 
 None of these machines use any virtualization because we can't risk the sharing
 of resources that comes with virtualization that could affect the test numbers.
@@ -104,9 +104,9 @@ that runs every minute to check the "push" server (currently hosted on heroku)
 to see if anyone has asked to run tests against a try build.
 
 ## Server
-stone-ridge-linux1.dmz.scl3.mozilla.com (broadband)
-stone-ridge-linux2.dmz.scl3.mozilla.com (umts)
-stone-ridge-linux3.dmz.scl3.mozilla.com (gsm)
+* stone-ridge-linux1.dmz.scl3.mozilla.com (broadband)
+* stone-ridge-linux2.dmz.scl3.mozilla.com (umts)
+* stone-ridge-linux3.dmz.scl3.mozilla.com (gsm)
 
 These machines are responsible for shaping network traffic to and from them to
 make it behave like the netconfig they are assigned to. Additionally, they serve
@@ -152,9 +152,9 @@ A script that runs on system startup to configure network traffic shaping on the
 interface that is connected to the stone ridge switch.
 
 ## Client
-stone-ridge-linux4.dmz.scl3.mozilla.com (CentOS 6)
-stone-ridge-mac1.dmz.scl3.mozilla.com (Mac OS X 10.8)
-stone-ridge-win1.dmz.scl3.mozilla.com (Windows 7)
+* stone-ridge-linux4.dmz.scl3.mozilla.com (CentOS 6)
+* stone-ridge-mac1.dmz.scl3.mozilla.com (Mac OS X 10.8)
+* stone-ridge-win1.dmz.scl3.mozilla.com (Windows 7) NOTE: RDP runs on port 22 here instead of the default.
 
 These machines run the tests against each of the selected netconfig servers in
 turn, record the results, and report them to the master. Each of these machines
