@@ -749,10 +749,13 @@ def sendmail(to, subject, message, *attachments):
         msg.attach(mpart)
 
     # And now we can actuall send the email
-    smtp = smtplib.SMTP('localhost')
-    smtp.sendmail('stoneridge@noreply.mozilla.com', [to],
-                  msg.as_string())
-    smtp.close()
+    try:
+        smtp = smtplib.SMTP('localhost')
+        smtp.sendmail('stoneridge@noreply.mozilla.com', [to],
+                      msg.as_string())
+        smtp.close()
+    except:
+        logging.exception('Error sending email to %s' % (to,))
 
 
 _mailurl = None
