@@ -1,0 +1,44 @@
+#! /bin/sh
+#
+# Created by configure
+
+CFLAGS="-DBIG_SECURITY_HOLE"; export CFLAGS
+"./configure" \
+"--disable-authn-file" \
+"--disable-authn-default" \
+"--disable-authz-host" \
+"--disable-authz-groupfile" \
+"--disable-authz-user" \
+"--disable-authz-default" \
+"--disable-auth-basic" \
+"--disable-include" \
+"--disable-filter" \
+"--disable-charset-lite" \
+"--enable-log-config=shared" \
+"--enable-logio=shared" \
+"--enable-mime-magic=shared" \
+"--enable-headers=shared" \
+"--enable-setenvif=shared" \
+"--disable-version" \
+"--enable-ssl=shared" \
+"--enable-mime=shared" \
+"--disable-status" \
+"--disable-autoindex" \
+"--enable-asis=shared" \
+"--disable-cgid" \
+"--disable-cgi" \
+"--enable-negotiation=shared" \
+"--enable-dir=shared" \
+"--disable-actions" \
+"--disable-userdir" \
+"--enable-alias=shared" \
+"--enable-rewrite=shared" \
+"--enable-so" \
+"--enable-vhost-alias=shared" \
+"--enable-cache=shared" \
+"--enable-disk-cache=shared" \
+"--with-mpm=prefork" \
+"--with-ssl=PATH_TO_OPENSSL" \
+"--prefix=PATH_TO_STONERIDGE_HOME" \
+"CFLAGS=-DBIG_SECURITY_HOLE" \
+"$@"
