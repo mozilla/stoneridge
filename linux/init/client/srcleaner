@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srcleaner.pid
-LOG=$SRHOME/srcleaner.log
+PID=$SRRUNDIR/srcleaner.pid
+LOG=$SRLOGDIR/srcleaner.log
 
 start() {
     python $SRRUN $SRROOT/srcleaner.py --config $CONFFILE --pidfile $PID --log $LOG

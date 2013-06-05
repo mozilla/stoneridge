@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srmqproxy.pid
-LOG=$SRHOME/srmqproxy.log
+PID=$SRRUNDIR/srmqproxy.pid
+LOG=$SRLOGDIR/srmqproxy.log
 
 start() {
     python $SRRUN $SRROOT/windows/srmqproxy.py --config $CONFFILE --pidfile $PID --log $LOG

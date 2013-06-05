@@ -1,7 +1,7 @@
 MAILTO=hurley@mozilla.com
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
-HOME=/home/hurley
+HOME=/home/stoneridge
 # Run the nightly test every day at 5am
-0 5 * * * hurley python $HOME/srhome/stoneridge/srrun.py -c "import stoneridge; stoneridge.enqueue()"
+0 5 * * * stoneridge python $HOME/stoneridge/srrun.py -c "import stoneridge; stoneridge.enqueue()"
 # Run the enqueuer for pushed jobs every minute
-* * * * * hurley python $HOME/srhome/stoneridge/srrun.py $HOME/srhome/stoneridge/tools/srenqueuer.py --config $HOME/srhome/srenqueuer.ini --log $HOME/srhome/srenqueuer.log
+* * * * * stoneridge python $HOME/stoneridge/srrun.py $HOME/stoneridge/tools/srenqueuer.py --config $HOME/srenqueuer.ini --log $HOME/logs/srenqueuer.log

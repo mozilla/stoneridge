@@ -18,8 +18,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srpcapper.pid
-LOG=$SRHOME/srpcapper.log
+PID=$SRRUNDIR/srpcapper.pid
+LOG=$SRLOGDIR/srpcapper.log
 
 start() {
     python $SRRUN $SRROOT/srpcapper.py --config $CONFFILE --pidfile $PID --log $LOG

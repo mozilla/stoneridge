@@ -18,8 +18,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srscheduler.pid
-LOG=$SRHOME/srscheduler.log
+PID=$SRRUNDIR/srscheduler.pid
+LOG=$SRLOGDIR/srscheduler.log
 
 start() {
     python $SRRUN $SRROOT/srscheduler.py --config $CONFFILE --pidfile $PID --log $LOG --netconfig $NETCONFIG

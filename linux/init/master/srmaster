@@ -18,8 +18,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srmaster.pid
-LOG=$SRHOME/srmaster.log
+PID=$SRRUNDIR/srmaster.pid
+LOG=$SRLOGDIR/srmaster.log
 
 start() {
     python $SRRUN $SRROOT/srmaster.py --config $CONFFILE --pidfile $PID --log $LOG

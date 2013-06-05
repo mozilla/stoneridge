@@ -4,7 +4,7 @@
 ### THESE ITEMS APPLY ON ALL MACHINES RUNNING ANYTHING TO DO WITH STONE RIDGE
 # Where most (if not all) things in stone ridge live. This is where everything
 # except (possibly) the stoneridge python module MUST be.
-SRHOME=/home/hurley/srhome
+SRHOME=/home/stoneridge
 
 # The configuration file for stone ridge
 CONFFILE=$SRHOME/stoneridge.ini
@@ -77,3 +77,5 @@ GSM_MAC=2C:76:8A:D0:CE:B9
 ### KNOW WHAT YOU ARE DOING! YOU HAVE BEEN WARNED, I MEAN IT!
 SRROOT=$SRHOME/stoneridge
 SRRUN=$SRROOT/srrun.py
+SRRUNDIR=$SRHOME/run
+SRLOGDIR=$SRHOME/logs

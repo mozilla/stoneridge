@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srwebmq.pid
-LOG=$SRHOME/srwebmq.log
+PID=$SRRUNDIR/srwebmq.pid
+LOG=$SRLOGDIR/srwebmq.log
 
 start() {
     python $SRRUN $SRROOT/windows/srwebmq.py --config $CONFFILE --pidfile $PID --log $LOG

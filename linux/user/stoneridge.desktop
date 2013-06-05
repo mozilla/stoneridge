@@ -1,7 +1,7 @@
 
 [Desktop Entry]
 Type=Application
-Exec=/home/hurley/srhome/stoneridge/linux/user/srterm.py
+Exec=/home/stoneridge/stoneridge/linux/user/srterm.py
 Hidden=false
 X-GNOME-Autostart-enabled=true
 Name[en_US]=Stone Ridge

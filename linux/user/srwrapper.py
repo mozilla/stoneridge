@@ -4,7 +4,7 @@ import subprocess
 import sys
 import time
 
-SRHOME = '/home/hurley/srhome'
+SRHOME = '/home/stoneridge'
 SRPYTHON = '%s/stoneridge' % (SRHOME,)
 SRRUN = '%s/srrun.py' % (SRPYTHON,)
 SRWORKER = '%s/srworker.py' % (SRPYTHON,)

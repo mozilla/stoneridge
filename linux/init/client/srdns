@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srdns.pid
-LOG=$SRHOME/srdns.log
+PID=$SRRUNDIR/srdns.pid
+LOG=$SRLOGDIR/srdns.log
 
 start() {
     python $SRRUN $SRROOT/srdns.py --config $CONFFILE --pidfile $PID --log $LOG

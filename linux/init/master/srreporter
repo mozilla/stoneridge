@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srreporter.pid
-LOG=$SRHOME/srreporter.log
+PID=$SRRUNDIR/srreporter.pid
+LOG=$SRLOGDIR/srreporter.log
 
 start() {
     python $SRRUN $SRROOT/srreporter.py --config $CONFFILE --pidfile $PID --log $LOG

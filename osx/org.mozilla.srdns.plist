@@ -7,17 +7,17 @@
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python</string>
-        <string>/Users/hurley/srhome/stoneridge/srdns.py</string>
+        <string>/Users/stoneridge/stoneridge/srdns.py</string>
         <string>--nodaemon</string>
         <string>--config</string>
-        <string>/Users/hurley/srhome/stoneridge.ini</string>
+        <string>/Users/stoneridge/stoneridge.ini</string>
         <string>--log</string>
-        <string>/Users/hurley/srhome/srdns.log</string>
+        <string>/Users/stoneridge/logs/srdns.log</string>
     </array>
     <key>KeepAlive</key>
     <true/>
     <key>WorkingDirectory</key>
-    <string>/Users/hurley/srhome/stoneridge</string>
+    <string>/Users/stoneridge/stoneridge</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>

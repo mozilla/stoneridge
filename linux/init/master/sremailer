@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/sremailer.pid
-LOG=$SRHOME/sremailer.log
+PID=$SRRUNDIR/sremailer.pid
+LOG=$SRLOGDIR/sremailer.log
 
 start() {
     python $SRRUN $SRROOT/sremailer.py --config $CONFFILE --pidfile $PID --log $LOG

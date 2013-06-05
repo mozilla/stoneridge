@@ -17,8 +17,8 @@
 
 source /etc/default/stoneridge
 
-PID=$SRHOME/srnamed.pid
-LOG=$SRHOME/srnamed.log
+PID=$SRRUNDIR/srnamed.pid
+LOG=$SRLOGDIR/srnamed.log
 
 start() {
     python $SRRUN $SRROOT/srnamed.py --listen $MYIP --pidfile $PID --log $LOG --config $CONFFILE
