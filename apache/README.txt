@@ -18,6 +18,8 @@ make
 
 make install
 
+cd ..
+
 Edit httpd.conf, changing the lines with PATH_TO_STONERIDGE_HOME to have the
 appropriate path, and STONERIDGE_USERNAME to be the appropriate username.
 
