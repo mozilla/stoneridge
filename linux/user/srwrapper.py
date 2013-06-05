@@ -9,7 +9,7 @@ SRPYTHON = '%s/stoneridge' % (SRHOME,)
 SRRUN = '%s/srrun.py' % (SRPYTHON,)
 SRWORKER = '%s/srworker.py' % (SRPYTHON,)
 SRINI = '%s/stoneridge.ini' % (SRHOME,)
-LOG = '%s/srworker.log' % (SRHOME,)
+LOG = '%s/logs/srworker.log' % (SRHOME,)
 
 cli = [sys.executable, SRRUN, SRWORKER, '--config', SRINI, '--log', LOG]
 
