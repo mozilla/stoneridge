@@ -38,7 +38,7 @@ CFLAGS="-DBIG_SECURITY_HOLE"; export CFLAGS
 "--enable-cache=shared" \
 "--enable-disk-cache=shared" \
 "--with-mpm=prefork" \
-"--with-ssl=PATH_TO_OPENSSL" \
+"--with-ssl" \
 "--prefix=PATH_TO_STONERIDGE_HOME" \
 "CFLAGS=-DBIG_SECURITY_HOLE" \
 "$@"
