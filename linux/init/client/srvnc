@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# srvnc	Stone Ridge vnc server
+#
+# chkconfig: 2345 99 01
+# description: srvnc runs the vnc server under which the worker runs
+
+### BEGIN INIT INFO
+# Provides: srvnc
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start and stop stoneridge vnc server
+# Description: srvnc runs the vnc server under which the worker runs
+### END INIT INFO
+
+source /etc/default/stoneridge
+
+start() {
+    su -l $SRUSER -c "vncserver"
+}
+
+stop() {
+    su -l $SRUSER -c "vncserver -kill :1"
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|force-reload|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+    exit 2
+esac

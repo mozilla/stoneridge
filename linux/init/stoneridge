@@ -79,3 +79,4 @@ SRROOT=$SRHOME/stoneridge
 SRRUN=$SRROOT/srrun.py
 SRRUNDIR=$SRHOME/run
 SRLOGDIR=$SRHOME/logs
+SRUSER=stoneridge
