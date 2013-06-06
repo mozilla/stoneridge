@@ -1,7 +1,20 @@
 Linux:
 On the master:
-1. Install rabbitmq, and add the named queues
-2. Install nginx, and configure it to serve mirrored builds
+1. Install rabbitmq, and add the following queues, all persistent
+    sr_ct_linux
+    sr_ct_mac
+    sr_ct_windows
+    sr_incoming
+    sr_nc_broadband
+    sr_nc_broadband_rpc
+    sr_nc_gsm
+    sr_nc_gsm_rpc
+    sr_nc_umts
+    sr_nc_umts_rpc
+    sr_outgoing
+2. Install nginx, and configure it to serve mirrored builds from
+   <stone_ridge_home>/builds on a port OTHER than 80
+3. Install linux/cron/stoneridge_master to /etc/cron.d
 
 On the server:
 1. Install apache (see apache/README.txt)
@@ -20,27 +33,33 @@ On the client:
 4. Configure vncserver to start on boot
 
 Everywhere:
-1. Reboot
+1. Modify configuration in /etc/default/stoneridge
+2. Modify configuration in config.ini.example and save in
+   <stone_ridge_home>/stoneridge.ini
+3. Reboot
 
 
 OSX:
 1. Install homebrew
 2. Install python
 3. pip install -r requirements.txt
-4. Run osx/terminal_setup.sh
-5. Add Terminal.app as a login item
-6. Configure user to be auto logged in
-7. Install osx/*.plist to /Library/LaunchDaemons
-8. launchctl load -w /Library/LaunchDaemons/org.mozilla.sr*
-9. Reboot
+4. mkdir archives run logs work # in stone ridge home dir
+5. Run osx/terminal_setup.sh
+6. Add Terminal.app as a login item
+7. Configure user to be auto logged in
+8. Install osx/*.plist to /Library/LaunchDaemons
+9. launchctl load -w /Library/LaunchDaemons/org.mozilla.sr*
+10. Reboot
 
 
 Windows:
 1. Install Python 2.7.x
 2. Install distribute and pip
 3. pip install -r requirements.txt
-4. Install service (see windows/README)
-5. Edit windows/srworker.bat to have the right paths
-6. Put windows/srworker.bat in shell:startup
-7. Set user to be auto logged in
-8. Reboot
+4. mkdir archives run logs work # in stone ridge home dir
+5. Install service (see windows/README)
+6. Edit windows/srworker.bat to have the right paths
+7. Put windows/srworker.bat in shell:startup
+8. Set user to be auto logged in
+9. Add a scheduled task to start srcleaner at system startup
+10. Reboot
