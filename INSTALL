@@ -1,0 +1,46 @@
+Linux:
+On the master:
+1. Install rabbitmq, and add the named queues
+2. Install nginx, and configure it to serve mirrored builds
+
+On the server:
+1. Install apache (see apache/README.txt)
+
+Everywhere:
+1. Install python (see python/README.txt)
+2. mkdir archives builds logs run work (In the stone ridge home dir)
+3. <stone_ridge_home>/bin/pip install -r requirements.txt
+4. Install the appropriate init scripts from linux/init
+5. Install linux/init/stoneridge to /etc/default/stoneridge
+
+On the client:
+1. Install X11 and vncserver
+2. Edit linux/user/{*.py,stoneridge.desktop} to have the right paths
+3. cp linux/user/stoneridge.desktop ~/.config/autostart/stoneridge.desktop
+4. Configure vncserver to start on boot
+
+Everywhere:
+1. Reboot
+
+
+OSX:
+1. Install homebrew
+2. Install python
+3. pip install -r requirements.txt
+4. Run osx/terminal_setup.sh
+5. Add Terminal.app as a login item
+6. Configure user to be auto logged in
+7. Install osx/*.plist to /Library/LaunchDaemons
+8. launchctl load -w /Library/LaunchDaemons/org.mozilla.sr*
+9. Reboot
+
+
+Windows:
+1. Install Python 2.7.x
+2. Install distribute and pip
+3. pip install -r requirements.txt
+4. Install service (see windows/README)
+5. Edit windows/srworker.bat to have the right paths
+6. Put windows/srworker.bat in shell:startup
+7. Set user to be auto logged in
+8. Reboot
