@@ -30,7 +30,7 @@ On the client:
 1. Install X11 and vncserver
 2. Edit linux/user/{*.py,stoneridge.desktop} to have the right paths
 3. cp linux/user/stoneridge.desktop ~/.config/autostart/stoneridge.desktop
-4. Configure vncserver to start on boot
+4. Configure vncserver password
 
 Everywhere:
 1. Modify configuration in /etc/default/stoneridge
