@@ -1,4 +1,4 @@
-bottle==0.11.6
+bottle==0.12.19
 datazilla==1.1
 httplib2==0.7.7
 oauth2==1.5.211
